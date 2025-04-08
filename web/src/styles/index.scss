@@ -1,0 +1,16 @@
+@import './rese.scss';
+
+@include b(pagination) {
+  margin-top: 20px;
+  justify-content: center;
+}
+
+:root {
+  --el-form-label-font-size: 16px !important;
+  --el-font-size-base: 16px !important;
+}
+
+.el-drawer__body {
+  overflow-y: auto;
+}
+// var()
