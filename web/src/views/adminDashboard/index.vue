@@ -83,7 +83,7 @@
   
   const addUser = async () => {
     try {
-      await axios.post('http://localhost:5000/api/admin/add-user', newUser.value, {
+      await axios.post('/api/admin/add-user', newUser.value, {
         headers: { 'admin-id': adminId }
       });
       alert("✅ User added successfully!");
@@ -95,7 +95,7 @@
   
   const addDeal = async () => {
     try {
-      await axios.post('http://localhost:5000/api/admin/add-deal', newDeal.value, {
+      await axios.post('/api/admin/add-deal', newDeal.value, {
         headers: { 'admin-id': adminId }
       });
       alert("✅ Deal added successfully!");
