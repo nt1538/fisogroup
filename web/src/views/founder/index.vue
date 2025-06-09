@@ -23,7 +23,7 @@
   import { useStore } from 'vuex'
 
   const getImageUrl = (idx) => {
-    return new URL(../../assets/img/founder/${idx}.png, import.meta.url).href
+    return new URL('../../assets/img/founder/${idx}.png', import.meta.url).href
   }
   const content = {
     zh: [
