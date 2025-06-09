@@ -1,8 +1,8 @@
 <template>
   <section class="fs-founder">
     <div class="fs-founder__content">
-      <div v-for="(item, i) in render" :key="item.name" class="item" :class="item${i + 1}">
-        <div class="pic" :class="pic${i + 1}" v-if="i == 0 || isMClient">
+      <div v-for="(item, i) in render" :key="item.name" class="item" :class="`item${i + 1}`">
+        <div class="pic" :class="`pic${i + 1}`" v-if="i == 0 || isMClient">
           <img :src="getImageUrl(i + 1)" alt="创始人" />
         </div>
         <div class="txt">
@@ -23,7 +23,7 @@
   import { useStore } from 'vuex'
 
   const getImageUrl = (idx) => {
-    return new URL('../../assets/img/founder/${idx}.png', import.meta.url).href
+    return new URL(`../../assets/img/founder/${idx}.png`, import.meta.url).href
   }
   const content = {
     zh: [
