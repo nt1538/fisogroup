@@ -10,7 +10,7 @@
           <p class="desc" :class="lang">{{ item.desc }}</p>
         </div>
         <!-- Optional alternative for second pic position on PC -->
-        <div class="pic" :class="[`pic${i + 1}`]">
+        <div class="pic pic2 pc" v-if="i == 1 && !isMClient">
           <img :src="getImageUrl(i + 1)" alt="创始人" />
         </div>
       </div>
