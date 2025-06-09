@@ -2,14 +2,15 @@
   <section class="fs-founder">
     <div class="fs-founder__content">
       <div v-for="(item, i) in render" :key="item.name" class="item" :class="`item${i + 1}`">
-        <div class="pic" :class="`pic${i + 1}`" v-if="i == 0 || isMClient">
+        <div class="pic" :class="[`pic${i + 1}`, { pc: i === 1 && !isMClient }]" v-if="isMClient || i !== 1">
           <img :src="getImageUrl(i + 1)" alt="创始人" />
         </div>
         <div class="txt">
           <h3 class="name" :class="lang">{{ item.name }}</h3>
           <p class="desc" :class="lang">{{ item.desc }}</p>
         </div>
-        <div class="pic pic2 pc" v-if="i == 1 && !isMClient">
+        <!-- Optional alternative for second pic position on PC -->
+        <div class="pic pic2 pc" v-if="i === 1 && !isMClient">
           <img :src="getImageUrl(i + 1)" alt="创始人" />
         </div>
       </div>
