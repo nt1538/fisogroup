@@ -60,7 +60,7 @@
   const fetchUserData = async () => {
     try {
       const userId = JSON.parse(localStorage.getItem("user")).id;
-      const { data } = await axios.get(`http://localhost:5000/api/me/${userId}`);
+      const { data } = await axios.get(`/api/me/${userId}`);
   
       user.value = data.user;
       ytdEarnings.value = data.ytdEarnings;
@@ -145,6 +145,45 @@
     background-color: #0055a4;
     color: white;
   }
+
+  @media (max-width: 768px) {
+  .dashboard {
+    flex-direction: column;
+  }
+
+  .profile-page {
+    margin-left: 0;
+    padding: 20px;
+  }
+
+  .title {
+    font-size: 22px;
+    text-align: center;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    font-size: 14px;
+  }
+
+  .profile-section,
+  .earnings-section,
+  .term-earnings {
+    padding: 15px;
+  }
+
+  table {
+    font-size: 13px;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th, td {
+    padding: 8px;
+  }
+}
+
   </style>
   
   

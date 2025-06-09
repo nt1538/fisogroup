@@ -2,11 +2,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import path from 'path'
-import styleImport from 'vite-plugin-style-import'
 
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-const viewPort = require('postcss-px-to-viewport')
+
 export default defineConfig({
   esbuild: {
     jsxFactory: 'h',
@@ -22,7 +21,7 @@ export default defineConfig({
       }
     }
   },
-  base: process.env.NODE_ENV === 'production' ? '/fsgroup/' : process.env.NODE_ENV === 'progit' ? '/' : '/',
+  base: '/',
   resolve: {
     alias: {
       '~': path.resolve(__dirname, './'),
@@ -52,9 +51,7 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8080/',
         changeOrigin: true,
-        rewrite: (path) => {
-          return path
-        },
+        rewrite: (path) => path,
         secure: false,
         ws: false
       }
@@ -65,22 +62,7 @@ export default defineConfig({
     vueJsx(),
     Components({
       resolvers: [ElementPlusResolver()]
-    }),
-    styleImport({
-      libs: [
-        {
-          libraryName: 'element-plus',
-          esModule: true,
-          ensureStyleFile: true,
-          resolveStyle: (name) => {
-            name = name.slice(3)
-            return `element-plus/packages/theme-chalk/src/${name}.scss`
-          },
-          resolveComponent: (name) => {
-            return `element-plus/lib/${name}`
-          }
-        }
-      ]
     })
   ]
 })
+

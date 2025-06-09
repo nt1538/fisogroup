@@ -15,6 +15,9 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'hierarchy_db',
     password: process.env.DB_PASSWORD || 'Access121',
     port: process.env.DB_PORT || 5432,
+    ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 pool.connect()
@@ -67,6 +70,16 @@ app.get('/api/orders/annuity', async (req, res) => {
     }
 });
 
+app.get('/api/db-test', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({ success: true, time: result.rows[0].now });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 app.get('/api/employee/:id', async (req, res) => {
     const userId = req.params.id;
     try {
@@ -79,6 +92,29 @@ app.get('/api/employee/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+
+app.get('/api/org-chart/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(`
+      WITH RECURSIVE employee_tree AS (
+        SELECT id, name, role, total_earnings, current_profit, introducer_id
+        FROM users
+        WHERE id = $1
+        UNION ALL
+        SELECT u.id, u.name, u.role, u.total_earnings, u.current_profit, u.introducer_id
+        FROM users u
+        INNER JOIN employee_tree et ON u.introducer_id = et.id
+      )
+      SELECT * FROM employee_tree WHERE id != $1
+    `, [id]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch organization chart' });
+  }
+});
+
 
 app.post('/api/admin/add-user', async (req, res) => {
     const { name, email, password, role, comp_level, introducer_id } = req.body;

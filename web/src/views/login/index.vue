@@ -1,4 +1,4 @@
-<template>
+\<template>
   <section class="fs-login">
     <div class="fs-login__content">
       <div class="txt">
@@ -59,7 +59,7 @@ const login = async () => {
   }
 
   try {
-    const response = await axios.post('http://localhost:5000/api/login', {
+    const response = await axios.post('/api/login', {
       email: email.value,
       password: password.value,
     });
