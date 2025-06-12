@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import axios from '@/config/axios.config'
 import Sidebar from '@/components/Sidebar.vue'
 import TreeNode from './TreeNode.vue' // 组件见下方
 const tree = ref([])

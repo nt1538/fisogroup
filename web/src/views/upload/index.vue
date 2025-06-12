@@ -63,7 +63,7 @@
   
   <script setup>
   import { ref } from 'vue';
-  import axios from 'axios';
+  import axios from '@/config/axios.config';
   import Sidebar from '@/components/Sidebar.vue';
   
   const user = JSON.parse(localStorage.getItem('user'));

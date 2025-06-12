@@ -62,7 +62,8 @@
   
   <script setup>
   import { ref, onMounted } from 'vue';
-  import axios from 'axios';
+  import axios from '@/config/axios.config';
+
   
   const employees = ref([]);
   const newUser = ref({ name: "", email: "", password: "", role: "", comp_level: "", introducer_id: null });

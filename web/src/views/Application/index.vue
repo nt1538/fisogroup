@@ -58,7 +58,7 @@
   
   <script setup>
   import { ref, onMounted } from 'vue';
-  import axios from 'axios';
+  import axios from '@/config/axios.config';
   import Sidebar from '@/components/Sidebar.vue';
   
   const lifeOrders = ref([]);

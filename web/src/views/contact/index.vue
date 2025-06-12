@@ -141,7 +141,7 @@
   import { computed, watch, ref, reactive } from 'vue'
   import { useStore } from 'vuex'
   import { ElNotification } from 'element-plus'
-  import axios from 'axios'
+  import axios from '@/config/axios.config';
 
   const content = {
     en: {

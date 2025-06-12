@@ -91,4 +91,27 @@ service.interceptors.response.use(
   }
 )
 
+service.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+}, error => {
+  return Promise.reject(error)
+})
+
+// 可选：响应拦截处理 401 等错误
+service.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      console.warn('未授权，可能需要重新登录')
+      // 可选跳转：window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default service

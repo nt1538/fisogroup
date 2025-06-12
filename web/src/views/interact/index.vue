@@ -115,7 +115,7 @@
 
 <script setup lang="ts">
   import { ElNotification } from 'element-plus'
-  import axios from 'axios'
+  import axios from '@/config/axios.config'
   import bg1 from '@/assets/img/interact/1.jpg'
   import bg2 from '@/assets/img/interact/2.jpg'
   import bg3 from '@/assets/img/interact/3.jpg'
