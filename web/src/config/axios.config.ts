@@ -9,6 +9,7 @@ interface AxiosRequestOptions extends AxiosRequestConfig {
 }
 
 const service = axios.create({
+  baseURL: '/api',
   timeout: 5000, // 请求超时时间
   withCredentials: true // 跨域
 })
