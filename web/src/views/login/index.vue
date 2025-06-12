@@ -51,12 +51,13 @@ onMounted(() => {
   document.title = "Login - Agent Portal";
 });
 
-// Login function
 const login = async () => {
   if (!email.value || !password.value) {
     errorMessage.value = "⚠️ Please enter your email and password.";
     return;
   }
+
+  errorMessage.value = ""; // 清空旧错误
 
   try {
     const response = await axios.post('/login', {
@@ -64,19 +65,28 @@ const login = async () => {
       password: password.value,
     });
 
-    localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
+    // 检查是否返回了 token 和 user
+    if (response.data.token && response.data.user) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
 
-    if (response.data.user.is_admin) {
-      router.push('/adminDashboard');  // ✅ Redirects admin to Admin Dashboard
+      if (response.data.user.is_admin) {
+        router.push('/adminDashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } else {
-      router.push('/dashboard');  // ✅ Redirects employees to Employee Dashboard
+      errorMessage.value = "⚠️ Unexpected response from server.";
     }
   } catch (error) {
-    errorMessage.value = "❌ Invalid email or password. Please try again.";
+    if (error.response?.status === 401) {
+      errorMessage.value = "❌ Invalid email or password. Please try again.";
+    } else {
+      errorMessage.value = "❌ Server error. Please try again later.";
+      console.error("Login error:", error);
+    }
   }
 };
-</script>
 
 <style lang="scss" scoped>
 .fs-login {
