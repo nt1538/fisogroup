@@ -88,6 +88,8 @@ const login = async () => {
   }
 };
 
+</script>
+
 <style lang="scss" scoped>
 .fs-login {
   background: #fff;
