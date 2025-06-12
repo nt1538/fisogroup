@@ -179,6 +179,30 @@ router.get('/me/:id', async (req, res) => {
     }
 });
 
+app.get('/api/org-chart', async (req, res) => {
+  const userId = req.user?.id; // Assuming user is authenticated
+
+  const query = `
+    WITH RECURSIVE employee_tree AS (
+      SELECT id, name, role, total_earnings, current_profit, introducer_id
+      FROM users
+      WHERE id = $1
+      UNION ALL
+      SELECT u.id, u.name, u.role, u.total_earnings, u.current_profit, u.introducer_id
+      FROM users u
+      INNER JOIN employee_tree et ON u.introducer_id = et.id
+    )
+    SELECT * FROM employee_tree WHERE id != $1
+  `;
+  try {
+    const result = await pool.query(query, [userId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  }
+});
+
 app.use('/api', router);
 
 const PORT = process.env.PORT || 5000;
