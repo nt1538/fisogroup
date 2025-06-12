@@ -1,4 +1,4 @@
-\<template>
+<template>
   <section class="fs-login">
     <div class="fs-login__content">
       <div class="txt">
@@ -6,7 +6,6 @@
       </div>
       <div class="info clearfix">
         <el-form label-position="left" @submit.prevent="login">
-          <!-- Email Input -->
           <el-form-item class="no-border">
             <el-input v-model="email" maxlength="50" placeholder="Enter your email">
               <template #prefix>
@@ -15,7 +14,6 @@
             </el-input>
           </el-form-item>
 
-          <!-- Password Input -->
           <el-form-item class="no-border">
             <el-input v-model="password" type="password" maxlength="50" placeholder="Enter your password">
               <template #prefix>
@@ -24,10 +22,8 @@
             </el-input>
           </el-form-item>
 
-          <!-- Styled Error Message -->
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
-          <!-- Login Button -->
           <el-button color="#626aef" type="primary" @click="login">Login</el-button>
         </el-form>
       </div>
@@ -44,7 +40,6 @@ const router = useRouter();
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
-
 const render = ref({ title: 'Agent Login' });
 
 onMounted(() => {
@@ -57,7 +52,7 @@ const login = async () => {
     return;
   }
 
-  errorMessage.value = ""; // 清空旧错误
+  errorMessage.value = "";
 
   try {
     const response = await axios.post('/login', {
@@ -65,18 +60,12 @@ const login = async () => {
       password: password.value,
     });
 
-    // 检查是否返回了 token 和 user
-    if (response.data.token && response.data.user) {
+    if (response.data?.token && response.data?.user) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-
-      if (response.data.user.is_admin) {
-        router.push('/adminDashboard');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push(response.data.user.is_admin ? '/adminDashboard' : '/dashboard');
     } else {
-      errorMessage.value = "⚠️ Unexpected response from server.";
+      errorMessage.value = "⚠️ Login failed: Invalid server response.";
     }
   } catch (error) {
     if (error.response?.status === 401) {
@@ -87,10 +76,9 @@ const login = async () => {
     }
   }
 };
-
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .fs-login {
   background: #fff;
   display: flex;
@@ -142,4 +130,3 @@ const login = async () => {
   text-align: center;
 }
 </style>
-
