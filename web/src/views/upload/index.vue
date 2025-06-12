@@ -84,8 +84,8 @@
   const submitForm = async () => {
     try {
       const endpoint = form.value.product_type === 'life'
-        ? '/api/orders/life'
-        : '/api/orders/annuity';
+        ? '/orders/life'
+        : '/orders/annuity';
   
       await axios.post(endpoint, {
         ...form.value,

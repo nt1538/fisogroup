@@ -66,8 +66,8 @@
   
   onMounted(async () => {
     try {
-      const lifeRes = await axios.get('/api/orders/life?status=completed');
-      const annuityRes = await axios.get('/api/orders/annuity?status=completed');
+      const lifeRes = await axios.get('/orders/life?status=completed');
+      const annuityRes = await axios.get('/orders/annuity?status=completed');
       lifeOrders.value = lifeRes.data;
       annuityOrders.value = annuityRes.data;
     } catch (err) {
