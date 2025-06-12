@@ -1,8 +1,8 @@
 export default {
     tabs: [
       {
-        name: 'organizationChart',
-        path: '/reports/organizationChart',
+        name: 'Organization Chart',
+        path: '/reports/org-Chart',
         component: () => import('./index.vue')
       }
     ]
