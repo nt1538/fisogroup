@@ -5,25 +5,65 @@ const pool = require('../db');
 // Get user profile, earnings summary and term earnings
 router.get('/me/:id', async (req, res) => {
   const userId = req.params.id;
+
   try {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-    const user = result.rows[0];
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const client = await pool.connect();
 
-    const ytdEarnings = user.total_earnings || 0;
-    const rollingEarnings = ytdEarnings;
+    // Get user info
+    const userQuery = await client.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const user = userQuery.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-    const termEarnings = [
-      { period_start: '2025-01-01', period_end: '2025-03-31', earnings: ytdEarnings * 0.25 },
-      { period_start: '2025-04-01', period_end: '2025-06-30', earnings: ytdEarnings * 0.25 },
-      { period_start: '2025-07-01', period_end: '2025-09-30', earnings: ytdEarnings * 0.25 },
-      { period_start: '2025-10-01', period_end: '2025-12-31', earnings: ytdEarnings * 0.25 }
-    ];
+    // Get YTD earnings
+    const ytdQuery = await client.query(
+      `SELECT COALESCE(SUM(amount), 0) AS total 
+       FROM life_orders 
+       WHERE seller_id = $1 AND order_date >= date_trunc('year', CURRENT_DATE)`,
+      [userId]
+    );
+    const ytdEarnings = ytdQuery.rows[0].total;
 
-    res.json({ user, ytdEarnings, rollingEarnings, termEarnings });
+    // Get rolling 12-month earnings
+    const rollingQuery = await client.query(
+      `SELECT COALESCE(SUM(amount), 0) AS total 
+       FROM life_orders 
+       WHERE seller_id = $1 AND order_date >= CURRENT_DATE - INTERVAL '12 months'`,
+      [userId]
+    );
+    const rollingEarnings = rollingQuery.rows[0].total;
+
+    // Get earnings per quarter (last 4 terms)
+    const termQuery = await client.query(
+      `SELECT 
+         MIN(order_date) AS period_start,
+         MAX(order_date) AS period_end,
+         COALESCE(SUM(amount), 0) AS earnings
+       FROM (
+         SELECT *,
+           width_bucket(order_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
+         FROM life_orders
+         WHERE seller_id = $1
+       ) AS bucketed
+       GROUP BY term
+       ORDER BY term`,
+      [userId]
+    );
+
+    const termEarnings = termQuery.rows;
+
+    res.json({
+      user,
+      ytdEarnings,
+      rollingEarnings,
+      termEarnings
+    });
+
+    client.release();
   } catch (err) {
-    console.error('Error fetching user profile:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error fetching profile data:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
