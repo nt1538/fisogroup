@@ -46,6 +46,12 @@ onMounted(() => {
   document.title = "Login - Agent Portal";
 });
 
+const toSha256 = async (text) => {
+  const buffer = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 const login = async () => {
   if (!email.value || !password.value) {
     errorMessage.value = "⚠️ Please enter your email and password.";
@@ -55,9 +61,11 @@ const login = async () => {
   errorMessage.value = "";
 
   try {
-    const response = await axios.post('/login', {
+    const hashedPassword = await toSha256(password.value);
+
+    const response = await axios.post('/auth/login', {
       email: email.value,
-      password: password.value,
+      password: hashedPassword, // Send hashed version
     });
 
     if (response.data?.token && response.data?.user) {
