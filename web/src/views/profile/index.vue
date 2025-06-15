@@ -60,7 +60,7 @@
   const fetchUserData = async () => {
     try {
       const userId = JSON.parse(localStorage.getItem("user")).id;
-      const { data } = await axios.get(`/me/${userId}`);
+      const { data } = await axios.get(`/users/me/${userId}`);
   
       user.value = data.user;
       ytdEarnings.value = data.ytdEarnings;
