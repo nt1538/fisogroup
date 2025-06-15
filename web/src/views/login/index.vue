@@ -25,6 +25,7 @@
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
           <el-button color="#626aef" type="primary" @click="login">Login</el-button>
+          <el-button type="text" @click="goToRegister">Create an account</el-button>
         </el-form>
       </div>
     </div>
@@ -50,6 +51,10 @@ const toSha256 = async (text) => {
   const buffer = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
   return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+const goToRegister = () => {
+  router.push('/register');
 };
 
 const login = async () => {
