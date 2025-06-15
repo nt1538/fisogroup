@@ -119,14 +119,16 @@ const login = async () => {
   margin-bottom: 20px;
 }
 
-.button-group {
+.button-group-left {
   display: flex;
   flex-direction: column;
+  align-items: flex-start; // <-- left-align buttons
   gap: 10px;
   margin-top: 20px;
 
   .el-button {
-    width: 100%;
+    width: auto; // button will auto-fit content
+    min-width: 140px;
     font-size: 16px;
     background-color: #626aef;
     color: white;
