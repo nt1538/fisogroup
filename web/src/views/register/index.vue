@@ -56,7 +56,7 @@ const introducer_id = ref('');
 const level_percent = ref(70);
 const errorMessage = ref('');
 
-const access_code = ref('Access121');
+const access_code = ref('');
 
 const toSha256 = async (text) => {
   const buffer = new TextEncoder().encode(text);
