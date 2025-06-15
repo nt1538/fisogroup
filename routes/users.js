@@ -39,7 +39,7 @@ router.get('/me/:id', async (req, res) => {
       `SELECT 
          MIN(order_date) AS period_start,
          MAX(order_date) AS period_end,
-         COALESCE(SUM(amount), 0) AS earnings
+         SELECT COALESCE(SUM(commission), 0) AS total
        FROM (
          SELECT *,
            width_bucket(order_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
