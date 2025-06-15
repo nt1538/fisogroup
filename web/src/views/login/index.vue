@@ -70,7 +70,7 @@ const login = async () => {
   try {
     const hashedPassword = await toSha256(password.value);
 
-    const response = await axios.post('/auth/login', {
+    const response = await axios.post('/login', {
       email: email.value,
       password: hashedPassword, // Send hashed version
     });
