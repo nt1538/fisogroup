@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 
 // Get user profile, earnings summary and term earnings
-router.get('/users/me/:id', async (req, res) => {
+router.get('/me/:id', async (req, res) => {
   const userId = req.params.id;
 
   try {
