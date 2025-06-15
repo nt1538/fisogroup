@@ -18,7 +18,7 @@ router.get('/me/:id', async (req, res) => {
 
     // Get YTD earnings
     const ytdQuery = await client.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total 
+      `SELECT COALESCE(SUM(commission), 0) AS total 
        FROM life_orders 
        WHERE seller_id = $1 AND order_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
@@ -27,7 +27,7 @@ router.get('/me/:id', async (req, res) => {
 
     // Get rolling 12-month earnings
     const rollingQuery = await client.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total 
+      `SELECT COALESCE(SUM(commission), 0) AS total 
        FROM life_orders 
        WHERE seller_id = $1 AND order_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
