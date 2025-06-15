@@ -2,6 +2,35 @@ const express = require('express');
 const pool = require('../db');
 const router = express.Router();
 
+const { getCommissionPercent } = require('../utils/commission'); // ✅ 引入函数
+
+router.post('/', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { user_id, amount } = req.body;
+
+    const userRes = await client.query(`SELECT level_percent FROM users WHERE id = $1`, [user_id]);
+    const user = userRes.rows[0];
+
+    const commission_percent = await getCommissionPercent(client, user_id);
+    const commission_amount = amount * commission_percent / 100;
+    const level_commission = commission_amount * user.level_percent / 100;
+
+    // 继续插入订单、更新收益...
+
+    await client.query('COMMIT');
+    res.json({ success: true, commission_percent, commission_amount, level_commission });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Order creation failed' });
+  } finally {
+    client.release();
+  }
+});
+
 // Generation override rates: Gen1 = 5%, Gen2 = 3%, Gen3 = 1%
 const overrideRates = [5, 3, 1]; // in %
 
@@ -126,6 +155,8 @@ async function insertOrder(data) {
     data.comment
   ]);
 }
+
+
 
 module.exports = router;
 

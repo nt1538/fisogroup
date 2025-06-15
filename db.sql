@@ -104,3 +104,29 @@ CREATE TABLE annuities_orders (
   status TEXT DEFAULT 'In Progress',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users
+ADD COLUMN commission NUMERIC DEFAULT 0,
+ADD COLUMN profit NUMERIC DEFAULT 0;
+
+-- 更新 orders 表，增加总佣金与用户个人佣金字段
+ALTER TABLE life_orders
+ADD COLUMN commission_amount NUMERIC,
+ADD COLUMN level_commission NUMERIC;
+
+CREATE TABLE commission_chart (
+  id SERIAL PRIMARY KEY,
+  title TEXT,
+  min_amount NUMERIC,
+  max_amount NUMERIC,
+  commission_percent INTEGER
+);
+
+INSERT INTO commission_chart (title, min_amount, max_amount, commission_percent) VALUES
+('Level A', 0, 29999.99, 70),
+('Level B', 30000, 59999.99, 75),
+('Level C', 60000, 249999.99, 80),
+('Agency1', 250000, 499999.99, 85),
+('Agency2', 500000, 999999.99, 90),
+('Agency3', 1000000, 1999999.99, 95),
+('Vice President', 2000000, 999999999, 100);
