@@ -30,6 +30,10 @@
             <el-input v-model.number="introducer_id" placeholder="Introducer ID (optional)" />
           </el-form-item>
 
+          <el-form-item class="no-border">
+            <el-input v-model="access_code" placeholder="Access Code" />
+          </el-form-item>
+
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
           <el-button type="primary" @click="register">Register</el-button>
         </el-form>
@@ -52,6 +56,8 @@ const introducer_id = ref('');
 const level_percent = ref(70);
 const errorMessage = ref('');
 
+const access_code = ref('Access121');
+
 const toSha256 = async (text) => {
   const buffer = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
@@ -73,7 +79,8 @@ const register = async () => {
       password: hashedPassword,
       state: state.value.toUpperCase(),
       introducer_id: introducer_id.value || null,
-      level_percent: level_percent.value || 70
+      level_percent: level_percent.value || 70,
+      access_code: access_code.value,
     });
 
     router.push('/login');
