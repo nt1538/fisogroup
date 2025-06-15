@@ -130,3 +130,8 @@ INSERT INTO commission_chart (title, min_amount, max_amount, commission_percent)
 ('Agency2', 500000, 999999.99, 90),
 ('Agency3', 1000000, 1999999.99, 95),
 ('Vice President', 2000000, 999999999, 100);
+
+ALTER TABLE life_orders
+ADD COLUMN chart_percent NUMERIC,
+ADD COLUMN level_percent NUMERIC,
+ADD COLUMN parent_order_id INT;
