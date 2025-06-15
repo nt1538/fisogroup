@@ -24,9 +24,10 @@
 
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
-          <el-button color="#626aef" type="primary" @click="login">Login</el-button>
-          
-          <el-button color="#626aef" type="primary" @click="goToRegister">Create an account</el-button>
+          <div class="button-group">
+            <el-button color="#626aef" type="primary" @click="login">Login</el-button>
+            <el-button color="#626aef" type="primary" @click="goToRegister">Create an account</el-button>
+          </div>
         </el-form>
       </div>
     </div>
@@ -118,15 +119,22 @@ const login = async () => {
   margin-bottom: 20px;
 }
 
-.el-button {
-  width: 100%;
-  font-size: 16px;
-  background-color: #626aef;
-  color: white;
-}
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
 
-.el-button:hover {
-  background-color: #5058c9;
+  .el-button {
+    width: 100%;
+    font-size: 16px;
+    background-color: #626aef;
+    color: white;
+
+    &:hover {
+      background-color: #5058c9;
+    }
+  }
 }
 
 .icon {
