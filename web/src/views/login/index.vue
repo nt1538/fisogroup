@@ -25,7 +25,8 @@
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
           <el-button color="#626aef" type="primary" @click="login">Login</el-button>
-          <el-button type="text" @click="goToRegister">Create an account</el-button>
+          
+          <el-button color="#626aef" type="primary" @click="goToRegister">Create an account</el-button>
         </el-form>
       </div>
     </div>
