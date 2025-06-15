@@ -2,49 +2,50 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Get user profile, earnings summary and term earnings
+// ✅ 获取用户个人信息和收益统计
 router.get('/me/:id', async (req, res) => {
   const userId = req.params.id;
 
   try {
     const client = await pool.connect();
 
-    // Get user info
+    // 获取用户基本信息
     const userQuery = await client.query('SELECT * FROM users WHERE id = $1', [userId]);
     const user = userQuery.rows[0];
     if (!user) {
+      client.release();
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Get YTD earnings
+    // 当年起的总佣金（YTD）
     const ytdQuery = await client.query(
-      `SELECT COALESCE(SUM(commission), 0) AS total 
-       FROM life_orders 
-       WHERE seller_id = $1 AND order_date >= date_trunc('year', CURRENT_DATE)`,
+      `SELECT COALESCE(SUM(commission_amount), 0) AS total
+       FROM life_orders
+       WHERE user_id = $1 AND date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
     );
     const ytdEarnings = ytdQuery.rows[0].total;
 
-    // Get rolling 12-month earnings
+    // 近12个月的总佣金
     const rollingQuery = await client.query(
-      `SELECT COALESCE(SUM(commission), 0) AS total 
-       FROM life_orders 
-       WHERE seller_id = $1 AND order_date >= CURRENT_DATE - INTERVAL '12 months'`,
+      `SELECT COALESCE(SUM(commission_amount), 0) AS total
+       FROM life_orders
+       WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
     const rollingEarnings = rollingQuery.rows[0].total;
 
-    // Get earnings per quarter (last 4 terms)
+    // 最近 4 个季度的佣金汇总（按季度分组）
     const termQuery = await client.query(
       `SELECT 
-         MIN(order_date) AS period_start,
-         MAX(order_date) AS period_end,
-         SELECT COALESCE(SUM(commission), 0) AS total
+         MIN(date) AS period_start,
+         MAX(date) AS period_end,
+         SUM(commission_amount) AS total
        FROM (
          SELECT *,
-           width_bucket(order_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
+           width_bucket(date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
          FROM life_orders
-         WHERE seller_id = $1
+         WHERE user_id = $1
        ) AS bucketed
        GROUP BY term
        ORDER BY term`,
@@ -53,31 +54,31 @@ router.get('/me/:id', async (req, res) => {
 
     const termEarnings = termQuery.rows;
 
+    client.release();
+
     res.json({
       user,
       ytdEarnings,
       rollingEarnings,
       termEarnings
     });
-
-    client.release();
   } catch (err) {
     console.error('Error fetching profile data:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get full org chart with names and earnings
+// ✅ 获取组织结构树（引荐关系）
 router.get('/org-chart/:id', async (req, res) => {
   const userId = req.params.id;
   try {
     const result = await pool.query(`
       WITH RECURSIVE hierarchy AS (
-        SELECT id, name, email, introducer_id, total_earnings
+        SELECT id, name, email, introducer_id
         FROM users
         WHERE id = $1
         UNION
-        SELECT u.id, u.name, u.email, u.introducer_id, u.total_earnings
+        SELECT u.id, u.name, u.email, u.introducer_id
         FROM users u
         INNER JOIN hierarchy h ON u.introducer_id = h.id
       )
@@ -92,3 +93,4 @@ router.get('/org-chart/:id', async (req, res) => {
 });
 
 module.exports = router;
+
