@@ -5,17 +5,17 @@ const { verifyToken } = require('../middleware/auth');
 const { getCommissionPercent } = require('../utils/commission');
 
 // ======== CREATE LIFE ORDER =========
-router.post('/life', authenticateToken, async (req, res) => {
+router.post('/life', verifyToken, async (req, res) => {
   await createOrder(req, res, 'life_orders', 'Personal Commission');
 });
 
 // ======== CREATE ANNUITY ORDER ========
-router.post('/annuity', authenticateToken, async (req, res) => {
+router.post('/annuity', verifyToken, async (req, res) => {
   await createOrder(req, res, 'annuity_orders', 'Personal Commission');
 });
 
 // ======== GET LIFE ORDERS (with ?status= optional) ========
-router.get('/life', authenticateToken, async (req, res) => {
+router.get('/life', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const status = req.query.status;
@@ -37,7 +37,7 @@ router.get('/life', authenticateToken, async (req, res) => {
 });
 
 // ======== GET ANNUITY ORDERS (with ?status= optional) ========
-router.get('/annuity', authenticateToken, async (req, res) => {
+router.get('/annuity', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const status = req.query.status;
