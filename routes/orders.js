@@ -65,15 +65,13 @@ async function createOrder(req, res, tableName, defaultType) {
     const {
       user_id,
       policy_number,
-      state,
-      date = new Date(),
+      initial_premium,
       order_type = defaultType,
       application_status = 'in_progress',
-      initial_premium,
     } = req.body;
 
-    const premium = initial_premium;
-    const chart_percent = await getCommissionPercent(client, user_id, premium);
+    // 获取用于计算佣金的百分比
+    const chart_percent = await getCommissionPercent(client, user_id, initial_premium);
 
     const userRes = await client.query(
       `SELECT level_percent, introducer_id FROM users WHERE id = $1`,
@@ -83,24 +81,25 @@ async function createOrder(req, res, tableName, defaultType) {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const actual_percent = Math.max(user.level_percent, chart_percent);
-    const commission_amount = premium * actual_percent / 100;
+    const commission_amount = initial_premium * actual_percent / 100;
 
+    // 插入主订单记录
     const insertRes = await client.query(
       `INSERT INTO ${tableName}
-        (user_id, policy_number, date, order_type, commission_percent, commission_amount,
+        (user_id, policy_number, order_type, commission_percent, commission_amount,
          chart_percent, level_percent, application_status,
          agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
          carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
          commission_from_carrier, mra_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-               $10, $11, $12,
-               $13, $14, $15, $16, $17, $18, $19,
-               $20, $21, $22, $23, $24, $25)
+       VALUES ($1, $2, $3, $4, $5,
+               $6, $7, $8,
+               $9, $10, $11, $12, $13, $14, $15,
+               $16, $17, $18, $19, $20, $21, $22,
+               $23, $24)
        RETURNING id`,
       [
         user_id,
         policy_number,
-        date,
         order_type,
         actual_percent,
         commission_amount,
@@ -120,7 +119,7 @@ async function createOrder(req, res, tableName, defaultType) {
         req.body.application_date,
         req.body.face_amount,
         req.body.target_premium,
-        premium,
+        initial_premium,
         req.body.commission_from_carrier,
         req.body.mra_status || 'none'
       ]
@@ -128,7 +127,7 @@ async function createOrder(req, res, tableName, defaultType) {
 
     const orderId = insertRes.rows[0].id;
 
-    // Introducer commission loop
+    // Introducer 佣金分配
     let introducerId = user.introducer_id;
     let remainingPercent = actual_percent;
 
@@ -143,20 +142,23 @@ async function createOrder(req, res, tableName, defaultType) {
       const introPercent = introducer.level_percent;
       const introDiff = Math.max(0, remainingPercent - introPercent);
       if (introDiff > 0.01) {
-        const introCommission = premium * introDiff / 100;
+        const introCommission = initial_premium * introDiff / 100;
 
         await client.query(
           `INSERT INTO ${tableName}
-            (user_id, policy_number, date, order_type, commission_percent, commission_amount, parent_order_id, application_status)
-           VALUES ($1, $2, $3, 'Introducer Commission', $6, $7, $8, $9)`,
+            (user_id, policy_number, order_type, commission_percent, commission_amount,
+             chart_percent, level_percent, parent_order_id, application_status)
+           VALUES ($1, $2, 'Introducer Commission', $3, $4,
+                   $5, $6, $7, $8)`,
           [
             introducer.id,
             policy_number,
-            date,
             introDiff,
             introCommission,
+            chart_percent,
+            introPercent,
             orderId,
-            application_status,
+            application_status
           ]
         );
         remainingPercent = introPercent;
