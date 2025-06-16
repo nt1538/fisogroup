@@ -142,7 +142,7 @@ async function createOrder(req, res, tableName, defaultType) {
 
     while (introducerId) {
   const introRes = await client.query(
-    `SELECT id, name, national_producer_number, license_number FROM users WHERE id = $1`,
+    `SELECT id, name, national_producer_number, license_number, hierarchy_level FROM users WHERE id = $1`,
   [introducerId]
   );
   const introducer = introRes.rows[0];
@@ -171,6 +171,10 @@ async function createOrder(req, res, tableName, defaultType) {
   const diff = intro_percent - remainingPercent;
   const first_name = name.split(' ')[0];
   const last_name = name.split(' ')[1] || '';
+  const national_producer_number = '';
+
+  //will change
+  const license_number = '';
   if (diff > 0.01) {
     const diffCommission = initial_premium * diff / 100;
     await client.query(
@@ -196,8 +200,9 @@ async function createOrder(req, res, tableName, defaultType) {
     introducer.id,
     first_name,
     last_name,
-    introducer.national_producer_number,
-    introducer.license_number,
+    //will change
+    // introducer.national_producer_number,
+    // introducer.license_number,
     introducer.hierarchy_level,             // optional or computed
     req.body.split_percent || 100,
     req.body.carrier_name,
@@ -246,8 +251,9 @@ async function createOrder(req, res, tableName, defaultType) {
     introducer.agent_fiso,
     introducer.first_name,
     introducer.last_name,
-    introducer.national_producer_number,
-    introducer.license_number,
+    //will change
+    // introducer.national_producer_number,
+    // introducer.license_number,
     introducer.hierarchy_level,             // optional or computed
     req.body.split_percent || 100,
     req.body.carrier_name,
