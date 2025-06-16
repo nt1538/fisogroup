@@ -141,50 +141,50 @@ async function createOrder(req, res, tableName, defaultType) {
     let override_generation = 1;
 
     while (introducerId) {
-  const introRes = await client.query(
-    `SELECT id, name, hierarchy_level FROM users WHERE id = $1`,
-  [introducerId]
-  );
-  const introducer = introRes.rows[0];
-  if (!introducer) break;
+      const introRes = await client.query(
+        `SELECT id, name, hierarchy_level, level_percent, introducer_id FROM users WHERE id = $1`,
+        [introducerId]
+      );
+      const introducer = introRes.rows[0];
+      if (!introducer) break;
 
-  const introlevel_percent = introducer.level_percent || 0;
+      const introlevel_percent = introducer.level_percent || 0;
 
-  const chartRes = await client.query(
-    `SELECT COALESCE(SUM(initial_premium), 0) AS total
-     FROM ${tableName}
-     WHERE user_id = $1 AND order_type = 'Personal Commission'`,
-    [introducerId]
-  );
+      const chartRes = await client.query(
+        `SELECT COALESCE(SUM(initial_premium), 0) AS total
+        FROM ${tableName}
+        WHERE user_id = $1 AND order_type = 'Personal Commission'`,
+        [introducerId]
+      );
 
-  const intrototalPremium = parseFloat(chartRes.rows[0].total);
-  let introchart_percent = 70;
-  if (intrototalPremium >= 2000000) introchart_percent = 100;
-  else if (intrototalPremium >= 1000000) introchart_percent = 95;
-  else if (intrototalPremium >= 500000) introchart_percent = 90;
-  else if (intrototalPremium >= 250000) introchart_percent = 85;
-  else if (intrototalPremium >= 60000) introchart_percent = 80;
-  else if (intrototalPremium >= 30000) introchart_percent = 75;
+      const intrototalPremium = parseFloat(chartRes.rows[0].total);
+      let introchart_percent = 70;
+      if (intrototalPremium >= 2000000) introchart_percent = 100;
+      else if (intrototalPremium >= 1000000) introchart_percent = 95;
+      else if (intrototalPremium >= 500000) introchart_percent = 90;
+      else if (intrototalPremium >= 250000) introchart_percent = 85;
+      else if (intrototalPremium >= 60000) introchart_percent = 80;
+      else if (intrototalPremium >= 30000) introchart_percent = 75;
 
-  const intro_percent = Math.max(introlevel_percent, introchart_percent);
+      const intro_percent = Math.max(introlevel_percent, introchart_percent);
 
-  const diff = intro_percent - remainingPercent;
-  const first_name = introducer.name.split(' ')[0];
-  const last_name = introducer.name.split(' ')[1] || '';
+      const diff = intro_percent - remainingPercent;
+      const first_name = introducer.name.split(' ')[0];
+      const last_name = introducer.name.split(' ')[1] || '';
 
-  //will change
-  const national_producer_number = '';
-  const license_number = '';
-  if (diff > 0.01) {
-    const diffCommission = initial_premium * diff / 100;
-    await client.query(
-      `INSERT INTO ${tableName}
-    (user_id, policy_number, order_type, commission_percent, commission_amount,
-     chart_percent, level_percent, application_status,
-     agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
-     carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
-     commission_from_carrier, mra_status, parent_order_id)
-   VALUES ($1, $2, 'Level Difference', $3, $4,
+    //will change
+      const national_producer_number = '';
+      const license_number = '';
+      if (diff > 0.01) {
+      const diffCommission = initial_premium * diff / 100;
+        await client.query(
+         `INSERT INTO ${tableName}
+        (user_id, policy_number, order_type, commission_percent, commission_amount,
+        chart_percent, level_percent, application_status,
+        agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
+        carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
+        commission_from_carrier, mra_status, parent_order_id)
+        VALUES ($1, $2, 'Level Difference', $3, $4,
            $5, $6, $7,
            $8, $9, $10, $11, $12, $13, $14,
            $15, $16, $17, $18, $19, $20, $21,
