@@ -71,8 +71,8 @@ async function createOrder(req, res, tableName, defaultType) {
     } = req.body;
 
     // 获取用于计算佣金的百分比
-    const chart_percent = await getCommissionPercent(client, user_id, initial_premium);
-
+    let chart_percent = await getCommissionPercent(client, user_id);
+    chart_percent = parseFloat(chart_percent || 0);
     const userRes = await client.query(
       `SELECT level_percent, introducer_id FROM users WHERE id = $1`,
       [user_id]
