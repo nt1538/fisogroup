@@ -30,7 +30,7 @@ router.get('/me/:id', async (req, res) => {
     const rollingQuery = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
       FROM life_orders
-      WHERE user_id = $1 AND order_date >= CURRENT_DATE - INTERVAL '12 months'`,
+      WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
     const rollingEarnings = rollingQuery.rows[0].total;
@@ -38,12 +38,12 @@ router.get('/me/:id', async (req, res) => {
     // 最近 4 个季度的佣金汇总（按季度分组）
     const termQuery = await client.query(
       `SELECT 
-        MIN(order_date) AS period_start,
-        MAX(order_date) AS period_end,
+        MIN(application_date) AS period_start,
+        MAX(application_date) AS period_end,
         SUM(commission_amount) AS total
       FROM (
         SELECT *,
-          width_bucket(order_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
+          width_bucket(application_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
         FROM life_orders
         WHERE user_id = $1
       ) AS bucketed
