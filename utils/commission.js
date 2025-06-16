@@ -1,25 +1,87 @@
-async function getCommissionPercent(client, user_id) {
-  // 查询该用户所有订单（life + annuity）的总初始保费
-  const { rows } = await client.query(`
-    SELECT 
-      COALESCE(SUM(initial_premium), 0) AS total_premium
-    FROM (
-      SELECT initial_premium FROM life_orders WHERE user_id = $1
-      UNION ALL
-      SELECT initial_premium FROM annuity_orders WHERE user_id = $1
-    ) AS all_orders
-  `, [user_id]);
+const db = require('../db');
 
-  const total = rows[0].total_premium;
-
-  // 你可以按实际设置的佣金图表调整以下区间
-  if (total >= 2000000) return 100;
-  if (total >= 1000000) return 95;
-  if (total >= 500000) return 90;
-  if (total >= 250000) return 85;
-  if (total >= 60000) return 80;
-  if (total >= 30000) return 75;
-  return 70;
+// Get the level percent for a given total earnings
+async function getCommissionPercent(total) {
+  const result = await db.query(
+    `SELECT commission_percent FROM commission_chart
+     WHERE $1 >= min_amount AND $1 <= max_amount
+     ORDER BY min_amount DESC LIMIT 1`,
+    [total]
+  );
+  return result.rows.length ? result.rows[0].commission_percent : 70;
 }
 
-module.exports = { getCommissionPercent };
+// Recursively distribute commissions up the user hierarchy
+async function distributeCommissions(order, currentUserId, originalCommission, parentOrderId = null, depth = 0) {
+  if (depth >= 10 || !currentUserId) return; // Prevent infinite loop
+
+  const userResult = await db.query('SELECT * FROM users WHERE id = $1', [currentUserId]);
+  const user = userResult.rows[0];
+  if (!user) return;
+
+  const userTotal = parseFloat(user.total_earnings || 0);
+  const userLevel = await getCommissionPercent(userTotal);
+  const orderLevel = parseFloat(order.level_percent);
+
+  let commissionType = 'Generation Override';
+  let difference = orderLevel - userLevel;
+  let percent = 0;
+
+  if (depth === 0) {
+    commissionType = 'Personal Commission';
+    percent = parseFloat(order.commission_percent || 0);
+  } else if (difference > 0) {
+    commissionType = 'Level Difference';
+    percent = difference;
+  } else {
+    percent = 5;
+  }
+
+  const amount = originalCommission * (percent / 100);
+  if (amount <= 0.01) return;
+
+  await db.query(
+    `INSERT INTO life_orders (
+      user_id, policy_number, commission_percent, commission_amount,
+      chart_percent, level_percent, parent_order_id, order_type,
+      application_status, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'in_progress', 'In Progress')`,
+    [user.id, order.policy_number, percent, amount, order.chart_percent, userLevel, parentOrderId, commissionType]
+  );
+
+  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
+
+  if (user.introducer_id) {
+    await distributeCommissions(order, user.introducer_id, originalCommission, order.id, depth + 1);
+  }
+}
+
+// Main handler
+async function handleCommissions(order, userId) {
+  const user = (await db.query('SELECT * FROM users WHERE id = $1', [userId])).rows[0];
+  if (!user) return;
+
+  const total = parseFloat(user.total_earnings || 0);
+  const levelPercent = await getCommissionPercent(total);
+  const chartPercent = order.chart_percent || 60; // default chart percent
+  const split = parseFloat(order.split_percent || 100);
+
+  const base = parseFloat(order.commission_from_carrier || 0);
+  const effectivePercent = (chartPercent * levelPercent * split) / 10000;
+  const personalCommission = base * effectivePercent;
+
+  await db.query(
+    `UPDATE life_orders SET chart_percent = $1, level_percent = $2, commission_amount = $3
+     WHERE id = $4`,
+    [chartPercent, levelPercent, personalCommission, order.id]
+  );
+
+  await db.query(
+    'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
+    [personalCommission, userId]
+  );
+
+  await distributeCommissions(order, user.introducer_id, base, order.id);
+}
+
+module.exports = { handleCommissions };
