@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { verifyToken } = require('../middleware/auth');
 
 // ✅ 获取用户个人信息和收益统计
-router.get('/me/:id', async (req, res) => {
-  const userId = req.params.id;
+router.get('/me/:id', verifyToken, async (req, res) => {
+  const userId = parseInt(req.params.id);
+
+  // 校验当前 token 用户是否请求自己的数据
+  if (req.user.id !== userId) {
+    return res.status(403).json({ error: 'Forbidden: ID mismatch' });
+  }
 
   try {
     const client = await pool.connect();
@@ -20,8 +26,8 @@ router.get('/me/:id', async (req, res) => {
     // 当年起的总佣金（YTD）
     const ytdQuery = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
-      FROM life_orders
-      WHERE user_id = $1 AND order_date >= date_trunc('year', CURRENT_DATE)`,
+       FROM life_orders
+       WHERE user_id = $1 AND application_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
     );
     const ytdEarnings = ytdQuery.rows[0].total;
@@ -29,8 +35,8 @@ router.get('/me/:id', async (req, res) => {
     // 近12个月的总佣金
     const rollingQuery = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
-      FROM life_orders
-      WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
+       FROM life_orders
+       WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
     const rollingEarnings = rollingQuery.rows[0].total;
@@ -38,17 +44,17 @@ router.get('/me/:id', async (req, res) => {
     // 最近 4 个季度的佣金汇总（按季度分组）
     const termQuery = await client.query(
       `SELECT 
-        MIN(application_date) AS period_start,
-        MAX(application_date) AS period_end,
-        SUM(commission_amount) AS total
-      FROM (
-        SELECT *,
-          width_bucket(application_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
-        FROM life_orders
-        WHERE user_id = $1
-      ) AS bucketed
-      GROUP BY term
-      ORDER BY term`,
+         MIN(application_date) AS period_start,
+         MAX(application_date) AS period_end,
+         SUM(commission_amount) AS total
+       FROM (
+         SELECT *,
+           width_bucket(application_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
+         FROM life_orders
+         WHERE user_id = $1
+       ) AS bucketed
+       GROUP BY term
+       ORDER BY term`,
       [userId]
     );
 
@@ -69,8 +75,9 @@ router.get('/me/:id', async (req, res) => {
 });
 
 // ✅ 获取组织结构树（引荐关系）
-router.get('/org-chart/:id', async (req, res) => {
-  const userId = req.params.id;
+router.get('/org-chart/:id', verifyToken, async (req, res) => {
+  const userId = parseInt(req.params.id);
+
   try {
     const result = await pool.query(`
       WITH RECURSIVE hierarchy AS (

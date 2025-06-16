@@ -66,8 +66,16 @@
   
   onMounted(async () => {
     try {
-      const lifeRes = await axios.get('/orders/life');
-      const annuityRes = await axios.get('/orders/annuity');
+      const lifeRes = await axios.get('/orders/life', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      const annuityRes = await axios.get('/orders/annuity', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
       lifeOrders.value = lifeRes.data;
       annuityOrders.value = annuityRes.data;
     } catch (err) {
