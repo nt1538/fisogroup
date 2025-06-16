@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS life_orders;
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS documents;
 DROP TABLE IF EXISTS uploads;
-DROP TABLE IF EXISTS annuities_orders;
+DROP TABLE IF EXISTS annuity_orders;
 
 -- USERS TABLE (with state info)
 CREATE TABLE users (
@@ -81,7 +81,7 @@ CREATE TABLE uploads (
 );
 
 -- ANNUITIES TABLE (Matches full frontend display)
-CREATE TABLE annuities_orders (
+CREATE TABLE annuity_orders (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id),
   agent_fiso TEXT,
