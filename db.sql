@@ -187,3 +187,5 @@ ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS target_premium NUMERIC;
 ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS initial_premium NUMERIC;
 ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS commission_from_carrier NUMERIC;
 ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS mra_status TEXT;
+
+ALTER TABLE life_orders ADD COLUMN order_type TEXT;
