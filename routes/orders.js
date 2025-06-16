@@ -147,22 +147,24 @@ async function createOrder(req, res, tableName, defaultType) {
       );
       const introducer = introRes.rows[0];
       if (!introducer) break;
+      const introlevel_percent = introRes.rows[2];
       const chartRes = await client.query(
         `SELECT COALESCE(SUM(initial_premium), 0) AS total
           FROM ${tableName}
           WHERE user_id = $1 AND order_type = 'Personal Commission'`,
         [introducerId]
       );
+
       const intrototalPremium = parseFloat(chartRes.rows[0].total);
       let introchart_percent = 70;
-      if (intrototalPremium >= 2000000) chart_percent = 100;
-      else if (intrototalPremium >= 1000000) chart_percent = 95;
-      else if (intrototalPremium >= 500000) chart_percent = 90;
-      else if (intrototalPremium >= 250000) chart_percent = 85;
-      else if (intrototalPremium >= 60000) chart_percent = 80;
-      else if (intrototalPremium >= 30000) chart_percent = 75;
+      if (intrototalPremium >= 2000000) introchart_percent = 100;
+      else if (intrototalPremium >= 1000000) introchart_percent = 95;
+      else if (intrototalPremium >= 500000) introchart_percent = 90;
+      else if (intrototalPremium >= 250000) introchart_percent = 85;
+      else if (intrototalPremium >= 60000) introchart_percent = 80;
+      else if (intrototalPremium >= 30000) introchart_percent = 75;
 
-      const intro_percent = Math.max(level_percent, introchart_percent);
+      const intro_percent = Math.max(introlevel_percent, introchart_percent);
 
       const diff = intro_percent - remainingPercent;
       if (diff > 0.01) {
