@@ -66,7 +66,7 @@
     }
 
     const userId = storedUser.id;
-    const token = storedUser.token;
+    const token = JSON.parse(localStorage.getItem("token"));
 
     const { data } = await axios.get(`/users/me/${userId}`, {
       headers: {
