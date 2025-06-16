@@ -141,86 +141,88 @@ async function createOrder(req, res, tableName, defaultType) {
     let override_generation = 1;
 
     while (introducerId) {
-      const introRes = await client.query(
-        `SELECT id, introducer_id, level_percent FROM users WHERE id = $1`,
-        [introducerId]
+  const introRes = await client.query(
+    `SELECT id, introducer_id, level_percent FROM users WHERE id = $1`,
+    [introducerId]
+  );
+  const introducer = introRes.rows[0];
+  if (!introducer) break;
+
+  const introlevel_percent = introducer.level_percent || 0;
+
+  const chartRes = await client.query(
+    `SELECT COALESCE(SUM(initial_premium), 0) AS total
+     FROM ${tableName}
+     WHERE user_id = $1 AND order_type = 'Personal Commission'`,
+    [introducerId]
+  );
+
+  const intrototalPremium = parseFloat(chartRes.rows[0].total);
+  let introchart_percent = 70;
+  if (intrototalPremium >= 2000000) introchart_percent = 100;
+  else if (intrototalPremium >= 1000000) introchart_percent = 95;
+  else if (intrototalPremium >= 500000) introchart_percent = 90;
+  else if (intrototalPremium >= 250000) introchart_percent = 85;
+  else if (intrototalPremium >= 60000) introchart_percent = 80;
+  else if (intrototalPremium >= 30000) introchart_percent = 75;
+
+  const intro_percent = Math.max(introlevel_percent, introchart_percent);
+
+  const diff = intro_percent - remainingPercent;
+  if (diff > 0.01) {
+    const diffCommission = initial_premium * diff / 100;
+    await client.query(
+      `INSERT INTO ${tableName}
+        (user_id, policy_number, order_type, commission_percent, commission_amount,
+         chart_percent, level_percent, parent_order_id, application_status)
+       VALUES ($1, $2, 'Level Difference', $3, $4,
+               $5, $6, $7, $8)`,
+      [
+        introducer.id,
+        policy_number,
+        diff,
+        diffCommission,
+        introchart_percent,
+        intro_percent,
+        orderId,
+        application_status
+      ]
+    );
+    remainingPercent = intro_percent;
+  }
+
+  if (intro_percent >= 85) {
+    let overridePercent = 0;
+    if (override_generation === 1) overridePercent = 5;
+    else if (override_generation === 2) overridePercent = 3;
+    else if (override_generation === 3) overridePercent = 1;
+
+    if (overridePercent > 0) {
+      const overrideCommission = initial_premium * overridePercent / 100;
+      await client.query(
+        `INSERT INTO ${tableName}
+          (user_id, policy_number, order_type, commission_percent, commission_amount,
+           chart_percent, level_percent, parent_order_id, application_status)
+         VALUES ($1, $2, 'Generation Override', $3, $4,
+                 $5, $6, $7, $8)`,
+        [
+          introducer.id,
+          policy_number,
+          overridePercent,
+          overrideCommission,
+          introchart_percent,
+          intro_percent,
+          orderId,
+          application_status
+        ]
       );
-      const introducer = introRes.rows[0];
-      if (!introducer) break;
-      const introlevel_percent = introRes.rows[2];
-      const chartRes = await client.query(
-        `SELECT COALESCE(SUM(initial_premium), 0) AS total
-          FROM ${tableName}
-          WHERE user_id = $1 AND order_type = 'Personal Commission'`,
-        [introducerId]
-      );
-
-      const intrototalPremium = parseFloat(chartRes.rows[0].total);
-      let introchart_percent = 70;
-      if (intrototalPremium >= 2000000) introchart_percent = 100;
-      else if (intrototalPremium >= 1000000) introchart_percent = 95;
-      else if (intrototalPremium >= 500000) introchart_percent = 90;
-      else if (intrototalPremium >= 250000) introchart_percent = 85;
-      else if (intrototalPremium >= 60000) introchart_percent = 80;
-      else if (intrototalPremium >= 30000) introchart_percent = 75;
-
-      const intro_percent = Math.max(introlevel_percent, introchart_percent);
-
-      const diff = intro_percent - remainingPercent;
-      if (diff > 0.01) {
-        const diffCommission = initial_premium * diff / 100;
-        await client.query(
-          `INSERT INTO ${tableName}
-            (user_id, policy_number, order_type, commission_percent, commission_amount,
-             chart_percent, level_percent, parent_order_id, application_status)
-           VALUES ($1, $2, 'Level Difference', $3, $4,
-                   $5, $6, $7, $8)`,
-          [
-            introducer.id,
-            policy_number,
-            diff,
-            diffCommission,
-            introchart_percent,
-            intro_percent,
-            orderId,
-            application_status
-          ]
-        );
-        remainingPercent = intro_percent;
-      }
-
-      if (intro_percent >= 85) {
-        let overridePercent = 0;
-        if (override_generation === 1) overridePercent = 5;
-        else if (override_generation === 2) overridePercent = 3;
-        else if (override_generation === 3) overridePercent = 1;
-
-        if (overridePercent > 0) {
-          const overrideCommission = initial_premium * overridePercent / 100;
-          await client.query(
-            `INSERT INTO ${tableName}
-              (user_id, policy_number, order_type, commission_percent, commission_amount,
-               chart_percent, level_percent, parent_order_id, application_status)
-             VALUES ($1, $2, 'Generation Override', $3, $4,
-                     $5, $6, $7, $8)`,
-            [
-              introducer.id,
-              policy_number,
-              overridePercent,
-              overrideCommission,
-              introchart_percent,
-              intro_percent,
-              orderId,
-              application_status
-            ]
-          );
-        }
-        override_generation += 1;
-      }
-
-      introducerId = introducer.introducer_id;
-      generation += 1;
     }
+    override_generation += 1;
+  }
+
+  introducerId = introducer.introducer_id;
+  generation += 1;
+}
 
     res.json({ message: 'Order created successfully', order_id: orderId });
   } catch (err) {
