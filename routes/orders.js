@@ -142,7 +142,7 @@ async function createOrder(req, res, tableName, defaultType) {
 
     while (introducerId) {
   const introRes = await client.query(
-    `SELECT id, first_name, last_name, national_producer_number, license_number FROM users WHERE id = $1`,
+    `SELECT id, name, national_producer_number, license_number FROM users WHERE id = $1`,
   [introducerId]
   );
   const introducer = introRes.rows[0];
@@ -169,6 +169,8 @@ async function createOrder(req, res, tableName, defaultType) {
   const intro_percent = Math.max(introlevel_percent, introchart_percent);
 
   const diff = intro_percent - remainingPercent;
+  const first_name = name.split(' ')[0];
+  const last_name = name.split(' ')[1] || '';
   if (diff > 0.01) {
     const diffCommission = initial_premium * diff / 100;
     await client.query(
@@ -191,12 +193,12 @@ async function createOrder(req, res, tableName, defaultType) {
     introchart_percent,
     intro_percent,
     application_status,
-    introUser.agent_fiso,
-    introUser.first_name,
-    introUser.last_name,
-    introUser.national_producer_number,
-    introUser.license_number,
-    introHierarchyLevel,             // optional or computed
+    introducer.id,
+    first_name,
+    last_name,
+    introducer.national_producer_number,
+    introducer.license_number,
+    introducer.hierarchy_level,             // optional or computed
     req.body.split_percent || 100,
     req.body.carrier_name,
     req.body.product_type,
@@ -241,12 +243,12 @@ async function createOrder(req, res, tableName, defaultType) {
     introchart_percent,
     intro_percent,
     application_status,
-    introUser.agent_fiso,
-    introUser.first_name,
-    introUser.last_name,
-    introUser.national_producer_number,
-    introUser.license_number,
-    introHierarchyLevel,             // optional or computed
+    introducer.agent_fiso,
+    introducer.first_name,
+    introducer.last_name,
+    introducer.national_producer_number,
+    introducer.license_number,
+    introducer.hierarchy_level,             // optional or computed
     req.body.split_percent || 100,
     req.body.carrier_name,
     req.body.product_type,
