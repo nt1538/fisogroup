@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
 const { getCommissionPercent } = require('../utils/commission');
 
 // ======== CREATE LIFE ORDER =========
