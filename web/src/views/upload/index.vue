@@ -96,7 +96,6 @@
         national_producer_number: user.npn || '',
         license_number: user.license_number || '',
         hierarchy_level: user.role,
-        commission_percent: user.comp_level,
         split_percent: 100,
         application_status: 'in_progress',
         mra_status: 'none'

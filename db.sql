@@ -189,3 +189,11 @@ ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS commission_from_carrier NUME
 ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS mra_status TEXT;
 
 ALTER TABLE life_orders ADD COLUMN order_type TEXT;
+
+UPDATE life_orders
+SET commission_percent = NULL,
+    commission_amount = NULL
+WHERE commission_percent = 'NaN' OR commission_amount = 'NaN';
+
+ALTER TABLE life_orders
+ALTER COLUMN commission_percent TYPE NUMERIC USING commission_percent::NUMERIC;

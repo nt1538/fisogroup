@@ -80,7 +80,13 @@ async function createOrder(req, res, tableName, defaultType) {
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const actual_percent = Math.max(user.level_percent, chart_percent);
+    // const actual_percent = Math.max(user.level_percent, chart_percent);
+    // const commission_amount = initial_premium * actual_percent / 100;
+
+    const levelPercent = parseFloat(user.level_percent || 0);        // 修复 bug: "100" → 100
+    const chartPercent = parseFloat(chart_percent || 0);             // 修复 bug: null → 0
+
+    const actual_percent = Math.max(levelPercent, chartPercent);     // 不再是 NaN
     const commission_amount = initial_premium * actual_percent / 100;
 
     // 插入主订单记录
