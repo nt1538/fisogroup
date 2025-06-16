@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { verifyToken } = require('../middleware/auth');
-const { getCommissionPercent } = require('../utils/commission');
 
 // ======== CREATE LIFE ORDER =========
 router.post('/life', verifyToken, async (req, res) => {
@@ -16,33 +15,21 @@ router.post('/annuity', verifyToken, async (req, res) => {
 
 // ======== GET LIFE ORDERS (with ?status= optional) ========
 router.get('/life', verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const status = req.query.status;
-
-    let query = `SELECT * FROM life_orders WHERE user_id = $1`;
-    let params = [userId];
-
-    if (status) {
-      query += ` AND application_status = $2`;
-      params.push(status);
-    }
-
-    const { rows } = await pool.query(query, params);
-    res.json(rows);
-  } catch (err) {
-    console.error('Error fetching life orders:', err);
-    res.status(500).json({ error: 'Failed to fetch life orders' });
-  }
+  await getOrders(req, res, 'life_orders');
 });
 
 // ======== GET ANNUITY ORDERS (with ?status= optional) ========
 router.get('/annuity', verifyToken, async (req, res) => {
+  await getOrders(req, res, 'annuity_orders');
+});
+
+// ========== HELPER: Get Orders ==========
+async function getOrders(req, res, tableName) {
   try {
     const userId = req.user.id;
     const status = req.query.status;
 
-    let query = `SELECT * FROM annuity_orders WHERE user_id = $1`;
+    let query = `SELECT * FROM ${tableName} WHERE user_id = $1`;
     let params = [userId];
 
     if (status) {
@@ -53,12 +40,12 @@ router.get('/annuity', verifyToken, async (req, res) => {
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching annuity orders:', err);
-    res.status(500).json({ error: 'Failed to fetch annuity orders' });
+    console.error(`Error fetching ${tableName}:`, err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
-});
+}
 
-// ========= ORDER CREATION SHARED LOGIC =========
+// ========== HELPER: Create Order ==========
 async function createOrder(req, res, tableName, defaultType) {
   const client = await pool.connect();
   try {
@@ -70,23 +57,45 @@ async function createOrder(req, res, tableName, defaultType) {
       application_status = 'in_progress',
     } = req.body;
 
+    // 查询用户信息
     const userRes = await client.query(
-      `SELECT level_percent, introducer_id, hierarchy_level FROM users WHERE id = $1`,
+      `SELECT id, level_percent, introducer_id FROM users WHERE id = $1`,
       [user_id]
     );
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const premiumTotalRes = await client.query(
-      `SELECT SUM(initial_premium) AS total FROM ${tableName} WHERE user_id = $1 AND order_type = 'Personal Commission'`,
+    const level_percent = user.level_percent || 0;
+
+    // 动态设置 hierarchy level
+    let hierarchy_level = 'Agent';
+    if (level_percent >= 100) {
+      hierarchy_level = 'Agency 1';
+    } else if (level_percent >= 80) {
+      hierarchy_level = 'Agency 2';
+    } else if (level_percent >= 60) {
+      hierarchy_level = 'Agency 3';
+    }
+
+    // 获取 chart commission：该用户所有 personal commission 的累计初始保费
+    const chartRes = await client.query(
+      `SELECT COALESCE(SUM(initial_premium), 0) AS total
+       FROM ${tableName}
+       WHERE user_id = $1 AND order_type = 'Personal Commission'`,
       [user_id]
     );
-    const totalPremium = parseFloat(premiumTotalRes.rows[0].total) || 0;
-    const chart_percent = await getCommissionPercent(client, user_id, totalPremium);
+    const totalPremium = parseFloat(chartRes.rows[0].total);
+    let chart_percent = 60;
+    if (totalPremium >= 1000000) chart_percent = 110;
+    else if (totalPremium >= 500000) chart_percent = 100;
+    else if (totalPremium >= 200000) chart_percent = 90;
+    else if (totalPremium >= 100000) chart_percent = 80;
+    else if (totalPremium >= 50000) chart_percent = 70;
 
-    const actual_percent = Math.max(user.level_percent, chart_percent);
+    const actual_percent = Math.max(level_percent, chart_percent);
     const commission_amount = initial_premium * actual_percent / 100;
 
+    // 插入主订单记录
     const insertRes = await client.query(
       `INSERT INTO ${tableName}
         (user_id, policy_number, order_type, commission_percent, commission_amount,
@@ -107,14 +116,14 @@ async function createOrder(req, res, tableName, defaultType) {
         actual_percent,
         commission_amount,
         chart_percent,
-        user.level_percent,
+        level_percent,
         application_status,
         req.body.agent_fiso,
         req.body.first_name,
         req.body.last_name,
         req.body.national_producer_number,
         req.body.license_number,
-        req.body.hierarchy_level,
+        hierarchy_level,
         req.body.split_percent || 100,
         req.body.carrier_name,
         req.body.product_type,
@@ -130,23 +139,25 @@ async function createOrder(req, res, tableName, defaultType) {
 
     const orderId = insertRes.rows[0].id;
 
+    // Introducer 分佣逻辑
     let introducerId = user.introducer_id;
     let remainingPercent = actual_percent;
-    let genOverrideGiven = 0;
+    let generation = 1;
 
-    while (introducerId && (remainingPercent > 0 || genOverrideGiven < 3)) {
+    while (introducerId) {
       const introRes = await client.query(
-        `SELECT id, introducer_id, level_percent, hierarchy_level FROM users WHERE id = $1`,
+        `SELECT id, introducer_id, level_percent FROM users WHERE id = $1`,
         [introducerId]
       );
       const introducer = introRes.rows[0];
       if (!introducer) break;
 
-      const introPercent = introducer.level_percent;
-      const introDiff = Math.max(0, remainingPercent - introPercent);
+      const introPercent = introducer.level_percent || 0;
 
-      if (introDiff > 0.01) {
-        const introCommission = initial_premium * introDiff / 100;
+      // === Level Difference 佣金 ===
+      const diff = remainingPercent - introPercent;
+      if (diff > 0.01) {
+        const diffCommission = initial_premium * diff / 100;
         await client.query(
           `INSERT INTO ${tableName}
             (user_id, policy_number, order_type, commission_percent, commission_amount,
@@ -156,8 +167,8 @@ async function createOrder(req, res, tableName, defaultType) {
           [
             introducer.id,
             policy_number,
-            introDiff,
-            introCommission,
+            diff,
+            diffCommission,
             chart_percent,
             introPercent,
             orderId,
@@ -167,30 +178,37 @@ async function createOrder(req, res, tableName, defaultType) {
         remainingPercent = introPercent;
       }
 
-      if (genOverrideGiven < 3 && isAgencyLevel(introducer.hierarchy_level)) {
-        let overridePercent = genOverrideGiven === 0 ? 5 : genOverrideGiven === 1 ? 3 : 1;
-        const overrideCommission = initial_premium * overridePercent / 100;
-        await client.query(
-          `INSERT INTO ${tableName}
-            (user_id, policy_number, order_type, commission_percent, commission_amount,
-             chart_percent, level_percent, parent_order_id, application_status)
-           VALUES ($1, $2, 'Generation Override', $3, $4,
-                   $5, $6, $7, $8)`,
-          [
-            introducer.id,
-            policy_number,
-            overridePercent,
-            overrideCommission,
-            chart_percent,
-            introPercent,
-            orderId,
-            application_status
-          ]
-        );
-        genOverrideGiven++;
+      // === Generation Override ===
+      if (introPercent >= 100) {
+        let overridePercent = 0;
+        if (generation === 1) overridePercent = 5;
+        else if (generation === 2) overridePercent = 3;
+        else if (generation === 3) overridePercent = 1;
+
+        if (overridePercent > 0) {
+          const overrideCommission = initial_premium * overridePercent / 100;
+          await client.query(
+            `INSERT INTO ${tableName}
+              (user_id, policy_number, order_type, commission_percent, commission_amount,
+               chart_percent, level_percent, parent_order_id, application_status)
+             VALUES ($1, $2, 'Generation Override', $3, $4,
+                     $5, $6, $7, $8)`,
+            [
+              introducer.id,
+              policy_number,
+              overridePercent,
+              overrideCommission,
+              chart_percent,
+              introPercent,
+              orderId,
+              application_status
+            ]
+          );
+        }
       }
 
       introducerId = introducer.introducer_id;
+      generation += 1;
     }
 
     res.json({ message: 'Order created successfully', order_id: orderId });
@@ -200,12 +218,6 @@ async function createOrder(req, res, tableName, defaultType) {
   } finally {
     client.release();
   }
-}
-
-function isAgencyLevel(level) {
-  if (!level) return false;
-  const allowed = ['Agency 1', 'Agency 2', 'Agency 3', 'Vice President'];
-  return allowed.includes(level.trim());
 }
 
 module.exports = router;
