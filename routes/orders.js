@@ -190,7 +190,7 @@ async function createOrder(req, res, tableName, defaultType) {
            $15, $16, $17, $18, $19, $20, $21,
            $22, $23, $24)`,
   [
-    introducer.id,
+    introducerId,
     policy_number,
     diff,
     diffCommission,
@@ -243,7 +243,7 @@ async function createOrder(req, res, tableName, defaultType) {
            $15, $16, $17, $18, $19, $20, $21,
            $22, $23, $24)`,
   [
-    introducer.id,
+    introducerId,
     policy_number,
     overridePercent,
     overrideCommission,
