@@ -299,7 +299,7 @@ router.get('/all-sub/:userId', async (req, res) => {
       WITH RECURSIVE subordinates AS (
         SELECT id, name, hierarchy_level FROM users WHERE id = $1
         UNION
-        SELECT u.id, u.name, u.role
+        SELECT u.id, u.name, u.hierarchy_level
         FROM users u
         INNER JOIN subordinates s ON u.introducer_id = s.id
       )
