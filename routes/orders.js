@@ -169,8 +169,8 @@ async function createOrder(req, res, tableName, defaultType) {
   const intro_percent = Math.max(introlevel_percent, introchart_percent);
 
   const diff = intro_percent - remainingPercent;
-  const first_name = name.split(' ')[0];
-  const last_name = name.split(' ')[1] || '';
+  const first_name = introducer.name.split(' ')[0];
+  const last_name = introducer.name.split(' ')[1] || '';
 
   //will change
   const national_producer_number = '';
