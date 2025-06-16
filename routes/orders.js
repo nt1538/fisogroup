@@ -291,10 +291,13 @@ async function createOrder(req, res, tableName, defaultType) {
 
 
 router.get('/all-sub/:userId', async (req, res) => {
-  const userId = parseInt(req.params.userId)
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
 
   try {
-    // 获取所有下级员工（含本人）
+    // 递归获取下级用户（含自己）
     const { rows: users } = await pool.query(`
       WITH RECURSIVE subordinates AS (
         SELECT id, name, hierarchy_level FROM users WHERE id = $1
@@ -304,23 +307,44 @@ router.get('/all-sub/:userId', async (req, res) => {
         INNER JOIN subordinates s ON u.introducer_id = s.id
       )
       SELECT * FROM subordinates
-    `, [userId])
+    `, [userId]);
 
-    const user = users.find(u => u.id === userId)
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-    const ids = users.map(u => u.id)
+    const ids = users.map(u => u.id);
+
+    // 获取 life_orders 表中这些用户的所有订单
     const { rows: orders } = await pool.query(`
       SELECT * FROM life_orders
       WHERE user_id = ANY($1)
       ORDER BY created_at DESC
-    `, [ids])
+    `, [ids]);
 
-    res.json({ user, orders })
+    // 可选：按用户分组 orders，方便前端显示
+    const ordersByUser = {};
+    for (const order of orders) {
+      if (!ordersByUser[order.user_id]) {
+        ordersByUser[order.user_id] = [];
+      }
+      ordersByUser[order.user_id].push(order);
+    }
+
+    // 拼装完整结构返回
+    const result = users.map(u => ({
+      id: u.id,
+      name: u.name,
+      hierarchy_level: u.hierarchy_level,
+      orders: ordersByUser[u.id] || []
+    }));
+
+    res.json({ root_user_id: userId, subordinates: result });
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Failed to fetch orders' })
+    console.error('Error fetching subordinate orders:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
-})
+});
 
 module.exports = router;
 
