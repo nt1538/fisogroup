@@ -142,8 +142,8 @@ async function createOrder(req, res, tableName, defaultType) {
 
     while (introducerId) {
   const introRes = await client.query(
-    `SELECT id, introducer_id, level_percent FROM users WHERE id = $1`,
-    [introducerId]
+    `SELECT agent_fiso, first_name, last_name, national_producer_number, license_number FROM users WHERE id = $1`,
+  [introducer.id]
   );
   const introducer = introRes.rows[0];
   if (!introducer) break;
@@ -173,20 +173,42 @@ async function createOrder(req, res, tableName, defaultType) {
     const diffCommission = initial_premium * diff / 100;
     await client.query(
       `INSERT INTO ${tableName}
-        (user_id, policy_number, order_type, commission_percent, commission_amount,
-         chart_percent, level_percent, parent_order_id, application_status)
-       VALUES ($1, $2, 'Level Difference', $3, $4,
-               $5, $6, $7, $8)`,
-      [
-        introducer.id,
-        policy_number,
-        diff,
-        diffCommission,
-        introchart_percent,
-        intro_percent,
-        orderId,
-        application_status
-      ]
+    (user_id, policy_number, order_type, commission_percent, commission_amount,
+     chart_percent, level_percent, application_status,
+     agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
+     carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
+     commission_from_carrier, mra_status, parent_order_id)
+   VALUES ($1, $2, 'Level Difference', $3, $4,
+           $5, $6, $7,
+           $8, $9, $10, $11, $12, $13, $14,
+           $15, $16, $17, $18, $19, $20, $21,
+           $22, $23, $24)`,
+  [
+    introducer.id,
+    policy_number,
+    diff,
+    diffCommission,
+    introchart_percent,
+    intro_percent,
+    application_status,
+    introUser.agent_fiso,
+    introUser.first_name,
+    introUser.last_name,
+    introUser.national_producer_number,
+    introUser.license_number,
+    introHierarchyLevel,             // optional or computed
+    req.body.split_percent || 100,
+    req.body.carrier_name,
+    req.body.product_type,
+    req.body.product_name_carrier,
+    req.body.application_date,
+    req.body.face_amount,
+    req.body.target_premium,
+    initial_premium,
+    req.body.commission_from_carrier,
+    req.body.mra_status || 'none',
+    orderId
+  ]
     );
     remainingPercent = intro_percent;
   }
@@ -201,20 +223,42 @@ async function createOrder(req, res, tableName, defaultType) {
       const overrideCommission = initial_premium * overridePercent / 100;
       await client.query(
         `INSERT INTO ${tableName}
-          (user_id, policy_number, order_type, commission_percent, commission_amount,
-           chart_percent, level_percent, parent_order_id, application_status)
-         VALUES ($1, $2, 'Generation Override', $3, $4,
-                 $5, $6, $7, $8)`,
-        [
-          introducer.id,
-          policy_number,
-          overridePercent,
-          overrideCommission,
-          introchart_percent,
-          intro_percent,
-          orderId,
-          application_status
-        ]
+    (user_id, policy_number, order_type, commission_percent, commission_amount,
+     chart_percent, level_percent, application_status,
+     agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
+     carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
+     commission_from_carrier, mra_status, parent_order_id)
+   VALUES ($1, $2, 'Generation Override', $3, $4,
+           $5, $6, $7,
+           $8, $9, $10, $11, $12, $13, $14,
+           $15, $16, $17, $18, $19, $20, $21,
+           $22, $23, $24)`,
+  [
+    introducer.id,
+    policy_number,
+    overridePercent,
+    overrideCommission,
+    introchart_percent,
+    intro_percent,
+    application_status,
+    introUser.agent_fiso,
+    introUser.first_name,
+    introUser.last_name,
+    introUser.national_producer_number,
+    introUser.license_number,
+    introHierarchyLevel,             // optional or computed
+    req.body.split_percent || 100,
+    req.body.carrier_name,
+    req.body.product_type,
+    req.body.product_name_carrier,
+    req.body.application_date,
+    req.body.face_amount,
+    req.body.target_premium,
+    initial_premium,
+    req.body.commission_from_carrier,
+    req.body.mra_status || 'none',
+    orderId
+  ]
       );
     }
     override_generation += 1;
