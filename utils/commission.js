@@ -19,7 +19,7 @@ async function getCommissionPercent(client, user_id) {
   if (total >= 250000) return 85;
   if (total >= 60000) return 80;
   if (total >= 30000) return 75;
-  return 50;
+  return 70;
 }
 
 module.exports = { getCommissionPercent };
