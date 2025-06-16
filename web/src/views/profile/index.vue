@@ -58,23 +58,33 @@
   const rollingEarnings = ref(0);
   
   const fetchUserData = async () => {
-    try {
-      const userId = JSON.parse(localStorage.getItem("user")).id;
-      const { data } = await axios.get(`/users/me/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
-      });
-  
-      user.value = data.user;
-      ytdEarnings.value = data.ytdEarnings;
-      termEarnings.value = data.termEarnings;
-      rollingEarnings.value = data.rollingEarnings;
-  
-    } catch (error) {
-      console.error("Error fetching user data:", error);
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser || !storedUser.id || !storedUser.token) {
+      console.error("No user in localStorage or missing ID/token.");
+      return;
     }
-  };
+
+    const userId = storedUser.id;
+    const token = storedUser.token;
+
+    const { data } = await axios.get(`/users/me/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
+    console.log("Fetched user profile data:", data);  // ✅ 用于排查数据结构
+
+    user.value = data.user;
+    ytdEarnings.value = data.ytdEarnings;
+    rollingEarnings.value = data.rollingEarnings;
+    termEarnings.value = data.termEarnings;
+
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+  }
+};
   
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString();
