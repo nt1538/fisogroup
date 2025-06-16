@@ -9,6 +9,16 @@ const ACCESS_CODE = 'Access121'; // Hardcoded for now, move to env in production
 // ==============================
 // Register Route
 // ==============================
+function getHierarchyLevel(percent) {
+  if (percent >= 100) return 'Vice President';
+  if (percent >= 95) return 'Agency 3';
+  if (percent >= 90) return 'Agency 2';
+  if (percent >= 85) return 'Agency 1';
+  if (percent >= 80) return 'Level C';
+  if (percent >= 75) return 'Level B';
+  return 'Agent';
+}
+
 router.post('/register', async (req, res) => {
   const {
     name,
@@ -26,17 +36,20 @@ router.post('/register', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
+    const percent = level_percent || 70;
+    const hierarchy_level = getHierarchyLevel(percent);
 
     await pool.query(
-      `INSERT INTO users (name, email, password, introducer_id, state, level_percent)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO users (name, email, password, introducer_id, state, level_percent, hierarchy_level)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         name,
         email,
         hashedPassword,
         introducer_id || null,
         state?.toUpperCase() || null,
-        level_percent || 70
+        percent,
+        hierarchy_level
       ]
     );
 

@@ -197,3 +197,18 @@ WHERE commission_percent = 'NaN' OR commission_amount = 'NaN';
 
 ALTER TABLE life_orders
 ALTER COLUMN commission_percent TYPE NUMERIC USING commission_percent::NUMERIC;
+
+ALTER TABLE users
+ADD COLUMN hierarchy_level VARCHAR(50);
+
+UPDATE users
+SET hierarchy_level = CASE
+  WHEN level_percent >= 100 THEN 'Vice President'
+  WHEN level_percent >= 95 THEN 'Agency 3'
+  WHEN level_percent >= 90 THEN 'Agency 2'
+  WHEN level_percent >= 85 THEN 'Agency 1'
+  WHEN level_percent >= 80 THEN 'Level C'
+  WHEN level_percent >= 750 THEN 'Level B'
+  ELSE 'Level A'
+END
+WHERE hierarchy_level IS NULL OR hierarchy_level = '';
