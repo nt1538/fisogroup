@@ -43,20 +43,20 @@ router.get('/me/:id', verifyToken, async (req, res) => {
 
     // 最近 4 个季度的佣金汇总（按季度分组）
     const termQuery = await client.query(
-      `SELECT 
-         MIN(application_date) AS period_start,
-         MAX(application_date) AS period_end,
-         SUM(commission_amount) AS total
-       FROM (
-         SELECT *,
-           width_bucket(application_date, CURRENT_DATE - INTERVAL '12 months', CURRENT_DATE, 4) AS term
-         FROM life_orders
-         WHERE user_id = $1
-       ) AS bucketed
-       GROUP BY term
-       ORDER BY term`,
-      [userId]
-    );
+  `SELECT 
+    MIN(application_date) AS period_start,
+    MAX(application_date) AS period_end,
+    SUM(commission_amount) AS total
+  FROM (
+    SELECT *,
+      width_bucket(application_date::timestamp, (CURRENT_DATE - INTERVAL '12 months')::timestamp, CURRENT_DATE::timestamp, 4) AS term
+    FROM life_orders
+    WHERE user_id = $1
+  ) AS bucketed
+  GROUP BY term
+  ORDER BY term`,
+  [userId]
+);
 
     const termEarnings = termQuery.rows;
 
