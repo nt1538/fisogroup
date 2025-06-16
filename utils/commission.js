@@ -3,7 +3,7 @@ async function getCommissionPercent(client, user_id, amount) {
   const result = await client.query(
     `SELECT commission_percent FROM commission_chart 
      WHERE id = $1 AND $2 >= min_amount AND $2 <= max_amount
-     ORDER BY percent DESC LIMIT 1`,
+     ORDER BY commission_percent DESC LIMIT 1`,
     [user_id, amount]
   );
 
