@@ -297,7 +297,7 @@ router.get('/all-sub/:userId', async (req, res) => {
     // 获取所有下级员工（含本人）
     const { rows: users } = await pool.query(`
       WITH RECURSIVE subordinates AS (
-        SELECT id, name, role FROM users WHERE id = $1
+        SELECT id, name, hierarchy_level FROM users WHERE id = $1
         UNION
         SELECT u.id, u.name, u.role
         FROM users u
