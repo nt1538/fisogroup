@@ -289,5 +289,38 @@ async function createOrder(req, res, tableName, defaultType) {
   }
 }
 
+
+router.get('/all-sub/:userId', async (req, res) => {
+  const userId = parseInt(req.params.userId)
+
+  try {
+    // 获取所有下级员工（含本人）
+    const { rows: users } = await pool.query(`
+      WITH RECURSIVE subordinates AS (
+        SELECT id, name, role FROM users WHERE id = $1
+        UNION
+        SELECT u.id, u.name, u.role
+        FROM users u
+        INNER JOIN subordinates s ON u.introducer_id = s.id
+      )
+      SELECT * FROM subordinates
+    `, [userId])
+
+    const user = users.find(u => u.id === userId)
+
+    const ids = users.map(u => u.id)
+    const { rows: orders } = await pool.query(`
+      SELECT * FROM life_orders
+      WHERE user_id = ANY($1)
+      ORDER BY created_at DESC
+    `, [ids])
+
+    res.json({ user, orders })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to fetch orders' })
+  }
+})
+
 module.exports = router;
 

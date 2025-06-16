@@ -1,12 +1,32 @@
 <template>
-  <div class="dashboard">
-    <Sidebar />
-    <div class="org-chart">
-      <h1>Organization Chart</h1>
-      <div v-if="tree.length" class="tree-container">
-        <TreeNode :node="buildTree(rootUserId)" />
-      </div>
-      <div v-else>Loading...</div>
+  <div class="employee-orders">
+    <h2>Orders for {{ user.name }}</h2>
+    <div v-if="orders.length">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Client</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Commission</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="order in orders" :key="order.id">
+            <td>{{ order.id }}</td>
+            <td>{{ order.client_name }}</td>
+            <td>{{ order.order_type }}</td>
+            <td>${{ order.premium }}</td>
+            <td>${{ order.total_commission }}</td>
+            <td>{{ order.created_at }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div v-else>
+      No orders found.
     </div>
   </div>
 </template>
@@ -14,35 +34,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '@/config/axios.config'
-import Sidebar from '@/components/Sidebar.vue'
-import TreeNode from './TreeNode.vue' // 组件见下方
-const tree = ref([])
-const rootUserId = JSON.parse(localStorage.getItem('user')).id
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const orders = ref([])
+const user = ref({ name: '' })
 
 onMounted(async () => {
-  const res = await axios.get(`/users/org-chart/${rootUserId}`)
-  tree.value = res.data
+  const userId = route.params.id
+  const res = await axios.get(`/orders/all-sub/${userId}`)
+  orders.value = res.data.orders
+  user.value = res.data.user
 })
-
-function buildTree(userId) {
-  const nodeMap = new Map()
-  tree.value.forEach(user => nodeMap.set(user.id, { ...user, children: [] }))
-  tree.value.forEach(user => {
-    if (user.introducer_id && nodeMap.has(user.introducer_id)) {
-      nodeMap.get(user.introducer_id).children.push(nodeMap.get(user.id))
-    }
-  })
-  return nodeMap.get(userId)
-}
 </script>
 
 <style scoped>
-.org-chart {
-  margin-left: 280px;
-  padding: 40px;
+.employee-orders {
+  padding: 30px;
 }
-.tree-container {
-  padding-left: 20px;
-  border-left: 3px solid #ccc;
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
 }
 </style>
