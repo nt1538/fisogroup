@@ -49,7 +49,12 @@ router.get('/me/:id', verifyToken, async (req, res) => {
     SUM(commission_amount) AS total
   FROM (
     SELECT *,
-      width_bucket(application_date::timestamp, (CURRENT_DATE - INTERVAL '12 months')::timestamp, CURRENT_DATE::timestamp, 4) AS term
+      width_bucket(
+        EXTRACT(EPOCH FROM application_date),
+        EXTRACT(EPOCH FROM CURRENT_DATE - INTERVAL '12 months'),
+        EXTRACT(EPOCH FROM CURRENT_DATE),
+        4
+      ) AS term
     FROM life_orders
     WHERE user_id = $1
   ) AS bucketed
