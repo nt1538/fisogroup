@@ -143,7 +143,7 @@ async function createOrder(req, res, tableName, defaultType) {
     while (introducerId) {
   const introRes = await client.query(
     `SELECT agent_fiso, first_name, last_name, national_producer_number, license_number FROM users WHERE id = $1`,
-  [introducer.id]
+  [introducerId]
   );
   const introducer = introRes.rows[0];
   if (!introducer) break;
