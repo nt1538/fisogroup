@@ -67,7 +67,7 @@ async function createOrder(req, res, tableName, defaultType) {
     const level_percent = user.level_percent || 0;
 
     let hierarchy_level = 'Level A';
-    if (level_percent >= 750) hierarchy_level = 'Level B';
+    if (level_percent >= 75) hierarchy_level = 'Level B';
     if (level_percent >= 80) hierarchy_level = 'Level C';
     if (level_percent >= 85) hierarchy_level = 'Agency 1';
     if (level_percent >= 90) hierarchy_level = 'Agency 2';
@@ -81,12 +81,13 @@ async function createOrder(req, res, tableName, defaultType) {
       [user_id]
     );
     const totalPremium = parseFloat(chartRes.rows[0].total);
-    let chart_percent = 60;
-    if (totalPremium >= 1000000) chart_percent = 110;
-    else if (totalPremium >= 500000) chart_percent = 100;
-    else if (totalPremium >= 200000) chart_percent = 90;
-    else if (totalPremium >= 100000) chart_percent = 80;
-    else if (totalPremium >= 50000) chart_percent = 70;
+    let chart_percent = 70;
+    if (totalPremium >= 2000000) chart_percent = 100;
+    else if (totalPremium >= 1000000) chart_percent = 95;
+    else if (totalPremium >= 500000) chart_percent = 90;
+    else if (totalPremium >= 250000) chart_percent = 85;
+    else if (totalPremium >= 60000) chart_percent = 80;
+    else if (totalPremium >= 30000) chart_percent = 75;
 
     const actual_percent = Math.max(level_percent, chart_percent);
     const commission_amount = initial_premium * actual_percent / 100;
@@ -137,6 +138,7 @@ async function createOrder(req, res, tableName, defaultType) {
     let introducerId = user.introducer_id;
     let remainingPercent = actual_percent;
     let generation = 1;
+    let override_generation = 1;
 
     while (introducerId) {
       const introRes = await client.query(
@@ -145,10 +147,24 @@ async function createOrder(req, res, tableName, defaultType) {
       );
       const introducer = introRes.rows[0];
       if (!introducer) break;
+      const chartRes = await client.query(
+        `SELECT COALESCE(SUM(initial_premium), 0) AS total
+          FROM ${tableName}
+          WHERE user_id = $1 AND order_type = 'Personal Commission'`,
+        [introducerId]
+      );
+      const intrototalPremium = parseFloat(chartRes.rows[0].total);
+      let introchart_percent = 70;
+      if (intrototalPremium >= 2000000) chart_percent = 100;
+      else if (intrototalPremium >= 1000000) chart_percent = 95;
+      else if (intrototalPremium >= 500000) chart_percent = 90;
+      else if (intrototalPremium >= 250000) chart_percent = 85;
+      else if (intrototalPremium >= 60000) chart_percent = 80;
+      else if (intrototalPremium >= 30000) chart_percent = 75;
 
-      const introPercent = introducer.level_percent || 0;
+      const intro_percent = Math.max(level_percent, introchart_percent);
 
-      const diff = remainingPercent - introPercent;
+      const diff = intro_percent - remainingPercent;
       if (diff > 0.01) {
         const diffCommission = initial_premium * diff / 100;
         await client.query(
@@ -162,20 +178,20 @@ async function createOrder(req, res, tableName, defaultType) {
             policy_number,
             diff,
             diffCommission,
-            chart_percent,
-            introPercent,
+            introchart_percent,
+            intro_percent,
             orderId,
             application_status
           ]
         );
-        remainingPercent = introPercent;
+        remainingPercent = intro_percent;
       }
 
-      if (introPercent >= 100) {
+      if (intro_percent >= 85) {
         let overridePercent = 0;
-        if (generation === 1) overridePercent = 5;
-        else if (generation === 2) overridePercent = 3;
-        else if (generation === 3) overridePercent = 1;
+        if (override_generation === 1) overridePercent = 5;
+        else if (override_generation === 2) overridePercent = 3;
+        else if (override_generation === 3) overridePercent = 1;
 
         if (overridePercent > 0) {
           const overrideCommission = initial_premium * overridePercent / 100;
@@ -190,13 +206,14 @@ async function createOrder(req, res, tableName, defaultType) {
               policy_number,
               overridePercent,
               overrideCommission,
-              chart_percent,
-              introPercent,
+              introchart_percent,
+              intro_percent,
               orderId,
               application_status
             ]
           );
         }
+        override_generation += 1;
       }
 
       introducerId = introducer.introducer_id;
