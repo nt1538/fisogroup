@@ -64,7 +64,6 @@ async function createOrder(req, res, tableName, defaultType) {
   try {
     const {
       user_id,
-      company,
       policy_number,
       amount,
       state,
@@ -88,7 +87,7 @@ async function createOrder(req, res, tableName, defaultType) {
     // Insert main order (current user)
     const insertRes = await client.query(
   `INSERT INTO ${tableName}
-    (user_id, company, policy_number, amount, state, date, order_type, commission_percent, commission_amount,
+    (user_id, policy_number, amount, state, date, order_type, commission_percent, commission_amount,
      chart_percent, level_percent, application_status,
      agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
      carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
@@ -97,11 +96,10 @@ async function createOrder(req, res, tableName, defaultType) {
            $10, $11, $12,
            $13, $14, $15, $16, $17, $18, $19,
            $20, $21, $22, $23, $24, $25, $26,
-           $27, $28)
+           $27)
    RETURNING id`,
 [
   user_id,
-  company,
   policy_number,
   amount,
   state?.toUpperCase() || null,
@@ -152,11 +150,10 @@ async function createOrder(req, res, tableName, defaultType) {
 
         await client.query(
           `INSERT INTO ${tableName}
-            (user_id, company, policy_number, amount, state, date, order_type, commission_percent, commission_amount, parent_order_id, application_status)
-           VALUES ($1, $2, $3, $4, $5, $6, 'Introducer Commission', $7, $8, $9, $10)`,
+            (user_id, policy_number, amount, state, date, order_type, commission_percent, commission_amount, parent_order_id, application_status)
+           VALUES ($1, $2, $3, $4, $5, 'Introducer Commission', $7, $8, $9, $10)`,
           [
             introducer.id,
-            company,
             policy_number,
             amount,
             state?.toUpperCase() || null,
