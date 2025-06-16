@@ -153,3 +153,37 @@ CREATE TABLE annuity_orders (
   application_status TEXT DEFAULT 'in_progress',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS agent_fiso TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS last_name TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS national_producer_number TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS license_number TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS hierarchy_level TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS split_percent NUMERIC;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS carrier_name TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS product_type TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS product_name_carrier TEXT;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS application_date DATE;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS face_amount NUMERIC;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS target_premium NUMERIC;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS initial_premium NUMERIC;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS commission_from_carrier NUMERIC;
+ALTER TABLE life_orders ADD COLUMN IF NOT EXISTS mra_status TEXT;
+
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS agent_fiso TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS last_name TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS national_producer_number TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS license_number TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS hierarchy_level TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS split_percent NUMERIC;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS carrier_name TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS product_type TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS product_name_carrier TEXT;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS application_date DATE;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS face_amount NUMERIC;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS target_premium NUMERIC;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS initial_premium NUMERIC;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS commission_from_carrier NUMERIC;
+ALTER TABLE annuity_orders ADD COLUMN IF NOT EXISTS mra_status TEXT;
