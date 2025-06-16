@@ -1,10 +1,65 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { authenticateToken } = require('../middleware/auth');
 const { getCommissionPercent } = require('../utils/commission');
 
-// 创建新订单
-router.post('/', async (req, res) => {
+// ======== CREATE LIFE ORDER =========
+router.post('/life', authenticateToken, async (req, res) => {
+  await createOrder(req, res, 'life_orders', 'Personal Commission');
+});
+
+// ======== CREATE ANNUITY ORDER ========
+router.post('/annuity', authenticateToken, async (req, res) => {
+  await createOrder(req, res, 'annuity_orders', 'Personal Commission');
+});
+
+// ======== GET LIFE ORDERS (with ?status= optional) ========
+router.get('/life', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const status = req.query.status;
+
+    let query = `SELECT * FROM life_orders WHERE user_id = $1`;
+    let params = [userId];
+
+    if (status) {
+      query += ` AND application_status = $2`;
+      params.push(status);
+    }
+
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching life orders:', err);
+    res.status(500).json({ error: 'Failed to fetch life orders' });
+  }
+});
+
+// ======== GET ANNUITY ORDERS (with ?status= optional) ========
+router.get('/annuity', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const status = req.query.status;
+
+    let query = `SELECT * FROM annuity_orders WHERE user_id = $1`;
+    let params = [userId];
+
+    if (status) {
+      query += ` AND application_status = $2`;
+      params.push(status);
+    }
+
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching annuity orders:', err);
+    res.status(500).json({ error: 'Failed to fetch annuity orders' });
+  }
+});
+
+// ========= ORDER CREATION SHARED LOGIC =========
+async function createOrder(req, res, tableName, defaultType) {
   const client = await pool.connect();
   try {
     const {
@@ -14,13 +69,12 @@ router.post('/', async (req, res) => {
       amount,
       state,
       date = new Date(),
-      order_type = 'Personal Commission'
+      order_type = defaultType,
+      application_status = 'in_progress',
     } = req.body;
 
-    // 获取 chart_percent（图表中根据 amount 得出的佣金比率）
     const chart_percent = await getCommissionPercent(client, user_id, amount);
 
-    // 获取用户注册时设置的佣金比率
     const userRes = await client.query(
       `SELECT level_percent, introducer_id FROM users WHERE id = $1`,
       [user_id]
@@ -28,15 +82,14 @@ router.post('/', async (req, res) => {
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // 计算实际佣金比例
     const actual_percent = Math.max(user.level_percent, chart_percent);
     const commission_amount = amount * actual_percent / 100;
 
-    // 插入主订单（当前用户订单）
+    // Insert main order (current user)
     const insertRes = await client.query(
-      `INSERT INTO life_orders 
-        (user_id, company, policy_number, amount, state, date, order_type, commission_percent, commission_amount, chart_percent, level_percent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO ${tableName}
+        (user_id, company, policy_number, amount, state, date, order_type, commission_percent, commission_amount, chart_percent, level_percent, application_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id`,
       [
         user_id,
@@ -45,16 +98,18 @@ router.post('/', async (req, res) => {
         amount,
         state?.toUpperCase() || null,
         date,
+        order_type,
         actual_percent,
         commission_amount,
         chart_percent,
-        user.level_percent
+        user.level_percent,
+        application_status,
       ]
     );
 
     const orderId = insertRes.rows[0].id;
 
-    // 给 introducer 逐层返佣逻辑（如有 introducer 且有差值）
+    // Introducer commission loop
     let introducerId = user.introducer_id;
     let remainingPercent = actual_percent;
 
@@ -72,9 +127,9 @@ router.post('/', async (req, res) => {
         const introCommission = amount * introDiff / 100;
 
         await client.query(
-          `INSERT INTO life_orders 
-            (user_id, company, policy_number, amount, state, date, order_type, commission_percent, commission_amount, parent_order_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          `INSERT INTO ${tableName}
+            (user_id, company, policy_number, amount, state, date, order_type, commission_percent, commission_amount, parent_order_id, application_status)
+           VALUES ($1, $2, $3, $4, $5, $6, 'Introducer Commission', $7, $8, $9, $10)`,
           [
             introducer.id,
             company,
@@ -82,10 +137,10 @@ router.post('/', async (req, res) => {
             amount,
             state?.toUpperCase() || null,
             date,
-            'Introducer Commission',
             introDiff,
             introCommission,
-            orderId
+            orderId,
+            application_status,
           ]
         );
         remainingPercent = introPercent;
@@ -101,6 +156,6 @@ router.post('/', async (req, res) => {
   } finally {
     client.release();
   }
-});
+}
 
 module.exports = router;

@@ -135,3 +135,21 @@ ALTER TABLE life_orders
 ADD COLUMN chart_percent NUMERIC,
 ADD COLUMN level_percent NUMERIC,
 ADD COLUMN parent_order_id INT;
+
+CREATE TABLE annuity_orders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  company TEXT,
+  policy_number TEXT,
+  amount NUMERIC,
+  state TEXT,
+  date TIMESTAMP DEFAULT NOW(),
+  order_type TEXT,
+  commission_percent NUMERIC,
+  commission_amount NUMERIC,
+  chart_percent NUMERIC,
+  level_percent NUMERIC,
+  parent_order_id INTEGER REFERENCES annuity_orders(id) ON DELETE CASCADE,
+  application_status TEXT DEFAULT 'in_progress',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
