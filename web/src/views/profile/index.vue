@@ -10,10 +10,10 @@
             <div class="info-grid">
               <div><strong>Name:</strong> {{ user.name }}</div>
               <div><strong>Email:</strong> {{ user.email }}</div>
-              <div><strong>Phone:</strong> {{ user.phone || "N/A" }}</div>
-              <div><strong>Department:</strong> {{ user.department || "N/A" }}</div>
-              <div><strong>Position:</strong> {{ user.position || "N/A" }}</div>
-              <div><strong>Role Level:</strong> <span class="badge">{{ user.role }}</span></div>
+              <div><strong>User ID:</strong> {{ user.id }}</div>
+              <div><strong>Introducer ID:</strong> {{ user.introducer_id || "N/A" }}</div>
+              <div><strong>Total Earnings:</strong> ${{ user.total_earnings || 0 }}</div>
+              <div><strong>Joined At:</strong> {{ formatDate(user.created_at) }}</div>
             </div>
           </div>
   
@@ -188,6 +188,6 @@
   }
 }
 
-  </style>
+</style>
   
   
