@@ -57,7 +57,6 @@ async function createOrder(req, res, tableName, defaultType) {
       application_status = 'in_progress',
     } = req.body;
 
-    // 查询用户信息
     const userRes = await client.query(
       `SELECT id, level_percent, introducer_id FROM users WHERE id = $1`,
       [user_id]
@@ -67,17 +66,14 @@ async function createOrder(req, res, tableName, defaultType) {
 
     const level_percent = user.level_percent || 0;
 
-    // 动态设置 hierarchy level
-    let hierarchy_level = 'Agent';
-    if (level_percent >= 100) {
-      hierarchy_level = 'Agency 1';
-    } else if (level_percent >= 80) {
-      hierarchy_level = 'Agency 2';
-    } else if (level_percent >= 60) {
-      hierarchy_level = 'Agency 3';
-    }
+    let hierarchy_level = 'Level A';
+    if (level_percent >= 750) hierarchy_level = 'Level B';
+    if (level_percent >= 80) hierarchy_level = 'Level C';
+    if (level_percent >= 85) hierarchy_level = 'Agency 1';
+    if (level_percent >= 90) hierarchy_level = 'Agency 2';
+    if (level_percent >= 95) hierarchy_level = 'Agency 3';
+    if (level_percent >= 100) hierarchy_level = 'Vice President';
 
-    // 获取 chart commission：该用户所有 personal commission 的累计初始保费
     const chartRes = await client.query(
       `SELECT COALESCE(SUM(initial_premium), 0) AS total
        FROM ${tableName}
@@ -95,7 +91,6 @@ async function createOrder(req, res, tableName, defaultType) {
     const actual_percent = Math.max(level_percent, chart_percent);
     const commission_amount = initial_premium * actual_percent / 100;
 
-    // 插入主订单记录
     const insertRes = await client.query(
       `INSERT INTO ${tableName}
         (user_id, policy_number, order_type, commission_percent, commission_amount,
@@ -139,7 +134,6 @@ async function createOrder(req, res, tableName, defaultType) {
 
     const orderId = insertRes.rows[0].id;
 
-    // Introducer 分佣逻辑
     let introducerId = user.introducer_id;
     let remainingPercent = actual_percent;
     let generation = 1;
@@ -154,7 +148,6 @@ async function createOrder(req, res, tableName, defaultType) {
 
       const introPercent = introducer.level_percent || 0;
 
-      // === Level Difference 佣金 ===
       const diff = remainingPercent - introPercent;
       if (diff > 0.01) {
         const diffCommission = initial_premium * diff / 100;
@@ -178,7 +171,6 @@ async function createOrder(req, res, tableName, defaultType) {
         remainingPercent = introPercent;
       }
 
-      // === Generation Override ===
       if (introPercent >= 100) {
         let overridePercent = 0;
         if (generation === 1) overridePercent = 5;
@@ -221,3 +213,4 @@ async function createOrder(req, res, tableName, defaultType) {
 }
 
 module.exports = router;
+
