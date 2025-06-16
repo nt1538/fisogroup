@@ -37,7 +37,7 @@
                 <tr v-for="term in termEarnings" :key="term.period_start">
                   <td>{{ formatDate(term.period_start) }}</td>
                   <td>{{ formatDate(term.period_end) }}</td>
-                  <td>${{ term.earnings }}</td>
+                  <td>${{ term.total}}</td>
                 </tr>
               </tbody>
             </table>
@@ -60,13 +60,14 @@
   const fetchUserData = async () => {
   try {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || !storedUser.id || !storedUser.token) {
-      console.error("No user in localStorage or missing ID/token.");
+    const token = localStorage.getItem("token");
+    if (!storedUser || !storedUser.id || !token) {
+      console.error("Missing user or token in localStorage.");
       return;
     }
 
     const userId = storedUser.id;
-    const token = JSON.parse(localStorage.getItem("token"));
+
 
     const { data } = await axios.get(`/users/me/${userId}`, {
       headers: {
