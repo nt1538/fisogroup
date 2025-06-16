@@ -250,9 +250,9 @@ async function createOrder(req, res, tableName, defaultType) {
     introchart_percent,
     intro_percent,
     application_status,
-    introducer.agent_fiso,
-    introducer.first_name,
-    introducer.last_name,
+    introducer.id,
+    first_name,
+    last_name,
     national_producer_number,
     license_number,
     //will change
