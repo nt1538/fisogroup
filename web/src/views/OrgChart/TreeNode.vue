@@ -19,7 +19,7 @@
           <tbody>
             <tr v-for="order in orders" :key="order.id">
               <td>{{ order.policy_number }}</td><td>${{ order.initial_premium }}</td><td>{{ order.commission_percent }}%</td>
-              <td>{{ order.order_type }}</td><td>{{ order.status }}</td><td>{{ formatDate(order.created_at) }}</td>
+              <td>{{ order.order_type }}</td><td>{{ order.application_status }}</td><td>{{ formatDate(order.created_at) }}</td>
             </tr>
           </tbody>
         </table>
