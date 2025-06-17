@@ -90,7 +90,7 @@ router.get('/org-chart/:id', verifyToken, async (req, res) => {
         FROM users
         WHERE id = $1
         UNION
-        SELECT u.id, u.name, u.email, u.introducer_id, hierarchy_level, total_earnings
+        SELECT u.id, u.name, u.email, u.introducer_id, u.hierarchy_level, u.total_earnings
         FROM users u
         INNER JOIN hierarchy h ON u.introducer_id = h.id
       )
