@@ -354,7 +354,6 @@ router.get('/by-user/:id', async (req, res) => {
       SELECT id, policy_number, initial_premium, created_at, commission_percent, status, order_type
       FROM life_orders
       WHERE user_id = $1
-      ORDER BY created_at DESC
       UNION ALL
       SELECT id, policy_number, initial_premium, created_at, commission_percent, status, order_type
       FROM anniuty_orders
