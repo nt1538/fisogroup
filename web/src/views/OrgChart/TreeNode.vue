@@ -10,19 +10,19 @@
       <div v-if="loading">Loading orders...</div>
       <div v-else-if="orders.length === 0">No orders found.</div>
       <ul v-else>
-        <li v-for="order in orders" :key="order.id">
-          <table class="commission-table">
-            <thead>
-              <tr>
-                <th>Policy Number</th><th>Initial Premium</th><th>Commission Pecentage</th><th>Order Status</th><th>Created At</th>
-              </tr>
-            </thead>
-            <tbody>
+        <table class="commission-table">
+          <thead>
+            <tr>
+              <th>Policy Number</th><th>Initial Premium</th><th>Commission Pecentage</th><th>Order Status</th><th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in orders" :key="order.id">
               <td>{{ order.policy_number }}</td><td>${{ order.initial_premium }}</td><td>{{ order.commission_percent }}%</td>
               <td>{{ order.status }}</td><td>{{ formatDate(order.created_at) }}</td>
-            </tbody>
-          </table>
-        </li>
+            </tr>
+          </tbody>
+        </table>
       </ul>
     </div>
 
