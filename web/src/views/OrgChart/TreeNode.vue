@@ -13,13 +13,13 @@
         <table class="commission-table">
           <thead>
             <tr>
-              <th>Policy Number</th><th>Initial Premium</th><th>Commission Pecentage</th><th>Order Status</th><th>Created At</th>
+              <th>Policy Number</th><th>Initial Premium</th><th>Commission Pecentage</th><th>Order Type</th><th>Order Status</th><th>Created At</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="order in orders" :key="order.id">
               <td>{{ order.policy_number }}</td><td>${{ order.initial_premium }}</td><td>{{ order.commission_percent }}%</td>
-              <td>{{ order.status }}</td><td>{{ formatDate(order.created_at) }}</td>
+              <td>{{ order.order_type }}</td><td>{{ order.status }}</td><td>{{ formatDate(order.created_at) }}</td>
             </tr>
           </tbody>
         </table>
