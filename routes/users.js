@@ -86,11 +86,11 @@ router.get('/org-chart/:id', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
       WITH RECURSIVE hierarchy AS (
-        SELECT id, name, email, introducer_id
+        SELECT id, name, email, introducer_id, hierarchy_level, total_earnings
         FROM users
         WHERE id = $1
         UNION
-        SELECT u.id, u.name, u.email, u.introducer_id
+        SELECT u.id, u.name, u.email, u.introducer_id, hierarchy_level, total_earnings
         FROM users u
         INNER JOIN hierarchy h ON u.introducer_id = h.id
       )
