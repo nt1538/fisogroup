@@ -1,7 +1,7 @@
 <template>
   <div class="node">
     <div class="node-info" @click="goToUser(node.id)">
-      {{ node.name }} - {{ node.role }} - ${{ node.total_earnings }}
+      {{ node.name }} - {{ node.hierarchy_level }} - ${{ node.total_earnings }}
     </div>
     <div class="children" v-if="node.children && node.children.length">
       <TreeNode v-for="child in node.children" :key="child.id" :node="child" />
