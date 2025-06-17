@@ -11,15 +11,17 @@
       <div v-else-if="orders.length === 0">No orders found.</div>
       <ul v-else>
         <li v-for="order in orders" :key="order.id">
-          <thead>
+          <table class="commission-table">
+            <thead>
               <tr>
                 <th>Policy Number</th><th>Initial Premium</th><th>Commission Pecentage</th><th>Order Status</th><th>Created At</th>
               </tr>
             </thead>
-           <tbody>
-                <td>{{ order.policy_number }}</td><td>${{ order.initial_premium }}</td><td>{{ order.commission_percent }}%</td>
-                <td>{{ order.status }}</td><td>{{ order.created_at }}</td>
+            <tbody>
+              <td>{{ order.policy_number }}</td><td>${{ order.initial_premium }}</td><td>{{ order.commission_percent }}%</td>
+              <td>{{ order.status }}</td><td>{{ formatDate(order.created_at) }}</td>
             </tbody>
+          </table>
         </li>
       </ul>
     </div>
@@ -55,6 +57,10 @@ const toggleExpand = async () => {
     loading.value = false
   }
 }
+
+function formatDate(date) {
+    return new Date(date).toLocaleDateString();
+}
 </script>
 
 <style scoped>
@@ -89,5 +95,10 @@ const toggleExpand = async () => {
 }
 .children {
   padding-left: 20px;
+}
+.commission-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
 }
 </style>
