@@ -346,5 +346,23 @@ router.get('/all-sub/:userId', async (req, res) => {
   }
 });
 
+router.get('/by-user/:id', async (req, res) => {
+  const userId = parseInt(req.params.id)
+
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, policy_no, paid, comment
+      FROM life_orders
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+    `, [userId])
+
+    res.json(rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to fetch orders' })
+  }
+})
+
 module.exports = router;
 
