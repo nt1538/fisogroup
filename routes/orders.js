@@ -351,10 +351,33 @@ router.get('/by-user/:id', async (req, res) => {
 
   try {
     const { rows } = await pool.query(`
-      SELECT id, policy_number, initial_premium, created_at, commission_percent, status, order_type
-      FROM life_orders
-      WHERE user_id = $1
-      ORDER BY created_at DESC
+      SELECT 
+  id,
+  policy_number,
+  initial_premium,
+  created_at,
+  commission_percent,
+  status,
+  order_type,
+  'life' AS source
+FROM life_orders
+WHERE user_id = $1
+
+UNION ALL
+
+SELECT 
+  id,
+  policy_number,
+  initial_premium,
+  created_at,
+  commission_percent,
+  status,
+  order_type,
+  'annuity' AS source
+FROM annuity_orders
+WHERE user_id = $1
+
+ORDER BY created_at DESC;
     `, [userId])
 
     res.json(rows)
