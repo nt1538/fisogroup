@@ -11,7 +11,7 @@
       <div v-else-if="orders.length === 0">No orders found.</div>
       <ul v-else>
         <li v-for="order in orders" :key="order.id">
-          <strong>{{ order.policy_no }}</strong> - ${{ order.paid }} - {{ order.comment }}
+          <strong>{{ order.policy_number }}</strong> - ${{ order.initial_premium }} - {{ order.commission_percent }} - {{ order.status }} - {{ order.created_at }}
         </li>
       </ul>
     </div>
