@@ -16,7 +16,7 @@ function getHierarchyLevel(percent) {
   if (percent >= 85) return 'Agency 1';
   if (percent >= 80) return 'Level C';
   if (percent >= 75) return 'Level B';
-  return 'Agent';
+  return 'Level A';
 }
 
 router.post('/register', async (req, res) => {
