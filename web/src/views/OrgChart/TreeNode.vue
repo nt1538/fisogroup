@@ -11,7 +11,15 @@
       <div v-else-if="orders.length === 0">No orders found.</div>
       <ul v-else>
         <li v-for="order in orders" :key="order.id">
-          <strong>{{ order.policy_number }}</strong> - ${{ order.initial_premium }} - {{ order.commission_percent }} - {{ order.status }} - {{ order.created_at }}
+          <thead>
+              <tr>
+                <th>Policy Number</th><th>Initial Premium</th><th>Commission Pecentage</th><th>Order Status</th><th>Created At</th>
+              </tr>
+            </thead>
+           <tbody>
+                <td>{{ order.policy_number }}</td><td>${{ order.initial_premium }}</td><td>{{ order.commission_percent }}%</td>
+                <td>{{ order.status }}</td><td>{{ order.created_at }}</td>
+            </tbody>
         </li>
       </ul>
     </div>
