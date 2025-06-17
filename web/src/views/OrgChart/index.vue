@@ -20,7 +20,7 @@ const tree = ref([])
 const rootUserId = JSON.parse(localStorage.getItem('user')).id
 
 onMounted(async () => {
-  const res = await axios.get(/api/org-chart/${rootUserId})
+  const res = await axios.get(`/users/org-chart/${rootUserId}`) 
   tree.value = res.data
 })
 
