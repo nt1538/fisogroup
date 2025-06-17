@@ -356,7 +356,7 @@ router.get('/by-user/:id', async (req, res) => {
       WHERE user_id = $1
       UNION ALL
       SELECT id, policy_number, initial_premium, created_at, commission_percent, status, order_type
-      FROM anniuty_orders
+      FROM annuity_orders
       WHERE user_id = $1
       ORDER BY created_at DESC
     `, [userId])
