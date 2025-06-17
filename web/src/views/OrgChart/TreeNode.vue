@@ -101,4 +101,14 @@ function formatDate(date) {
     border-collapse: collapse;
     font-size: 14px;
 }
+.commission-table th, .commission-table td {
+    padding: 8px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+  
+.commission-table th {
+    background-color: #0055a4;
+    color: white;
+}
 </style>
