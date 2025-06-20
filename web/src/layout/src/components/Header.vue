@@ -2,21 +2,27 @@
   <header class="fs-header">
     <div class="fs-header__logo" :class="stateLang"></div>
     <div class="fs-header__content">
-      <div class="fs-header__nav" v-if="isMClient">
+      <!-- 移动端菜单 -->
+      <div class="fs-header__nav" v-if="isMClient && !isLoggedIn">
         <div @click="onNav">
-          <svg t="1679812873997" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2756" width="30" height="30">
+          <svg t="1679812873997" class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
             <path
               d="M170.666667 298.666667h682.666666v42.666666H170.666667V298.666667z m0 426.666666h682.666666v42.666667H170.666667v-42.666667z m0-213.333333h682.666666v42.666667H170.666667v-42.666667z"
               fill="#444444"
-              p-id="2757"
-            ></path>
+            />
           </svg>
         </div>
         <div class="wrapper" v-if="!isShowAnimate" @click="onNav">
           <div class="circle"></div>
           <div class="finger"></div>
         </div>
-        <el-drawer custom-class="navcon" v-model="navShow" :with-header="false" direction="ttb" :before-close="onNavClose">
+        <el-drawer
+          custom-class="navcon"
+          v-model="navShow"
+          :with-header="false"
+          direction="ttb"
+          :before-close="onNavClose"
+        >
           <ul class="m_nav">
             <router-link v-for="(item, i) in render.nav" :key="i" :to="item.path">
               <li @click="onNavClose">{{ item.title }}</li>
@@ -24,12 +30,15 @@
           </ul>
         </el-drawer>
       </div>
-      <ul v-else class="fs-header__nav">
+
+      <!-- 桌面端菜单 -->
+      <ul v-else-if="!isMClient && !isLoggedIn" class="fs-header__nav">
         <router-link v-for="(item, i) in render.nav" :key="i" :to="item.path">
           <li>{{ item.title }}</li>
         </router-link>
       </ul>
 
+      <!-- 语言切换按钮保留 -->
       <el-dropdown @command="onCommand">
         <div class="fs-header__language" @click="onNavClose">
           <div class="icon"></div>
@@ -45,8 +54,9 @@
     </div>
   </header>
 </template>
+
 <script lang="ts" setup>
-  import { computed, watch, ref } from 'vue'
+  import { computed, watch, ref, onMounted } from 'vue'
   import { useStore } from 'vuex'
   const store = useStore()
   const isMClient = computed(() => store.state.common.isM)
@@ -133,6 +143,13 @@
   )
 
   const isShowAnimate = computed(() => store.state.common.showAnimate)
+
+  const isLoggedIn = ref(false)
+  onMounted(() => {
+  const token = localStorage.getItem('token')
+  isLoggedIn.value = !!token
+  })
+
 </script>
 <style lang="scss">
   @include b(header) {
