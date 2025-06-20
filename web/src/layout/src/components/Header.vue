@@ -3,9 +3,9 @@
     <div class="fs-header__logo" :class="stateLang"></div>
     <div class="fs-header__content">
       <!-- 移动端菜单 -->
-      <div class="fs-header__nav" v-if="isMClient && !isLoggedIn">
+      <div class="fs-header__nav" v-if="isMClient && !isInDashboard">
         <div @click="onNav">
-          <svg t="1679812873997" class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
+          <svg class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
             <path
               d="M170.666667 298.666667h682.666666v42.666666H170.666667V298.666667z m0 426.666666h682.666666v42.666667H170.666667v-42.666667z m0-213.333333h682.666666v42.666667H170.666667v-42.666667z"
               fill="#444444"
@@ -32,13 +32,13 @@
       </div>
 
       <!-- 桌面端菜单 -->
-      <ul v-else-if="!isMClient && !isLoggedIn" class="fs-header__nav">
+      <ul v-else-if="!isMClient && !isInDashboard" class="fs-header__nav">
         <router-link v-for="(item, i) in render.nav" :key="i" :to="item.path">
           <li>{{ item.title }}</li>
         </router-link>
       </ul>
 
-      <!-- 语言切换按钮保留 -->
+      <!-- 语言切换按钮 -->
       <el-dropdown @command="onCommand">
         <div class="fs-header__language" @click="onNavClose">
           <div class="icon"></div>
@@ -56,101 +56,65 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, watch, ref, onMounted } from 'vue'
-  import { useStore } from 'vuex'
-  const store = useStore()
-  const isMClient = computed(() => store.state.common.isM)
-  const onCommand = (command) => {
-    store.commit('updateLang', command)
+import { ref, computed, watch, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { useRoute } from 'vue-router'
+
+const store = useStore()
+const route = useRoute()
+
+// 判断是否为员工后台页面（路径前缀为 /employee）
+const isInDashboard = computed(() => route.path.startsWith('/employee'))
+
+const isMClient = computed(() => store.state.common.isM)
+const isShowAnimate = computed(() => store.state.common.showAnimate)
+const stateLang = computed(() => store.state.common.lang)
+
+const navShow = ref(false)
+const onNav = () => {
+  navShow.value = !navShow.value
+  store.commit('updateShowAnimate', true)
+}
+const onNavClose = () => {
+  navShow.value = false
+}
+const onCommand = (command) => {
+  store.commit('updateLang', command)
+}
+
+const content = {
+  en: {
+    nav: [
+      { title: 'Home', path: '/' },
+      { title: 'Solutions', path: '/service' },
+      { title: 'Oppotunities', path: '/interact' },
+      { title: 'Founder', path: '/founder' },
+      { title: 'Contact', path: '/contact' },
+      { title: 'Agency Login', path: '/login' }
+    ]
+  },
+  zh: {
+    nav: [
+      { title: '关于方胜', path: '/' },
+      { title: '服务项目', path: '/service' },
+      { title: '机遇与合作', path: '/interact' },
+      { title: '创始人', path: '/founder' },
+      { title: '联系与咨询', path: '/contact' },
+      { title: '代理登录', path: '/login' }
+    ]
   }
-  const navShow = ref(false)
-  const onNav = () => {
-    navShow.value = !navShow.value
-    store.commit('updateShowAnimate', true)
-  }
-  const onNavClose = () => {
-    navShow.value = false
-  }
+}
 
-  const content = {
-    en: {
-      nav: [
-        {
-          title: 'Home',
-          path: '/'
-        },
-        {
-          title: 'Solutions',
-          path: '/service'
-        },
-        {
-          title: 'Oppotunities',
-          path: '/interact'
-        },
-        {
-          title: 'Founder',
-          path: '/founder'
-        },
-        {
-          title: 'Contact',
-          path: '/contact'
-        },
-        {
-          title: 'Agency Login',
-          path: '/login'
-        }
-      ]
-    },
-    zh: {
-      nav: [
-        {
-          title: '关于方胜',
-          path: '/'
-        },
-        {
-          title: '服务项目',
-          path: '/service'
-        },
-        {
-          title: '机遇与合作',
-          path: '/interact'
-        },
-        {
-          title: '创始人',
-          path: '/founder'
-        },
-        {
-          title: '联系与咨询',
-          path: '/contact'
-        },
-        {
-          title: '代理登录',
-          path: '/login'
-        }
-      ]
-    }
-  }
-
-  // 渲染数据
-  const render = ref({ nav: [{ title: '', path: '' }] })
-  const stateLang = computed(() => store.state.common.lang)
-  watch(
-    stateLang,
-    (newVal) => {
-      render.value = content[newVal]
-    },
-    { immediate: true, deep: true }
-  )
-
-  const isShowAnimate = computed(() => store.state.common.showAnimate)
-
-  const isLoggedIn = ref(false)
-  onMounted(() => {
-  const token = localStorage.getItem('token')
-  isLoggedIn.value = !!token
-  })
-
+const render = ref({ nav: [] })
+watch(
+  stateLang,
+  (newVal) => {
+    render.value = content[newVal]
+  },
+  { immediate: true }
+)
 </script>
+
 <style lang="scss">
   @include b(header) {
     max-width: 1440px;
