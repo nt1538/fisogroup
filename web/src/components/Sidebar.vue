@@ -9,11 +9,12 @@
     <nav :class="['sidebar', { open: sidebarOpen }]">
       <h2 class="title">Dashboard</h2>
       <ul class="menu">
-        <li @click="toggleSection('me')" :class="{ active: activeSections.has('me') }">
+        <!-- Me Section -->
+        <li @click="toggleSection('me')">
           👤 Me <span class="arrow">▼</span>
         </li>
         <transition name="fade">
-          <ul v-if="activeSections.has('me')" class="submenu">
+          <ul v-if="isActive('me')" class="submenu">
             <li @click="navigate('/employee/me/profile')">Profile</li>
             <li @click="navigate('/employee/me/Application')">Application Uploads</li>
             <li @click="navigate('/employee/me/document')">My Fiso Document</li>
@@ -21,11 +22,12 @@
           </ul>
         </transition>
 
-        <li @click="toggleSection('reports')" :class="{ active: activeSections.has('reports') }">
+        <!-- Reports Section -->
+        <li @click="toggleSection('reports')">
           📊 Reports <span class="arrow">▼</span>
         </li>
         <transition name="fade">
-          <ul v-if="activeSections.has('reports')" class="submenu">
+          <ul v-if="isActive('reports')" class="submenu">
             <li @click="navigate('/employee/reports/org-chart')">Organization Chart</li>
             <li @click="navigate('/employee/reports/app-reports')">Application Reports</li>
             <li @click="navigate('/employee/reports/production')">Production Report</li>
@@ -40,46 +42,52 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
+const router = useRouter();
+const sidebarOpen = ref(true);
 
-// 加载本地展开状态
-const stored = localStorage.getItem('sidebarOpenSections')
-const activeSections = ref(new Set(stored ? JSON.parse(stored) : []))
+// 使用 Set 结构存储展开的 Section
+const activeSections = ref(new Set());
 
+// 初始化：从 localStorage 恢复展开状态
+onMounted(() => {
+  const saved = JSON.parse(localStorage.getItem('sidebarOpenSections') || '[]');
+  activeSections.value = new Set(saved);
+});
+
+// 判断是否展开
+const isActive = (section) => activeSections.value.has(section);
+
+// 切换展开状态并保存
 const toggleSection = (section) => {
   if (activeSections.value.has(section)) {
-    activeSections.value.delete(section)
+    activeSections.value.delete(section);
   } else {
-    activeSections.value.add(section)
+    activeSections.value.add(section);
   }
-
-  activeSections.value = new Set(activeSections.value)
   localStorage.setItem(
     'sidebarOpenSections',
-    JSON.stringify(Array.from(activeSections.value))
-  )
-}
+    JSON.stringify([...activeSections.value])
+  );
+};
 
-const sidebarOpen = ref(true)
-
+// 路由跳转时不清除展开状态
 const navigate = (path) => {
-  router.push(path)
-  if (window.innerWidth < 768) sidebarOpen.value = false
-}
+  router.push(path);
+  if (window.innerWidth < 768) sidebarOpen.value = false;
+};
 
 const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value
-}
+  sidebarOpen.value = !sidebarOpen.value;
+};
 
 const logout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('sidebarOpenSections') // 清除展开状态（可选）
-  router.push('/login')
-}
-
+  localStorage.removeItem('token');
+  localStorage.removeItem('sidebarOpenSections');
+  router.push('/login');
+};
 </script>
 
 <style scoped>
