@@ -52,7 +52,6 @@ const toggleSection = (section) => {
 };
 
 const navigate = (path) => {
-  activeSection.value = path.split('/')[1];
   router.push(path);
   // Auto-close sidebar on mobile after navigation
   if (window.innerWidth < 768) sidebarOpen.value = false;
