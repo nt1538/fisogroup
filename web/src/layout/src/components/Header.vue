@@ -2,8 +2,8 @@
   <header class="fs-header">
     <div class="fs-header__logo" :class="stateLang"></div>
     <div class="fs-header__content">
-      <!-- 移动端菜单 -->
-      <div class="fs-header__nav" v-if="isMClient && !isInDashboard">
+      <!-- 移动端导航 -->
+      <div class="fs-header__nav" v-if="isMClient && !isInEmployeePage">
         <div @click="onNav">
           <svg class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
             <path
@@ -31,14 +31,14 @@
         </el-drawer>
       </div>
 
-      <!-- 桌面端菜单 -->
-      <ul v-else-if="!isMClient && !isInDashboard" class="fs-header__nav">
+      <!-- 桌面端导航 -->
+      <ul v-else-if="!isMClient && !isInEmployeePage" class="fs-header__nav">
         <router-link v-for="(item, i) in render.nav" :key="i" :to="item.path">
           <li>{{ item.title }}</li>
         </router-link>
       </ul>
 
-      <!-- 语言切换按钮 -->
+      <!-- 语言切换 -->
       <el-dropdown @command="onCommand">
         <div class="fs-header__language" @click="onNavClose">
           <div class="icon"></div>
@@ -56,19 +56,19 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 
 const store = useStore()
 const route = useRoute()
 
-// 判断是否为员工后台页面（路径前缀为 /employee）
-const isInDashboard = computed(() => route.path.startsWith('/employee'))
-
 const isMClient = computed(() => store.state.common.isM)
 const isShowAnimate = computed(() => store.state.common.showAnimate)
 const stateLang = computed(() => store.state.common.lang)
+
+// ✅ 判断当前路径是否是 /employee 开头
+const isInEmployeePage = computed(() => route.path.startsWith('/employee'))
 
 const navShow = ref(false)
 const onNav = () => {
