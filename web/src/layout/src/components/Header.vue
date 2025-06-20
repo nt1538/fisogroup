@@ -39,7 +39,7 @@
       </ul>
 
       <!-- 语言切换 -->
-      <el-dropdown @command="onCommand">
+      <el-dropdown @command="onCommand" v-if="!isInEmployeePage">
         <div class="fs-header__language" @click="onNavClose">
           <div class="icon"></div>
           <div class="arrow"></div>
