@@ -2,7 +2,7 @@ export default {
     tabs: [
       {
         name: 'commission',
-        path: '/reports/commission',
+        path: '/employee/reports/commission',
         component: () => import('./index.vue')
       }
     ]

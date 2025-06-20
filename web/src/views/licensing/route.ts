@@ -2,7 +2,7 @@ export default {
   tabs: [
     {
       name: 'Licensing',
-      path: '/licensing',
+      path: '/employee/licensing',
       component: () => import('./index.vue')
     }
   ]

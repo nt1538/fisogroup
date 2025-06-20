@@ -2,7 +2,7 @@ export default {
   tabs: [
     {
       name: 'My Fiso Document',
-      path: '/me/document',
+      path: '/employee/me/document',
       component: () => import('./index.vue')
     }
   ]

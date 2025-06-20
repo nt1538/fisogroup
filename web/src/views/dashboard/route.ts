@@ -2,7 +2,7 @@ export default {
     tabs: [
       {
         name: 'dashboard',
-        path: '/dashboard',
+        path: '/employee/dashboard',
         component: () => import('./index.vue')
       }
     ]

@@ -14,9 +14,9 @@
         </li>
         <transition name="fade">
           <ul v-if="activeSection === 'me'" class="submenu">
-            <li @click="navigate('/me/profile')">Profile</li>
-            <li @click="navigate('/me/Application')">Application Uploads</li>
-            <li @click="navigate('/me/document')">My Fiso Document</li>
+            <li @click="navigate('/employee/me/profile')">Profile</li>
+            <li @click="navigate('/employee/me/Application')">Application Uploads</li>
+            <li @click="navigate('/employee/me/document')">My Fiso Document</li>
             <li class="logout" @click="logout">🚪 Logout</li>
           </ul>
         </transition>
@@ -26,14 +26,14 @@
         </li>
         <transition name="fade">
           <ul v-if="activeSection === 'reports'" class="submenu">
-            <li @click="navigate('/reports/org-chart')">Organization Chart</li>
-            <li @click="navigate('/reports/app-reports')">Application Reports</li>
-            <li @click="navigate('/reports/production')">Production Report</li>
-            <li @click="navigate('/reports/commission')">Commission Statement</li>
+            <li @click="navigate('/employee/reports/org-chart')">Organization Chart</li>
+            <li @click="navigate('/employee/reports/app-reports')">Application Reports</li>
+            <li @click="navigate('/employee/reports/production')">Production Report</li>
+            <li @click="navigate('/employee/reports/commission')">Commission Statement</li>
           </ul>
         </transition>
 
-        <li @click="navigate('/licensing')">📁 Licensing</li>
+        <li @click="navigate('/employee/licensing')">📁 Licensing</li>
       </ul>
     </nav>
   </div>

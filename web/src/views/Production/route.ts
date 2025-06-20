@@ -2,7 +2,7 @@ export default {
     tabs: [
       {
         name: 'Production Report',
-        path: '/reports/production',
+        path: '/employee/reports/production',
         component: () => import('./index.vue')
       }
     ]
