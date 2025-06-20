@@ -40,39 +40,46 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
-const activeSections = ref(new Set());
+const router = useRouter()
 
-const sidebarOpen = ref(true); // default visible on desktop
+// 加载本地展开状态
+const stored = localStorage.getItem('sidebarOpenSections')
+const activeSections = ref(new Set(stored ? JSON.parse(stored) : []))
 
 const toggleSection = (section) => {
   if (activeSections.value.has(section)) {
-    activeSections.value.delete(section);
+    activeSections.value.delete(section)
   } else {
-    activeSections.value.add(section);
+    activeSections.value.add(section)
   }
-  // 触发响应式更新
-  activeSections.value = new Set(activeSections.value);
-};
 
+  activeSections.value = new Set(activeSections.value)
+  localStorage.setItem(
+    'sidebarOpenSections',
+    JSON.stringify(Array.from(activeSections.value))
+  )
+}
+
+const sidebarOpen = ref(true)
 
 const navigate = (path) => {
-  router.push(path);
-  // Auto-close sidebar on mobile after navigation
-  if (window.innerWidth < 768) sidebarOpen.value = false;
-};
+  router.push(path)
+  if (window.innerWidth < 768) sidebarOpen.value = false
+}
 
 const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value;
-};
+  sidebarOpen.value = !sidebarOpen.value
+}
 
 const logout = () => {
-  localStorage.removeItem('token');
-  router.push('/login');
-};
+  localStorage.removeItem('token')
+  localStorage.removeItem('sidebarOpenSections') // 清除展开状态（可选）
+  router.push('/login')
+}
+
 </script>
 
 <style scoped>
