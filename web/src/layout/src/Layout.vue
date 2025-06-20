@@ -9,9 +9,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import Sidebar from '@/components/Sidebar.vue'
 import Header from '@/layout/src/components/Header.vue'
 const isEmployeePage = computed(() => route.path.startsWith('/employee'))
+
 </script>
 
 <style scoped>
