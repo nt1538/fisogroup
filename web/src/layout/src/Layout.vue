@@ -1,6 +1,6 @@
 <template>
   <div class="app-layout">
-    <Sidebar class="sidebar" />
+    <Sidebar v-if="isEmployeePage" />
     <div class="main">
       <Header class="header" />
       <router-view />
@@ -11,6 +11,7 @@
 <script setup>
 import Sidebar from '@/components/Sidebar.vue'
 import Header from '@/layout/src/components/Header.vue'
+const isEmployeePage = computed(() => route.path.startsWith('/employee'))
 </script>
 
 <style scoped>
