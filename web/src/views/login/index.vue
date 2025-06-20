@@ -93,21 +93,21 @@ const login = async () => {
 };
 </script>
 
+<style scoped lang="scss">
 .fs-login {
+  background: #fff;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: calc(100vh - 80px); // 去掉 Header 高度
-  background: #f2f2f2;
+  padding: 100px 0;
 }
 
 .fs-login__content {
   width: 400px;
-  background: #fff;
+  background: #f9f9f9;
   padding: 30px;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
 .txt-title {
@@ -119,15 +119,16 @@ const login = async () => {
   margin-bottom: 20px;
 }
 
-.button-group {
+.button-group-left {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start; // <-- left-align buttons
+  gap: 10px;
   margin-top: 20px;
 
   .el-button {
-    width: 200px;
+    width: auto; // button will auto-fit content
+    min-width: 140px;
     font-size: 16px;
     background-color: #626aef;
     color: white;
@@ -152,3 +153,4 @@ const login = async () => {
   margin-bottom: 10px;
   text-align: center;
 }
+</style>
