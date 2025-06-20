@@ -1,6 +1,6 @@
 <template>
   <div class="app-layout">
-    <Sidebar class="sidebar" v-if="isEmployeePage" />
+    <Sidebar class="sidebar"/>
     <div class="main">
       <Header class="header" />
       <router-view />
