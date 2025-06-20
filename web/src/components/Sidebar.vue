@@ -9,11 +9,11 @@
     <nav :class="['sidebar', { open: sidebarOpen }]">
       <h2 class="title">Dashboard</h2>
       <ul class="menu">
-        <li @click="toggleSection('me')" :class="{ active: activeSection === 'me' }">
+        <li @click="toggleSection('me')" :class="{ active: activeSections.has('me') }">
           👤 Me <span class="arrow">▼</span>
         </li>
         <transition name="fade">
-          <ul v-if="activeSection === 'me'" class="submenu">
+          <ul v-if="activeSections.has('me')" class="submenu">
             <li @click="navigate('/employee/me/profile')">Profile</li>
             <li @click="navigate('/employee/me/Application')">Application Uploads</li>
             <li @click="navigate('/employee/me/document')">My Fiso Document</li>
@@ -21,11 +21,11 @@
           </ul>
         </transition>
 
-        <li @click="toggleSection('reports')" :class="{ active: activeSection === 'reports' }">
+        <li @click="toggleSection('reports')" :class="{ active: activeSections.has('reports') }">
           📊 Reports <span class="arrow">▼</span>
         </li>
         <transition name="fade">
-          <ul v-if="activeSection === 'reports'" class="submenu">
+          <ul v-if="activeSections.has('reports')" class="submenu">
             <li @click="navigate('/employee/reports/org-chart')">Organization Chart</li>
             <li @click="navigate('/employee/reports/app-reports')">Application Reports</li>
             <li @click="navigate('/employee/reports/production')">Production Report</li>
@@ -44,12 +44,20 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const activeSection = ref('');
+const activeSections = ref(new Set());
+
 const sidebarOpen = ref(true); // default visible on desktop
 
 const toggleSection = (section) => {
-  activeSection.value = activeSection.value === section ? '' : section;
+  if (activeSections.value.has(section)) {
+    activeSections.value.delete(section);
+  } else {
+    activeSections.value.add(section);
+  }
+  // 触发响应式更新
+  activeSections.value = new Set(activeSections.value);
 };
+
 
 const navigate = (path) => {
   router.push(path);
