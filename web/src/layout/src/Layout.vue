@@ -1,6 +1,6 @@
 <template>
   <div class="app-layout">
-    <Sidebar class="sidebar"/>
+    <Sidebar class="sidebar" v-if="isEmployeePage"/>
     <div class="main">
       <Header class="header" />
       <router-view />
@@ -9,10 +9,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, watchEffect } from 'vue'
 import Sidebar from '@/components/Sidebar.vue'
 import Header from '@/layout/src/components/Header.vue'
-const isEmployeePage = computed(() => route.path.startsWith('/employee'))
+watchEffect(() => {
+  isEmployeePage.value = route.path.startsWith('/employee')
+})
 
 </script>
 
