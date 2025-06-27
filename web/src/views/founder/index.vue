@@ -89,7 +89,7 @@
             margin-right: 38px;
           }
           &.pic2 {
-            height: 153px;
+            height: 231px;
             float: right !important;
           }
           &.pc {
