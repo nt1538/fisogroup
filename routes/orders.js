@@ -452,7 +452,57 @@ router.post('/admin/order/update', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const {
+      query = '',
+      status,
+      sort = 'desc',
+      startDate,
+      endDate,
+    } = req.query;
 
+    let sql = `
+      SELECT o.*, u.name AS employee_name
+      FROM life_orders o
+      JOIN users u ON o.user_id = u.id
+      WHERE 1=1
+    `;
+    let params = [];
+
+    // 搜索关键词（员工名或订单号）
+    if (query) {
+      sql += ` AND (u.name ILIKE $${params.length + 1} OR o.policy_number ILIKE $${params.length + 1})`;
+      params.push(`%${query}%`);
+    }
+
+    // 状态筛选
+    if (status) {
+      sql += ` AND o.application_status = $${params.length + 1}`;
+      params.push(status);
+    }
+
+    // 日期筛选
+    if (startDate) {
+      sql += ` AND o.created_at >= $${params.length + 1}`;
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      sql += ` AND o.created_at <= $${params.length + 1}`;
+      params.push(endDate);
+    }
+
+    // 排序
+    sql += ` ORDER BY o.created_at ${sort.toLowerCase() === 'asc' ? 'ASC' : 'DESC'}`;
+
+    const { rows } = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
 
 module.exports = router;
 
