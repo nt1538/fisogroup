@@ -81,13 +81,13 @@ const fetchOrders = async () => {
     endDate: endDate.value
   }
 
-  const res = await axios.get('/api/admin/orders', { params })
+  const res = await axios.get('/admin/orders', { params })
   orders.value = res.data
 }
 
 const updateStatus = async (order) => {
   try {
-    await axios.post('/api/admin/update-status', {
+    await axios.post('/admin/update-status', {
       orderId: order.id,
       newStatus: order.application_status,
       orderType: order.order_type,
