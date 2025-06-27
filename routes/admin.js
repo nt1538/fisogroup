@@ -1,80 +1,126 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
-// 搜索所有订单（life + annuity 合并查询）
-router.get('/search', async (req, res) => {
+// 🔍 多条件搜索订单（life + annuity 合并）
+router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
   const {
-    user_name = '',
-    order_id = '',
-    status = '',
-    start_date = '',
-    end_date = '',
-    sort_by = 'created_at',
-    order = 'desc',
+    query = '', status = '', sort = 'desc',
+    startDate = '', endDate = ''
   } = req.query;
 
   try {
-    const queryParts = [];
     const values = [];
+    const conditions = [];
 
-    // 查询语句拼接（life_orders 与 annuity_orders 合并）
-    let baseQuery = `
-      SELECT o.*, u.name as user_name, 'life' as table_type
-      FROM life_orders o
-      JOIN users u ON o.user_id = u.id
-    `;
-
-    let whereClause = [];
-
-    if (user_name) {
-      values.push(`%${user_name}%`);
-      whereClause.push(`u.name ILIKE $${values.length}`);
+    if (query) {
+      values.push(`%${query}%`);
+      conditions.push(`(u.name ILIKE $${values.length} OR o.id::text ILIKE $${values.length})`);
     }
-
-    if (order_id) {
-      values.push(order_id);
-      whereClause.push(`o.id = $${values.length}`);
-    }
-
     if (status) {
       values.push(status);
-      whereClause.push(`o.application_status = $${values.length}`);
+      conditions.push(`o.application_status = $${values.length}`);
+    }
+    if (startDate) {
+      values.push(startDate);
+      conditions.push(`o.created_at >= $${values.length}`);
+    }
+    if (endDate) {
+      values.push(endDate);
+      conditions.push(`o.created_at <= $${values.length}`);
     }
 
-    if (start_date) {
-      values.push(start_date);
-      whereClause.push(`o.created_at >= $${values.length}`);
-    }
+    const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    if (end_date) {
-      values.push(end_date);
-      whereClause.push(`o.created_at <= $${values.length}`);
-    }
-
-    // 拼接 where 条件
-    if (whereClause.length > 0) {
-      baseQuery += ` WHERE ` + whereClause.join(' AND ');
-    }
-
-    const query = `
-      (${baseQuery})
+    const queryText = `
+      (
+        SELECT o.*, u.name AS user_name, 'life' AS order_type
+        FROM life_orders o
+        JOIN users u ON o.user_id = u.id
+        ${whereClause}
+      )
       UNION ALL
       (
-        SELECT o.*, u.name as user_name, 'annuity' as table_type
+        SELECT o.*, u.name AS user_name, 'annuity' AS order_type
         FROM annuity_orders o
         JOIN users u ON o.user_id = u.id
-        ${whereClause.length > 0 ? ' WHERE ' + whereClause.join(' AND ') : ''}
+        ${whereClause}
       )
-      ORDER BY ${sort_by} ${order}
+      ORDER BY created_at ${sort}
       LIMIT 100
     `;
 
-    const { rows } = await pool.query(query, values);
-    res.json(rows);
+    const result = await pool.query(queryText, values);
+    res.json(result.rows);
   } catch (err) {
-    console.error('Search error:', err);
-    res.status(500).json({ error: 'Failed to search orders' });
+    console.error('Admin order search error:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+// ✏️ 编辑订单（life or annuity）
+router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
+  const { type, id } = req.params;
+  const {
+    application_status, policy_number, commission_percent, initial_premium,
+    commission_amount, note
+  } = req.body;
+
+  const table = type === 'life' ? 'life_orders' : 'annuity_orders';
+
+  try {
+    const query = `
+      UPDATE \${table}
+      SET application_status = $1,
+          policy_number = $2,
+          commission_percent = $3,
+          initial_premium = $4,
+          commission_amount = $5,
+          note = $6
+      WHERE id = $7
+      RETURNING *;
+    `;
+    const values = [
+      application_status, policy_number, commission_percent,
+      initial_premium, commission_amount, note, id
+    ];
+
+    const result = await pool.query(query, values);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating order:', err);
+    res.status(500).json({ error: 'Failed to update order' });
+  }
+});
+
+// 👤 编辑员工信息
+router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { name, email, role, introducer_id, hierarchy_level } = req.body;
+
+  try {
+    const query = `
+      UPDATE users
+      SET name = $1, email = $2, role = $3, introducer_id = $4, hierarchy_level = $5
+      WHERE id = $6
+      RETURNING *;
+    `;
+    const values = [name, email, role, introducer_id, hierarchy_level, id];
+
+    const result = await pool.query(query, values);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating employee:', err);
+    res.status(500).json({ error: 'Failed to update employee' });
   }
 });
 
