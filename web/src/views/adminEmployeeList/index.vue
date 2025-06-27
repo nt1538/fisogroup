@@ -32,7 +32,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
-import AdminLayout from '@/Layout/AdminLayout.vue';
+import AdminLayout from '@/Layout/src/AdminLayout.vue';
 
 const search = ref("");
 const employees = ref([]);
