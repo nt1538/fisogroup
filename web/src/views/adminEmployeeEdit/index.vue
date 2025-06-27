@@ -27,7 +27,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
-import AdminLayout from '@/Layout/src/AdminLayout.vue';
+import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const route = useRoute();
 const userId = route.params.id;

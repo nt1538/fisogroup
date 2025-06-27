@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import AdminLayout from '@/Layout/src/AdminLayout.vue'
+import AdminLayout from '@/layout/src/AdminLayout.vue'
 </script>
 
 <style scoped>

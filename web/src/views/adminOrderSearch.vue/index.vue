@@ -44,7 +44,7 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
-import AdminLayout from '@/Layout/src/AdminLayout.vue';
+import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const filters = ref({
   user: '',
