@@ -23,6 +23,7 @@ function verifyAdmin(req, res, next) {
   next();
 }
 
-
-module.exports = { verifyToken };
-module.exports = { verifyAdmin };
+module.exports = {
+  verifyToken,
+  verifyAdmin
+};
