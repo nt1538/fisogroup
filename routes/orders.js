@@ -368,5 +368,91 @@ router.get('/by-user/:id', async (req, res) => {
   }
 })
 
+router.post('/admin-orders/update-status', verifyToken, async (req, res) => {
+  const { id, table, status } = req.body;
+  const client = await pool.connect();
+  try {
+    // 更新状态
+    await client.query(
+      `UPDATE ${table} SET application_status = $1 WHERE id = $2`,
+      [status, id]
+    );
+
+    // 如果变更为 completed，触发佣金生成逻辑
+    if (status === 'completed') {
+      const createCommission = require('../utils/createCommission');
+      await createCommission(client, id, table);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to update order status:', err);
+    res.status(500).json({ success: false, error: 'Update failed' });
+  } finally {
+    client.release();
+  }
+});
+
+// 获取所有员工信息
+router.get('/admin/employees', verifyToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, name, email, level_percent, hierarchy_level, introducer_id FROM users ORDER BY id'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// 更新员工资料
+router.post('/admin/employees/update', verifyToken, async (req, res) => {
+  const { id, name, email, level_percent, hierarchy_level, introducer_id } = req.body;
+  try {
+    await pool.query(
+      'UPDATE users SET name = $1, email = $2, level_percent = $3, hierarchy_level = $4, introducer_id = $5 WHERE id = $6',
+      [name, email, level_percent, hierarchy_level, introducer_id, id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// 获取指定订单
+router.get('/admin/order/:table/:id', verifyToken, async (req, res) => {
+  const { table, id } = req.params;
+  try {
+    const { rows } = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Order not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
+// 更新订单内容
+router.post('/admin/order/update', verifyToken, async (req, res) => {
+  const { table, id, updates } = req.body; // updates: { field: value }
+  const keys = Object.keys(updates);
+  const values = Object.values(updates);
+  const sets = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+  try {
+    await pool.query(
+      `UPDATE ${table} SET ${sets} WHERE id = $${keys.length + 1}`,
+      [...values, id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Update failed' });
+  }
+});
+
+
+
 module.exports = router;
 

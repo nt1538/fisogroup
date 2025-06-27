@@ -9,7 +9,7 @@
           <table class="commission-table">
             <thead>
               <tr>
-                <th>FISO</th><th>Last Name</th><th>First Name</th><th>NPN</th><th>License #</th>
+                <th>FISO</th><th>Last Name</th><th>First Name</th><th>NPN</th>
                 <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th><th>Type</th>
                 <th>Product</th><th>App Date</th><th>Policy #</th><th>Face Amt</th>
                 <th>Target Prem</th><th>Init Prem</th><th>Comm from Carrier</th>
@@ -18,7 +18,7 @@
             </thead>
             <tbody>
               <tr v-for="item in lifeOrders" :key="item.id">
-                <td>{{ item.agent_fiso }}</td><td>{{ item.last_name }}</td><td>{{ item.first_name }}</td><td>{{ item.national_producer_number }}</td><td>{{ item.license_number }}</td>
+                <td>{{ item.agent_fiso }}</td><td>{{ item.last_name }}</td><td>{{ item.first_name }}</td><td>{{ item.national_producer_number }}</td>
                 <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_type }}</td><td>{{ item.product_name_carrier }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
@@ -34,7 +34,7 @@
           <table class="commission-table">
             <thead>
               <tr>
-                <th>FISO</th><th>Last Name</th><th>First Name</th><th>NPN</th><th>License #</th>
+                <th>FISO</th><th>Last Name</th><th>First Name</th><th>NPN</th>
                 <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th><th>Type</th>
                 <th>Product</th><th>App Date</th><th>Policy #</th><th>Init Prem</th><th>Comm from Carrier</th>
                 <th>Status</th><th>MRA</th>
@@ -42,7 +42,7 @@
             </thead>
             <tbody>
               <tr v-for="item in annuityOrders" :key="item.id">
-                <td>{{ item.agent_fiso }}</td><td>{{ item.last_name }}</td><td>{{ item.first_name }}</td><td>{{ item.national_producer_number }}</td><td>{{ item.license_number }}</td>
+                <td>{{ item.agent_fiso }}</td><td>{{ item.last_name }}</td><td>{{ item.first_name }}</td><td>{{ item.national_producer_number }}</td>
                 <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_type }}</td><td>{{ item.product_name_carrier }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
