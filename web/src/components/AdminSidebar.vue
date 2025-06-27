@@ -1,8 +1,10 @@
 <template>
   <div class="sidebar">
-    <router-link to="/admin/dashboard" class="sidebar-item">📊 Dashboard</router-link>
-    <router-link to="/admin/orders" class="sidebar-item">📦 Manage Orders</router-link>
-    <router-link to="/admin/employees" class="sidebar-item">👥 Manage Employees</router-link>
+    <router-link to="/admin/adminDashboard" class="sidebar-item">📊 Dashboard</router-link>
+    <router-link to="/admin/adminOrderEdit" class="sidebar-item">📦 Manage Orders</router-link>
+    <router-link to="/admin/adminOrderSearch" class="sidebar-item">📦 Check Orders</router-link>
+    <router-link to="/admin/adminEmployeeEdit" class="sidebar-item">👥 Manage Employees</router-link>
+    <router-link to="/admin/adminEmployeeSearch" class="sidebar-item">👥 Check Employees</router-link>
   </div>
 </template>
 
