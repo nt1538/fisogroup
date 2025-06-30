@@ -27,7 +27,7 @@
           </el-form-item>
 
           <el-form-item class="no-border">
-            <el-input v-model.number="introducer_id" placeholder="Introducer ID (optional)" />
+            <el-input v-model="introducer_id" placeholder="Introducer ID (optional)" />
           </el-form-item>
 
           <el-form-item class="no-border">

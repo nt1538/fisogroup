@@ -45,6 +45,7 @@ router.post('/register', async (req, res) => {
     password, // SHA-256 hash from frontend
     introducer_id,
     state,
+    national_producer_number,
     access_code
   } = req.body;
 
@@ -61,15 +62,16 @@ router.post('/register', async (req, res) => {
     const id = await generateEmployeeId(stateUpper);
 
     await pool.query(
-      `INSERT INTO users (id, name, email, password, introducer_id, state, hierarchy_level)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO users (id, name, email, password, introducer_id, state, hierarchy_level, national_producer_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [ id,
         name,
         email,
         hashedPassword,
         introducer_id || null,
         state?.toUpperCase() || null,
-        hierarchy_level
+        hierarchy_level,
+        national_producer_number
       ]
     );
 
