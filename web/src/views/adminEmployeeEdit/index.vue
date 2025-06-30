@@ -44,7 +44,7 @@
 
       <div class="form-group">
         <label>Hierarchy Level</label>
-        <input v-model="user.hierarchy_level" type="number" />
+        <input v-model="user.hierarchy_level" type="text" />
       </div>
 
       <div class="form-group">
