@@ -124,6 +124,28 @@ router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+router.get('/employees/:id', verifyToken, async (req, res) => {
+  const userId = parseInt(req.params.id);
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, email, phone, is_admin, created_at, total_earnings
+       FROM users
+       WHERE id = $1`,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error fetching employee by ID:', err);
+    res.status(500).json({ error: 'Failed to fetch employee' });
+  }
+});
+
 router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
   const { query = '' } = req.query;
   try {
