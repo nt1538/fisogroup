@@ -58,18 +58,17 @@ router.post('/register', async (req, res) => {
     const stateUpper = state?.toUpperCase();
     const hierarchy_level = getHierarchyLevel(percent);
 
-    const custom_employee_id = await generateEmployeeId(stateUpper);
+    const id = await generateEmployeeId(stateUpper);
 
     await pool.query(
-      `INSERT INTO users (name, email, password, introducer_id, state, custom_employee_id, hierarchy_level)
+      `INSERT INTO users (id, name, email, password, introducer_id, state, hierarchy_level)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
+      [ id,
         name,
         email,
         hashedPassword,
         introducer_id || null,
         state?.toUpperCase() || null,
-        custom_employee_id,
         hierarchy_level
       ]
     );

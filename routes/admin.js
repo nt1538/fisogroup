@@ -4,58 +4,61 @@ const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
 // 🔍 多条件搜索订单（life + annuity 合并）
-router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
+router.get('/admin/orders', verifyToken, verifyAdmin, async (req, res) => {
   const {
-    query = '', status = '', sort = 'desc',
-    startDate = '', endDate = ''
+    user_name,
+    order_id,
+    status,
+    start_date,
+    end_date
   } = req.query;
 
+  const tables = ['life_orders', 'annuity_orders'];
+  const allResults = [];
+
   try {
-    const values = [];
-    const conditions = [];
-
-    if (query) {
-      values.push(`%${query}%`);
-      conditions.push(`(u.name ILIKE $${values.length} OR o.id::text ILIKE $${values.length})`);
-    }
-    if (status) {
-      values.push(status);
-      conditions.push(`o.application_status = $${values.length}`);
-    }
-    if (startDate) {
-      values.push(startDate);
-      conditions.push(`o.created_at >= $${values.length}`);
-    }
-    if (endDate) {
-      values.push(endDate);
-      conditions.push(`o.created_at <= $${values.length}`);
-    }
-
-    const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
-
-    const queryText = `
-      (
-        SELECT o.*, u.name AS user_name, 'life' AS order_type
-        FROM life_orders o
+    for (const table of tables) {
+      let query = `
+        SELECT o.*, u.name AS user_name, '${table}' AS table_type
+        FROM ${table} o
         JOIN users u ON o.user_id = u.id
-        ${whereClause}
-      )
-      UNION ALL
-      (
-        SELECT o.*, u.name AS user_name, 'annuity' AS order_type
-        FROM annuity_orders o
-        JOIN users u ON o.user_id = u.id
-        ${whereClause}
-      )
-      ORDER BY created_at ${sort}
-      LIMIT 100
-    `;
+        WHERE 1=1
+      `;
+      const values = [];
+      let count = 1;
 
-    const result = await pool.query(queryText, values);
-    res.json(result.rows);
+      if (user_name) {
+        query += ` AND u.name ILIKE $${count++}`;
+        values.push(`%${user_name}%`);
+      }
+      if (order_id) {
+        query += ` AND o.id::TEXT ILIKE $${count++}`;
+        values.push(`%${order_id}%`);
+      }
+      if (status) {
+        query += ` AND o.application_status = $${count++}`;
+        values.push(status);
+      }
+      if (start_date) {
+        query += ` AND o.created_at >= $${count++}`;
+        values.push(start_date);
+      }
+      if (end_date) {
+        query += ` AND o.created_at <= $${count++}`;
+        values.push(end_date);
+      }
+
+      query += ` ORDER BY o.created_at DESC LIMIT 100`;
+
+      const result = await pool.query(query, values);
+      allResults.push(...result.rows);
+    }
+
+    // 合并两个表的查询结果返回前端
+    res.json(allResults);
   } catch (err) {
-    console.error('Admin order search error:', err);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    console.error('Search orders error:', err);
+    res.status(500).json({ error: 'Failed to search orders' });
   }
 });
 

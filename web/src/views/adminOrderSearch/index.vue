@@ -1,28 +1,33 @@
 <template>
   <AdminLayout>
-    <h2>订单搜索</h2>
+    <h2>Search For Orders</h2>
     <div class="filters">
-      <input v-model="filters.user" placeholder="用户名" />
-      <input v-model="filters.orderId" placeholder="订单ID" />
+      <input v-model="filters.user" placeholder="Employee Name" />
+      <input v-model="filters.orderId" placeholder="Order ID" />
       <select v-model="filters.status">
-        <option value="">全部状态</option>
-        <option value="in_progress">进行中</option>
-        <option value="completed">已完成</option>
+        <option value="">Status</option>
+        <option value="in_progress">in Progress</option>
+        <option value="completed">Completed</option>
+      </select>
+      <select v-model="filters.order_type">
+        <option value="">Order Type</option>
+        <option value="life_orders">Life</option>
+        <option value="annuity_orders">Annuity</option>
       </select>
       <input type="date" v-model="filters.startDate" />
       <input type="date" v-model="filters.endDate" />
-      <button @click="searchOrders">搜索</button>
+      <button @click="searchOrders">Search</button>
     </div>
 
     <table v-if="orders.length">
       <thead>
         <tr>
           <th>ID</th>
-          <th>用户</th>
-          <th>类型</th>
-          <th>状态</th>
-          <th>创建时间</th>
-          <th>操作</th>
+          <th>User</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Created At</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -32,12 +37,12 @@
           <td>{{ order.table_type }}</td>
           <td>{{ order.application_status }}</td>
           <td>{{ order.created_at }}</td>
-          <td><router-link :to="`/admin/orders/${order.table_type}/${order.id}`">编辑</router-link></td>
+          <td><router-link :to="`/admin/orders/${order.table_type}/${order.id}`">Edit</router-link></td>
         </tr>
       </tbody>
     </table>
 
-    <div v-else>暂无订单</div>
+    <div v-else>No Orders Available</div>
   </AdminLayout>
 </template>
 
@@ -50,6 +55,7 @@ const filters = ref({
   user: '',
   orderId: '',
   status: '',
+  order_type: '',
   startDate: '',
   endDate: '',
 });
@@ -63,6 +69,7 @@ async function searchOrders() {
       user_name: user,
       order_id: orderId,
       status,
+      table_type: order_type,
       start_date: startDate,
       end_date: endDate
     }
