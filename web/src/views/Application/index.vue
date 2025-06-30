@@ -10,7 +10,7 @@
             <thead>
               <tr>
                 <th>FISO</th><th>Last Name</th><th>First Name</th><th>NPN</th>
-                <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th><th>Type</th>
+                <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>App Date</th><th>Policy #</th><th>Face Amt</th>
                 <th>Target Prem</th><th>Init Prem</th><th>Comm from Carrier</th>
                 <th>Status</th><th>MRA</th>
@@ -20,7 +20,7 @@
               <tr v-for="item in lifeOrders" :key="item.id">
                 <td>{{ item.agent_fiso }}</td><td>{{ item.last_name }}</td><td>{{ item.first_name }}</td><td>{{ item.national_producer_number }}</td>
                 <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
-                <td>{{ item.carrier_name }}</td><td>{{ item.product_type }}</td><td>{{ item.product_name_carrier }}</td>
+                <td>{{ item.carrier_name }}</td><td>{{ item.product_name_carrier }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
                 <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td>
@@ -35,8 +35,8 @@
             <thead>
               <tr>
                 <th>FISO</th><th>Last Name</th><th>First Name</th><th>NPN</th>
-                <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th><th>Type</th>
-                <th>Product</th><th>App Date</th><th>Policy #</th><th>Init Prem</th><th>Comm from Carrier</th>
+                <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th>
+                <th>Product</th><th>App Date</th><th>Policy #</th><th>Flex Prem</th><th>Comm from Carrier</th>
                 <th>Status</th><th>MRA</th>
               </tr>
             </thead>
@@ -44,7 +44,7 @@
               <tr v-for="item in annuityOrders" :key="item.id">
                 <td>{{ item.agent_fiso }}</td><td>{{ item.last_name }}</td><td>{{ item.first_name }}</td><td>{{ item.national_producer_number }}</td>
                 <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
-                <td>{{ item.carrier_name }}</td><td>{{ item.product_type }}</td><td>{{ item.product_name_carrier }}</td>
+                <td>{{ item.carrier_name }}</td><td>{{ item.product_name_carrier }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.initial_premium }}</td><td>{{ item.commission_from_carrier }}</td>
                 <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td>
