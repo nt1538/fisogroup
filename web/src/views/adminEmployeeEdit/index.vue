@@ -1,25 +1,60 @@
 <template>
   <AdminLayout>
-    <h2>编辑员工 #{{ userId }}</h2>
+    <h2>Edit Employee #{{ userId }}</h2>
     <div v-if="user">
       <div class="form-group">
-        <label>姓名</label>
+        <label>Name</label>
         <input v-model="user.name" type="text" />
       </div>
+
       <div class="form-group">
-        <label>邮箱</label>
+        <label>Email</label>
         <input v-model="user.email" type="email" />
       </div>
+
       <div class="form-group">
-        <label>角色</label>
-        <select v-model="user.role">
-          <option value="employee">员工</option>
-          <option value="admin">管理员</option>
-        </select>
+        <label>State</label>
+        <input v-model="user.state" type="text" />
       </div>
-      <button @click="saveUser">保存</button>
+
+      <div class="form-group">
+        <label>Introducer ID</label>
+        <input v-model="user.introducer_id" type="text" />
+      </div>
+
+      <div class="form-group">
+        <label>Level Percentage</label>
+        <input v-model="user.level_percent" type="number" />
+      </div>
+
+      <div class="form-group">
+        <label>Total Earnings</label>
+        <input v-model="user.total_earnings" type="number" />
+      </div>
+
+      <div class="form-group">
+        <label>Commission</label>
+        <input v-model="user.commission" type="number" />
+      </div>
+
+      <div class="form-group">
+        <label>Profit</label>
+        <input v-model="user.profit" type="number" />
+      </div>
+
+      <div class="form-group">
+        <label>Hierarchy Level</label>
+        <input v-model="user.hierarchy_level" type="number" />
+      </div>
+
+      <div class="form-group">
+        <label>National Producer Number</label>
+        <input v-model="user.national_producer_number" type="text" />
+      </div>
+
+      <button @click="saveUser">Save</button>
     </div>
-    <div v-else>加载中...</div>
+    <div v-else>Loading...</div>
   </AdminLayout>
 </template>
 
