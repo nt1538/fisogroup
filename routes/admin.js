@@ -106,8 +106,8 @@ router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const query = `
       UPDATE users
-      SET name = $1, email = $2, role = $3, introducer_id = $4, hierarchy_level = $5
-      WHERE id = $6
+      SET name = $1, email = $2, introducer_id = $3, hierarchy_level = $4
+      WHERE id = $5
       RETURNING *;
     `;
     const values = [name, email, role, introducer_id, hierarchy_level, id];
@@ -128,7 +128,7 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
   const { query = '' } = req.query;
   try {
     const result = await pool.query(
-      `SELECT id, name, email, role, total_earnings, hierarchy_level
+      `SELECT id, name, email, total_earnings, hierarchy_level
        FROM users
        WHERE name ILIKE $1 OR email ILIKE $1
        ORDER BY id DESC
