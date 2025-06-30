@@ -44,7 +44,15 @@
 
       <div class="form-group">
         <label>Hierarchy Level</label>
-        <input v-model="user.hierarchy_level" type="text" />
+        <select v-model="user.hierarchy_level">
+          <option value="Level A">Level A</option>
+          <option value="Level B">Level B</option>
+          <option value="Level C">Level C</option>
+          <option value="Agency 1">Agency 1</option>
+          <option value="Agency 2">Agency 2</option>
+          <option value="Agency 3">Agency 3</option>
+          <option value="Vice President">Vice President</option>
+        </select>
       </div>
 
       <div class="form-group">
