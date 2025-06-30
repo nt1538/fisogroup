@@ -1,18 +1,18 @@
 <template>
   <AdminLayout>
-    <h2>员工列表</h2>
+    <h2>Employee List</h2>
     <div class="filters">
-      <input v-model="search" placeholder="搜索员工姓名或邮箱" />
-      <button @click="loadEmployees">搜索</button>
+      <input v-model="search" placeholder="Search For Employees by Name or Email" />
+      <button @click="loadEmployees">Search</button>
     </div>
     <table v-if="employees.length">
       <thead>
         <tr>
           <th>ID</th>
-          <th>姓名</th>
-          <th>邮箱</th>
-          <th>角色</th>
-          <th>操作</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Level</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -20,12 +20,12 @@
           <td>{{ emp.id }}</td>
           <td>{{ emp.name }}</td>
           <td>{{ emp.email }}</td>
-          <td>{{ emp.role }}</td>
-          <td><router-link :to="`/admin/employees/${emp.id}`">编辑</router-link></td>
+          <td>{{ emp.hierarchy_level }}</td>
+          <td><router-link :to="`/admin/adminEmployeeEdit/${emp.id}`">Edit/Check</router-link></td>
         </tr>
       </tbody>
     </table>
-    <div v-else>暂无员工</div>
+    <div v-else>Nothing Found</div>
   </AdminLayout>
 </template>
 
