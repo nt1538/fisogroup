@@ -23,7 +23,7 @@ async function generateEmployeeId(stateAbbr) {
   const prefix = stateAbbr.toUpperCase();
   const query = `
     SELECT id FROM users
-    WHERE state = $1 AND IS NOT NULL
+    WHERE state = $1 AND id IS NOT NULL
     ORDER BY id DESC
     LIMIT 1;
   `;
