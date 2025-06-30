@@ -34,12 +34,12 @@ const userId = route.params.id;
 const user = ref(null);
 
 onMounted(async () => {
-  const res = await axios.get(`/api/admin/employees/${userId}`);
+  const res = await axios.get(`/admin/employees/${userId}`);
   user.value = res.data;
 });
 
 async function saveUser() {
-  await axios.put(`/api/admin/employees/${userId}`, user.value);
+  await axios.put(`/admin/employees/${userId}`, user.value);
   alert('保存成功！');
 }
 </script>

@@ -21,7 +21,7 @@ const stats = ref({
 });
 
 onMounted(async () => {
-  const res = await axios.get('/api/admin/summary');
+  const res = await axios.get('/admin/summary');
   stats.value = res.data;
 });
 </script>

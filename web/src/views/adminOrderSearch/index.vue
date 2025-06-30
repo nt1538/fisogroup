@@ -58,7 +58,7 @@ const orders = ref([]);
 
 async function searchOrders() {
   const { user, orderId, status, startDate, endDate } = filters.value;
-  const res = await axios.get('/api/admin/orders', {
+  const res = await axios.get('/admin/orders', {
     params: {
       user_name: user,
       order_id: orderId,

@@ -36,12 +36,12 @@ const tableType = route.params.type;
 const order = ref(null);
 
 onMounted(async () => {
-  const res = await axios.get(`/api/admin/orders/${tableType}/${orderId}`);
+  const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
 });
 
 async function saveOrder() {
-  await axios.put(`/api/admin/orders/${tableType}/${orderId}`, order.value);
+  await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
   alert('保存成功！');
 }
 </script>

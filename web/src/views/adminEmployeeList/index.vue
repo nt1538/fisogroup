@@ -38,7 +38,7 @@ const search = ref("");
 const employees = ref([]);
 
 async function loadEmployees() {
-  const res = await axios.get('/api/admin/employees', {
+  const res = await axios.get('/admin/employees', {
     params: { query: search.value }
   });
   employees.value = res.data;
