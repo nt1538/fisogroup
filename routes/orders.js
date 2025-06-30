@@ -291,7 +291,7 @@ async function createOrder(req, res, tableName, defaultType) {
 
 
 router.get('/all-sub/:userId', async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
+  const userId = req.params.id;
   if (isNaN(userId)) {
     return res.status(400).json({ error: 'Invalid user ID' });
   }
@@ -347,7 +347,7 @@ router.get('/all-sub/:userId', async (req, res) => {
 });
 
 router.get('/by-user/:id', async (req, res) => {
-  const userId = parseInt(req.params.id)
+  const userId = req.params.id;
 
   try {
     const { rows } = await pool.query(`

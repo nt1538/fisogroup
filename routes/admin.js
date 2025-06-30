@@ -129,7 +129,7 @@ router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 router.get('/employees/:id', verifyToken, async (req, res) => {
-  const userId = parseInt(req.params.id);
+  const userId = req.params.id;
 
   try {
     const { rows } = await pool.query(

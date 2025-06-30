@@ -5,7 +5,7 @@ const { verifyToken } = require('../middleware/auth');
 
 // ✅ 获取用户个人信息和收益统计
 router.get('/me/:id', verifyToken, async (req, res) => {
-  const userId = parseInt(req.params.id);
+  const userId = req.params.id;
 
   // 校验当前 token 用户是否请求自己的数据
   if (req.user.id !== userId) {
@@ -81,7 +81,7 @@ router.get('/me/:id', verifyToken, async (req, res) => {
 
 // ✅ 获取组织结构树（引荐关系）
 router.get('/org-chart/:id', verifyToken, async (req, res) => {
-  const userId = parseInt(req.params.id);
+  const userId = req.params.id;
 
   try {
     const result = await pool.query(`
