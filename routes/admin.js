@@ -124,4 +124,22 @@ router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
+  const { query = '' } = req.query;
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, role, total_earnings, hierarchy_level
+       FROM users
+       WHERE name ILIKE $1 OR email ILIKE $1
+       ORDER BY id DESC
+       LIMIT 100`,
+      [`%${query}%`]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error searching employees:', err);
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
 module.exports = router;
