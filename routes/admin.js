@@ -73,8 +73,19 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const table = type === 'life' ? 'life_orders' : 'annuity_orders';
 
   try {
-    const query = `
-      UPDATE \${table}
+    const client = await pool.connect();
+
+    // 查询原始状态
+    const originalResult = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+    const originalOrder = originalResult.rows[0];
+    if (!originalOrder) {
+      client.release();
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // 更新订单
+    const updateQuery = `
+      UPDATE ${table}
       SET application_status = $1,
           policy_number = $2,
           commission_percent = $3,
@@ -88,13 +99,16 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
       application_status, policy_number, commission_percent,
       initial_premium, commission_amount, note, id
     ];
+    const result = await client.query(updateQuery, values);
+    const updatedOrder = result.rows[0];
 
-    const result = await pool.query(query, values);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Order not found' });
+    // 如果状态变更为 completed，执行佣金分发
+    if (application_status === 'completed' && originalOrder.application_status !== 'completed') {
+      await handleCommissions(updatedOrder, updatedOrder.user_id);
     }
 
-    res.json(result.rows[0]);
+    client.release();
+    res.json(updatedOrder);
   } catch (err) {
     console.error('Error updating order:', err);
     res.status(500).json({ error: 'Failed to update order' });

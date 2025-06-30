@@ -1,114 +1,127 @@
 <template>
-    <div class="dashboard">
-      <Sidebar />
-      <div class="upload-page">
-        <h1>Submit New Application</h1>
-  
-        <form @submit.prevent="submitForm" class="upload-form">
-          <div class="form-row">
-            <label>Product Type:</label>
-            <select v-model="form.product_type" required>
-              <option disabled value="">Select</option>
-              <option value="life">Life</option>
-              <option value="annuity">Annuity</option>
-            </select>
-          </div>
-  
-          <div class="form-row">
-            <label>Carrier Name:</label>
-            <input v-model="form.carrier_name" required />
-          </div>
-  
-          <div class="form-row">
-            <label>Product Name:</label>
-            <input v-model="form.product_name_carrier" required />
-          </div>
-  
-          <div class="form-row">
-            <label>Application Date:</label>
-            <input type="date" v-model="form.application_date" required />
-          </div>
-  
-          <div class="form-row">
-            <label>Policy Number:</label>
-            <input v-model="form.policy_number" required />
-          </div>
-  
-          <div class="form-row" v-if="form.product_type === 'life'">
-            <label>Face Amount:</label>
-            <input v-model.number="form.face_amount" type="number" />
-            <label>Target Premium:</label>
-            <input v-model.number="form.target_premium" type="number" />
-          </div>
-  
-          <div class="form-row">
-            <label>Initial Premium:</label>
-            <input v-model.number="form.initial_premium" type="number" required />
-          </div>
-  
-          <div class="form-row">
-            <label>Commission From Carrier:</label>
-            <input v-model.number="form.commission_from_carrier" type="number" required />
-          </div>
-  
-          <button type="submit">Submit</button>
-        </form>
-  
-        <div v-if="submitted" class="success-msg">
-          ✅ Application successfully submitted.
+  <div class="dashboard">
+    <Sidebar />
+    <div class="upload-page">
+      <h1>Submit New Application</h1>
+
+      <form @submit.prevent="submitForm" class="upload-form">
+        <div class="form-row">
+          <label>Product Type:</label>
+          <select v-model="form.product_type" required>
+            <option disabled value="">Select</option>
+            <option value="life">Life</option>
+            <option value="annuity">Annuity</option>
+          </select>
         </div>
+
+        <div class="form-row">
+          <label>Carrier Name:</label>
+          <input v-model="form.carrier_name" required />
+        </div>
+
+        <div class="form-row">
+          <label>Product Name:</label>
+          <input v-model="form.product_name_carrier" required />
+        </div>
+
+        <div class="form-row">
+          <label>Application Date:</label>
+          <input type="date" v-model="form.application_date" required />
+        </div>
+
+        <div class="form-row">
+          <label>Policy Number:</label>
+          <input v-model="form.policy_number" required />
+        </div>
+
+        <div class="form-row" v-if="form.product_type === 'life'">
+          <label>Face Amount:</label>
+          <input v-model.number="form.face_amount" type="number" />
+          <label>Target Premium:</label>
+          <input v-model.number="form.target_premium" type="number" />
+        </div>
+
+        <div class="form-row">
+          <label>Initial Premium:</label>
+          <input v-model.number="form.initial_premium" type="number" required />
+        </div>
+
+        <div class="form-row">
+          <label>Commission From Carrier:</label>
+          <input v-model.number="form.commission_from_carrier" type="number" required />
+        </div>
+
+        <button type="submit">Submit</button>
+      </form>
+
+      <div v-if="submitted" class="success-msg">
+        ✅ Application successfully submitted.
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue';
-  import axios from '@/config/axios.config';
-  import Sidebar from '@/components/Sidebar.vue';
-  
-  const user = JSON.parse(localStorage.getItem('user'));
-  const submitted = ref(false);
-  
-  const form = ref({
-    product_type: '',
-    carrier_name: '',
-    product_name_carrier: '',
-    application_date: '',
-    policy_number: '',
-    face_amount: null,
-    target_premium: null,
-    initial_premium: null,
-    commission_from_carrier: null,
-  });
-  
-  const submitForm = async () => {
-    try {
-      const endpoint = form.value.product_type === 'life'
-        ? '/orders/life'
-        : '/orders/annuity';
-  
-      await axios.post(endpoint, {
-        ...form.value,
-        user_id: user.id,
-        agent_fiso: user.agent_fiso || user.id, // fallback
-        first_name: user.name.split(' ')[0],
-        last_name: user.name.split(' ')[1] || '',
-        national_producer_number: user.npn || '',
-        license_number: user.license_number || '',
-        hierarchy_level: user.role,
-        split_percent: 100,
-        application_status: 'in_progress',
-        mra_status: 'none'
-      });
-  
-      submitted.value = true;
-      setTimeout(() => submitted.value = false, 3000);
-      form.value = { product_type: '' };
-    } catch (err) {
-      console.error('Submission failed', err);
-    }
-  };
-  </script>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import axios from '@/config/axios.config';
+import Sidebar from '@/components/Sidebar.vue';
+
+const user = JSON.parse(localStorage.getItem('user'));
+const submitted = ref(false);
+
+// 表单中仅包含员工自己需要输入的内容（订单信息）
+const form = ref({
+  product_type: '',
+  carrier_name: '',
+  product_name_carrier: '',
+  application_date: '',
+  policy_number: '',
+  face_amount: null,
+  target_premium: null,
+  initial_premium: null,
+  commission_from_carrier: null,
+});
+
+const submitForm = async () => {
+  try {
+    const endpoint = form.value.product_type === 'life'
+      ? '/orders/life'
+      : '/orders/annuity';
+
+    const payload = {
+      ...form.value,
+      user_id: user.id,
+      full_name: user.name,
+      national_producer_number: user.npn || '',
+      license_number: user.license_number || '',
+      hierarchy_level: user.hierarchy_level || '',
+      commission_percent: user.level_percent || 70,
+      split_percent: 100,
+      application_status: 'in_progress',
+      mra_status: 'none'
+    };
+
+    await axios.post(endpoint, payload);
+
+    submitted.value = true;
+    setTimeout(() => submitted.value = false, 3000);
+    form.value = {
+      product_type: '',
+      carrier_name: '',
+      product_name_carrier: '',
+      application_date: '',
+      policy_number: '',
+      face_amount: null,
+      target_premium: null,
+      initial_premium: null,
+      commission_from_carrier: null,
+    };
+  } catch (err) {
+    console.error('Submission failed', err);
+  }
+};
+</script>
+
   
   <style scoped>
   .dashboard {
