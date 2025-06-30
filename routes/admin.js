@@ -133,7 +133,7 @@ router.get('/employees/:id', verifyToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, state, introducer_id, level_percent, total_earnings, commission, profit, created_at, hierarchy_level, national_producer_number
+      `SELECT id, name, email, state, introducer_id, level_percent, total_earnings, commission, profit, hierarchy_level, national_producer_number
        FROM users
        WHERE id = $1`,
       [userId]
