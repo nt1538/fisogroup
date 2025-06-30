@@ -26,7 +26,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const route = useRoute();

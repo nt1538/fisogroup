@@ -43,7 +43,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const filters = ref({
