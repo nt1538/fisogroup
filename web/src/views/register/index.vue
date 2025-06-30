@@ -23,7 +23,7 @@
           </el-form-item>
 
           <el-form-item class="no-border">
-            <el-input v-model.number="level_percent" placeholder="Commission Level %" />
+            <el-input v-model="national_producer_number" placeholder="National Producer Number" />
           </el-form-item>
 
           <el-form-item class="no-border">
@@ -52,8 +52,8 @@ const name = ref('');
 const email = ref('');
 const password = ref('');
 const state = ref('');
+const national_producer_number = ref('');
 const introducer_id = ref('');
-const level_percent = ref(70);
 const errorMessage = ref('');
 
 const access_code = ref('');
@@ -79,7 +79,7 @@ const register = async () => {
       password: hashedPassword,
       state: state.value.toUpperCase(),
       introducer_id: introducer_id.value || null,
-      level_percent: level_percent.value || 70,
+      national_producer_number: national_producer_number.value,
       access_code: access_code.value,
     });
 

@@ -19,6 +19,25 @@ function getHierarchyLevel(percent) {
   return 'Level A';
 }
 
+async function generateEmployeeId(stateAbbr) {
+  const prefix = stateAbbr.toUpperCase();
+  const query = `
+    SELECT custom_employee_id FROM users
+    WHERE state = $1 AND custom_employee_id IS NOT NULL
+    ORDER BY custom_employee_id DESC
+    LIMIT 1;
+  `;
+  const { rows } = await pool.query(query, [stateAbbr]);
+
+  if (rows.length === 0) {
+    return `${prefix}0001`;
+  }
+
+  const lastId = rows[0].custom_employee_id;
+  const number = parseInt(lastId.replace(prefix, '')) + 1;
+  return `${prefix}${String(number).padStart(4, '0')}`;
+}
+
 router.post('/register', async (req, res) => {
   const {
     name,
@@ -26,7 +45,6 @@ router.post('/register', async (req, res) => {
     password, // SHA-256 hash from frontend
     introducer_id,
     state,
-    level_percent,
     access_code
   } = req.body;
 
@@ -36,11 +54,14 @@ router.post('/register', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const percent = level_percent || 70;
+    const percent = 70;
+    const stateUpper = state?.toUpperCase();
     const hierarchy_level = getHierarchyLevel(percent);
 
+    const custom_employee_id = await generateEmployeeId(stateUpper);
+
     await pool.query(
-      `INSERT INTO users (name, email, password, introducer_id, state, level_percent, hierarchy_level)
+      `INSERT INTO users (name, email, password, introducer_id, state, custom_employee_id, hierarchy_level)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         name,
@@ -48,7 +69,7 @@ router.post('/register', async (req, res) => {
         hashedPassword,
         introducer_id || null,
         state?.toUpperCase() || null,
-        percent,
+        custom_employee_id,
         hierarchy_level
       ]
     );
