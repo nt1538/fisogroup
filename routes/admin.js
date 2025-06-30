@@ -101,16 +101,17 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-  const { name, email, role, introducer_id, hierarchy_level } = req.body;
+  const {name, email, state, introducer_id, level_percent, total_earnings, commission, hierarchy_level, national_producer_number} = req.body;
 
   try {
     const query = `
       UPDATE users
-      SET name = $1, email = $2, introducer_id = $3, hierarchy_level = $4
-      WHERE id = $5
+      SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, 
+      profit = $8, hierarchy_level = $9, national_producer_number = $10
+      WHERE id = $11
       RETURNING *;
     `;
-    const values = [name, email, role, introducer_id, hierarchy_level, id];
+    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, hierarchy_level, national_producer_number, id];
 
     const result = await pool.query(query, values);
     if (result.rowCount === 0) {
@@ -129,7 +130,7 @@ router.get('/employees/:id', verifyToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, phone, is_admin, created_at, total_earnings
+      `SELECT id, name, email, state, introducer_id, level_percent, total_earnings, commission, profit, created_at, hierarchy_level, national_producer_number
        FROM users
        WHERE id = $1`,
       [userId]
