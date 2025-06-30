@@ -42,7 +42,7 @@
         </div>
 
         <div class="form-row">
-          <label>Initial Premium:</label>
+          <label>Initial/Flex Premium:</label>
           <input v-model.number="form.initial_premium" type="number" required />
         </div>
 
@@ -98,7 +98,8 @@ const submitForm = async () => {
       commission_percent: user.level_percent || 70,
       split_percent: 100,
       application_status: 'in_progress',
-      mra_status: 'none'
+      mra_status: 'none',
+      order_type: 'Personal Commission'
     };
 
     await axios.post(endpoint, payload);

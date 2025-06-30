@@ -13,7 +13,7 @@
                 <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>App Date</th><th>Policy #</th><th>Face Amt</th>
                 <th>Target Prem</th><th>Init Prem</th><th>Comm from Carrier</th>
-                <th>Status</th><th>MRA</th>
+                <th>Status</th><th>MRA</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
@@ -23,7 +23,7 @@
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name_carrier }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
-                <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td>
+                <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
           </table>
@@ -37,7 +37,7 @@
                 <th>ID</th><th>Name</th><th>NPN</th>
                 <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>App Date</th><th>Policy #</th><th>Flex Prem</th><th>Comm from Carrier</th>
-                <th>Status</th><th>MRA</th>
+                <th>Status</th><th>MRA</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
@@ -47,7 +47,7 @@
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name_carrier }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.initial_premium }}</td><td>{{ item.commission_from_carrier }}</td>
-                <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td>
+                <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
           </table>
@@ -66,12 +66,12 @@
   
   onMounted(async () => {
     try {
-      const lifeRes = await axios.get('/orders/life', {
+      const lifeRes = await axios.get('/orders/life?status=completed', {
         headers: {
           Authorization: `Bearer ${token}`,
         }
       });
-      const annuityRes = await axios.get('/orders/annuity', {
+      const annuityRes = await axios.get('/orders/annuity?status=completed', {
         headers: {
           Authorization: `Bearer ${token}`,
         }
