@@ -22,9 +22,9 @@ function getHierarchyLevel(percent) {
 async function generateEmployeeId(stateAbbr) {
   const prefix = stateAbbr.toUpperCase();
   const query = `
-    SELECT custom_employee_id FROM users
-    WHERE state = $1 AND custom_employee_id IS NOT NULL
-    ORDER BY custom_employee_id DESC
+    SELECT id FROM users
+    WHERE state = $1 AND IS NOT NULL
+    ORDER BY id DESC
     LIMIT 1;
   `;
   const { rows } = await pool.query(query, [stateAbbr]);
@@ -33,7 +33,7 @@ async function generateEmployeeId(stateAbbr) {
     return `${prefix}0001`;
   }
 
-  const lastId = rows[0].custom_employee_id;
+  const lastId = rows[0].id;
   const number = parseInt(lastId.replace(prefix, '')) + 1;
   return `${prefix}${String(number).padStart(4, '0')}`;
 }
