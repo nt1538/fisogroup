@@ -4,7 +4,7 @@
     <router-link to="/admin/adminOrderEdit" class="sidebar-item">📦 Manage Orders</router-link>
     <router-link to="/admin/adminOrderSearch" class="sidebar-item">📦 Check Orders</router-link>
     <router-link to="/admin/adminEmployeeEdit" class="sidebar-item">👥 Manage Employees</router-link>
-    <router-link to="/admin/adminEmployeeSearch" class="sidebar-item">👥 Check Employees</router-link>
+    <router-link to="/admin/adminEmployeeList" class="sidebar-item">👥 Employees List</router-link>
   </div>
 </template>
 
