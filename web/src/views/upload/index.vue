@@ -21,7 +21,7 @@
 
         <div class="form-row">
           <label>Product Name:</label>
-          <input v-model="form.product_name_carrier" required />
+          <input v-model="form.product_name" required />
         </div>
 
         <div class="form-row">
@@ -42,8 +42,13 @@
         </div>
 
         <div class="form-row">
-          <label>Initial/Flex Premium:</label>
+          <label>Initial Premium:</label>
           <input v-model.number="form.initial_premium" type="number" required />
+        </div>
+
+        <div class="form-row" v-if="form.product_type === 'annuity'">
+          <label>Flex Premium:</label>
+          <input v-model.number="form.flex_premium" type="number" required />
         </div>
 
         <div class="form-row">
@@ -73,12 +78,13 @@ const submitted = ref(false);
 const form = ref({
   product_type: '',
   carrier_name: '',
-  product_name_carrier: '',
+  product_name: '',
   application_date: '',
   policy_number: '',
   face_amount: null,
   target_premium: null,
   initial_premium: null,
+  flex_premium: null,
   commission_from_carrier: null,
 });
 
@@ -109,7 +115,7 @@ const submitForm = async () => {
     form.value = {
       product_type: '',
       carrier_name: '',
-      product_name_carrier: '',
+      product_name: '',
       application_date: '',
       policy_number: '',
       face_amount: null,

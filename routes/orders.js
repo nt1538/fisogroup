@@ -3,6 +3,18 @@ const router = express.Router();
 const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
+function getPercentByLevel(level) {
+  const map = {
+    'Level A': 70,
+    'Level B': 75,
+    'Level C': 80,
+    'Agency1': 85,
+    'Agency2': 90,
+    'Agency3': 95,
+    'Vice President': 100,
+  };
+  return map[level] || 70;
+}
 // ======== CREATE LIFE ORDER =========
 router.post('/life', verifyToken, async (req, res) => {
   await createBaseOrder(req, res, 'life_orders', 'Personal Commission');
@@ -21,77 +33,70 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       user_id,
       policy_number,
       initial_premium,
+      flex_premium = null,
       order_type = defaultType,
       application_status = 'in_progress',
+      product_name,
+      carrier_name,
+      product_type,
+      application_date,
+      face_amount,
+      target_premium,
+      commission_from_carrier,
+      full_name,
+      national_producer_number,
+      hierarchy_level = 'Level A',
+      split_percent = 100,
+      mra_status = 'none'
     } = req.body;
 
     const userRes = await client.query(
-      `SELECT id, level_percent FROM users WHERE id = $1`,
+      `SELECT id, hierarchy_level FROM users WHERE id = $1`,
       [user_id]
     );
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const level_percent = user.level_percent || 0;
-
-    const chartRes = await client.query(
-      `SELECT COALESCE(SUM(initial_premium), 0) AS total
-       FROM ${tableName}
-       WHERE user_id = $1 AND order_type = 'Personal Commission'`,
-      [user_id]
-    );
-    const totalPremium = parseFloat(chartRes.rows[0].total);
-    let chart_percent = 70;
-    if (totalPremium >= 2000000) chart_percent = 100;
-    else if (totalPremium >= 1000000) chart_percent = 95;
-    else if (totalPremium >= 500000) chart_percent = 90;
-    else if (totalPremium >= 250000) chart_percent = 85;
-    else if (totalPremium >= 60000) chart_percent = 80;
-    else if (totalPremium >= 30000) chart_percent = 75;
-
-    const actual_percent = Math.max(level_percent, chart_percent);
-    const commission_amount = initial_premium * actual_percent / 100;
-
-    const hierarchy_level = req.body.hierarchy_level || 'Level A';
+    const currentLevel = user.hierarchy_level || hierarchy_level;
+    const commission_percent = getPercentByLevel(currentLevel);
+    const commission_amount = (initial_premium || 0) * commission_percent / 100;
 
     const insertRes = await client.query(
-      `INSERT INTO ${tableName}
-        (user_id, policy_number, order_type, commission_percent, commission_amount,
-         chart_percent, level_percent, application_status,
-         agent_fiso, first_name, last_name, national_producer_number, license_number, hierarchy_level, split_percent,
-         carrier_name, product_type, product_name_carrier, application_date, face_amount, target_premium, initial_premium,
-         commission_from_carrier, mra_status)
-       VALUES ($1, $2, $3, $4, $5,
-               $6, $7, $8,
-               $9, $10, $11, $12, $13, $14, $15,
-               $16, $17, $18, $19, $20, $21, $22,
-               $23, $24)
-       RETURNING id`,
+      `INSERT INTO ${tableName} (
+        user_id, policy_number, order_type, commission_percent, commission_amount,
+        application_status, full_name, national_producer_number, hierarchy_level,
+        split_percent, carrier_name, product_type, product_name_carrier,
+        application_date, face_amount, target_premium, initial_premium,
+        flex_premium, commission_from_carrier, mra_status
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13,
+        $14, $15, $16, $17,
+        $18, $19, $20
+      )
+      RETURNING id`,
       [
         user_id,
         policy_number,
         order_type,
-        actual_percent,
+        commission_percent,
         commission_amount,
-        chart_percent,
-        level_percent,
         application_status,
-        req.body.agent_fiso,
-        req.body.first_name,
-        req.body.last_name,
-        req.body.national_producer_number,
-        req.body.license_number,
-        hierarchy_level,
-        req.body.split_percent || 100,
-        req.body.carrier_name,
-        req.body.product_type,
-        req.body.product_name_carrier,
-        req.body.application_date,
-        req.body.face_amount,
-        req.body.target_premium,
+        full_name,
+        national_producer_number,
+        currentLevel,
+        split_percent,
+        carrier_name,
+        product_type,
+        product_name,
+        application_date,
+        face_amount,
+        target_premium,
         initial_premium,
-        req.body.commission_from_carrier,
-        req.body.mra_status || 'none'
+        flex_premium,
+        commission_from_carrier,
+        mra_status
       ]
     );
 
