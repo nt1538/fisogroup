@@ -1,26 +1,29 @@
 <template>
   <AdminLayout>
-    <h2>编辑订单 #{{ orderId }}</h2>
+    <h2>Edit Order #{{ orderId }}</h2>
     <div v-if="order">
-      <div class="form-group">
-        <label>订单状态</label>
-        <select v-model="order.application_status">
-          <option value="in_progress">进行中</option>
-          <option value="completed">已完成</option>
-          <option value="cancelled">已取消</option>
-        </select>
+      <div class="form-group" v-for="(value, key) in editableFields" :key="key">
+        <label :for="key">{{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}</label>
+        <template v-if="key === 'application_status'">
+          <select v-model="order[key]" :id="key">
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </template>
+        <template v-else-if="key === 'application_date'">
+          <input type="date" v-model="order[key]" :id="key" />
+        </template>
+        <template v-else-if="typeof value === 'number'">
+          <input type="number" v-model="order[key]" :id="key" />
+        </template>
+        <template v-else>
+          <input type="text" v-model="order[key]" :id="key" />
+        </template>
       </div>
-      <div class="form-group">
-        <label>初始保费</label>
-        <input type="number" v-model="order.initial_premium" />
-      </div>
-      <div class="form-group">
-        <label>佣金比例 (%)</label>
-        <input type="number" v-model="order.commission_percent" />
-      </div>
-      <button @click="saveOrder">保存</button>
+      <button @click="saveOrder">Save</button>
     </div>
-    <div v-else>加载中...</div>
+    <div v-else>Loading...</div>
   </AdminLayout>
 </template>
 
@@ -35,27 +38,52 @@ const orderId = route.params.id;
 const tableType = route.params.type;
 const order = ref(null);
 
+// 设置允许编辑的字段
+const editableFields = ref({
+  product_name: '',
+  carrier_name: '',
+  application_date: '',
+  policy_number: '',
+  face_amount: 0,
+  target_premium: 0,
+  initial_premium: 0,
+  commission_from_carrier: 0,
+  commission_percent: 0,
+  application_status: '',
+  mra_status: ''
+});
+
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
+  // 初始化 editableFields
+  for (const key in editableFields.value) {
+    if (key in order.value) editableFields.value[key] = order.value[key];
+  }
 });
 
 async function saveOrder() {
-  await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
-  alert('保存成功！');
+  const res = await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
+  alert('Order saved successfully');
 }
 </script>
 
 <style scoped>
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+label {
+  font-weight: bold;
+  margin-bottom: 5px;
 }
 input, select {
-  width: 100%;
   padding: 8px;
   border: 1px solid #ccc;
 }
 button {
   padding: 10px 20px;
+  margin-top: 20px;
 }
 </style>
