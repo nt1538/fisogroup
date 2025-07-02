@@ -57,6 +57,38 @@ router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+router.get('/orders/:table_type/:id', verifyToken, verifyAdmin, async (req, res) => {
+  const { table_type, id } = req.params;
+
+  // 限制只能访问指定表，防止 SQL 注入
+  const validTables = ['life_orders', 'annuity_orders'];
+  if (!validTables.includes(table_type)) {
+    return res.status(400).json({ error: 'Invalid table type' });
+  }
+
+  try {
+    const query = `
+      SELECT o.*, u.name AS user_name
+      FROM ${table_type} o
+      JOIN users u ON o.user_id = u.id
+      WHERE o.id = $1
+      LIMIT 1
+    `;
+    const result = await pool.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = result.rows[0];
+    order.table_type = table_type; // 手动补充字段，前端可能需要
+    res.json(order);
+  } catch (err) {
+    console.error('Error fetching order:', err);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
 // ✏️ 编辑订单（life or annuity）
 router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;

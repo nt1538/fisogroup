@@ -35,7 +35,7 @@ import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const route = useRoute();
 const orderId = route.params.id;
-const tableType = route.params.type;
+const tableType = route.params.table_type;
 const order = ref(null);
 
 // 设置允许编辑的字段
