@@ -59,42 +59,40 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     const commission_percent = getPercentByLevel(currentLevel);
     const commission_amount = (initial_premium || 0) * commission_percent / 100;
 
-    const insertRes = await client.query(
-      `INSERT INTO ${tableName} (
-        user_id, policy_number, order_type, commission_percent, commission_amount,
-        application_status, full_name, national_producer_number, hierarchy_level,
-        carrier_name, product_name,
-        application_date, face_amount, target_premium, initial_premium,
-        flex_premium, commission_from_carrier, mra_status
-      ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9,
-        $10, $11, $12, $13,
-        $14, $15, $16, $17,
-        $18
-      )
-      RETURNING id`,
-      [
-        user_id,
-        policy_number,
-        order_type,
-        commission_percent,
-        commission_amount,
-        application_status,
-        full_name,
-        national_producer_number,
-        currentLevel,
-        carrier_name,
-        product_name,
-        application_date,
-        face_amount,
-        target_premium,
-        initial_premium,
-        flex_premium,
-        commission_from_carrier,
-        mra_status
-      ]
-    );
+    let insertSQL = `INSERT INTO ${tableName} (
+      user_id, policy_number, order_type, commission_percent, commission_amount,
+      application_status, full_name, national_producer_number, hierarchy_level,
+      carrier_name, product_name, application_date, initial_premium, commission_from_carrier, mra_status`;
+    
+    const values = [
+      user_id,
+      policy_number,
+      order_type,
+      commission_percent,
+      commission_amount,
+      application_status,
+      full_name,
+      national_producer_number,
+      currentLevel,
+      carrier_name,
+      product_name,
+      application_date,
+      initial_premium,
+      commission_from_carrier,
+      mra_status
+    ];
+
+    if (tableName === 'life_orders') {
+      insertSQL += `, face_amount, target_premium`;
+      values.push(face_amount, target_premium);
+    } else if (tableName === 'annuity_orders') {
+      insertSQL += `, flex_premium`;
+      values.push(flex_premium);
+    }
+
+    insertSQL += `) VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING id`;
+
+    const insertRes = await client.query(insertSQL, values);
 
     res.json({ message: 'Order created successfully', order_id: insertRes.rows[0].id });
   } catch (err) {
