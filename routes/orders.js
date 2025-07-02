@@ -38,7 +38,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       application_status = 'in_progress',
       product_name,
       carrier_name,
-      product_type,
       application_date,
       face_amount,
       target_premium,
@@ -64,7 +63,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       `INSERT INTO ${tableName} (
         user_id, policy_number, order_type, commission_percent, commission_amount,
         application_status, full_name, national_producer_number, hierarchy_level,
-        carrier_name, product_type, product_name_carrier,
+        carrier_name, product_name,
         application_date, face_amount, target_premium, initial_premium,
         flex_premium, commission_from_carrier, mra_status
       ) VALUES (
@@ -72,7 +71,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
         $6, $7, $8, $9,
         $10, $11, $12, $13,
         $14, $15, $16, $17,
-        $18, $19, $20
+        $18
       )
       RETURNING id`,
       [
@@ -86,7 +85,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
         national_producer_number,
         currentLevel,
         carrier_name,
-        product_type,
         product_name,
         application_date,
         face_amount,
