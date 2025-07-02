@@ -184,10 +184,10 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
 
 router.get('/summary', async (req, res) => {
   try {
-    const { rows: users } = await db.query(`SELECT COUNT(*) FROM users`);
-    const { rows: lifeOrders } = await db.query(`SELECT COUNT(*) FROM life_orders`);
-    const { rows: annuityOrders } = await db.query(`SELECT COUNT(*) FROM annuity_orders`);
-    const { rows } = await db.query(`
+    const { rows: users } = await pool.query(`SELECT COUNT(*) FROM users`);
+    const { rows: lifeOrders } = await pool.query(`SELECT COUNT(*) FROM life_orders`);
+    const { rows: annuityOrders } = await pool.query(`SELECT COUNT(*) FROM annuity_orders`);
+    const { rows } = await pool.query(`
       SELECT COALESCE(SUM(commission_from_carrier), 0) as total FROM (
         SELECT commission_from_carrier FROM life_orders 
         WHERE application_status = 'completed' AND order_type = 'Personal Commission'

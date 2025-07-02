@@ -1,11 +1,11 @@
 <template>
   <AdminLayout>
-    <h2>管理员仪表盘</h2>
+    <h2>Dashboard</h2>
     <div class="grid">
-      <div class="card">用户总数：{{ stats.userCount }}</div>
+      <div class="card">User Count：{{ stats.userCount }}</div>
       <div class="card">Life Order Count：{{ stats.lifeOrderCount }}</div>
       <div class="card">Annuity Order Count：{{ stats.annuityOrderCount }}</div>
-      <div class="card">总佣金：${{ stats.totalCommissionAmount }}</div>
+      <div class="card">Total Commission：${{ stats.totalCommissionAmount }}</div>
     </div>
   </AdminLayout>
 </template>
