@@ -2,10 +2,10 @@
   <AdminLayout>
     <h2>Dashboard</h2>
     <div class="grid">
-      <div class="card">User Count：{{ stats.userCount }}</div>
-      <div class="card">Life Order Count：{{ stats.lifeOrderCount }}</div>
-      <div class="card">Annuity Order Count：{{ stats.annuityOrderCount }}</div>
-      <div class="card">Total Commission：${{ stats.totalCommissionAmount }}</div>
+      <div class="card">User Count: {{ stats.userCount }}</div>
+      <div class="card">Life Order Count: {{ stats.lifeOrderCount }}</div>
+      <div class="card">Annuity Order Count: {{ stats.annuityOrderCount }}</div>
+      <div class="card">Total Commission: ${{ stats.totalCommissionAmount }}</div>
     </div>
   </AdminLayout>
 </template>
