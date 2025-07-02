@@ -94,7 +94,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
   const {
     application_status, policy_number, commission_percent, initial_premium,
-    commission_amount, note, face_amount, target_premium,
+    commission_amount, face_amount, target_premium,
     carrier_name, product_name_carrier, application_date, mra_status
   } = req.body;
 
@@ -119,19 +119,18 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           commission_percent = $3,
           initial_premium = $4,
           commission_amount = $5,
-          note = $6,
-          face_amount = $7,
-          target_premium = $8,
-          carrier_name = $9,
-          product_name_carrier = $10,
-          application_date = $11,
-          mra_status = $12
-      WHERE id = $13
+          face_amount = $6,
+          target_premium = $7,
+          carrier_name = $8,
+          product_name_carrier = $9,
+          application_date = $10,
+          mra_status = $11
+      WHERE id = $12
       RETURNING *;
     `;
     const values = [
       application_status, policy_number, commission_percent,
-      initial_premium, commission_amount, note,
+      initial_premium, commission_amount, 
       face_amount, target_premium, carrier_name,
       product_name_carrier, application_date, mra_status, id
     ];
