@@ -48,20 +48,24 @@ const searchOrderId = ref('');
 const startDate = ref('');
 const endDate = ref('');
 
-const table_type = route.params.table_type;
-const userId = route.params.id;
+// const table_type = route.params.table_type;
+// const userId = route.params.id;
 const orders = ref([]);
 
 async function loadOrders() {
-  const res = await axios.get('/admin/orders', {
-    params: {
-      user_name: searchName.value,
-      order_id: searchOrderId.value,
-      start_date: startDate.value,
-      end_date: endDate.value
-    }
-  });
-  orders.value = res.data;
+  try {
+    const res = await axios.get('/admin/orders', {
+      params: {
+        user_name: searchName.value,
+        order_id: searchOrderId.value,
+        start_date: startDate.value,
+        end_date: endDate.value
+      }
+    });
+    orders.value = res.data;
+  } catch (err) {
+    console.error('Failed to load orders', err);
+  }
 }
 
 function formatDate(dateStr) {
