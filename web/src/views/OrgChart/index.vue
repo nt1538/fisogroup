@@ -1,25 +1,48 @@
 <template>
-  <div>
-    <h2>Hierarchy Level</h2>
-    <ul v-if="treeData.length">
-      <TreeNode v-for="node in treeData" :key="node.id" :node="node" />
-    </ul>
+  <div class="dashboard">
+    <Sidebar />
+    <div class="org-chart">
+      <h1>Organization Chart</h1>
+      <div v-if="tree.length" class="tree-container">
+        <TreeNode :node="buildTree(rootUserId)" />
+      </div>
+      <div v-else>Loading...</div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import TreeNode from './TreeNode.vue';
-
-const treeData = ref([]);
+import { ref, onMounted } from 'vue'
+import axios from '@/config/axios.config'
+import Sidebar from '@/components/Sidebar.vue'
+import TreeNode from './TreeNode.vue' // 组件见下方
+const tree = ref([])
+const rootUserId = JSON.parse(localStorage.getItem('user')).id
 
 onMounted(async () => {
-  try {
-    const res = await axios.get('/users/org-chart'); // 后端返回组织结构树
-    treeData.value = res.data;
-  } catch (err) {
-    console.error('Failed to fetch org chart:', err);
-  }
-});
+  const res = await axios.get(`/users/org-chart/${rootUserId}`) 
+  tree.value = res.data
+})
+
+function buildTree(userId) {
+  const nodeMap = new Map()
+  tree.value.forEach(user => nodeMap.set(user.id, { ...user, children: [] }))
+  tree.value.forEach(user => {
+    if (user.introducer_id && nodeMap.has(user.introducer_id)) {
+      nodeMap.get(user.introducer_id).children.push(nodeMap.get(user.id))
+    }
+  })
+  return nodeMap.get(userId)
+}
 </script>
+
+<style scoped>
+.org-chart {
+  margin-left: 280px;
+  padding: 40px;
+}
+.tree-container {
+  padding-left: 20px;
+  border-left: 3px solid #ccc;
+}
+</style>
