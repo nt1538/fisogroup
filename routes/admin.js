@@ -94,15 +94,16 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
   const {
     application_status, policy_number, commission_percent, initial_premium,
-    commission_amount, note
+    commission_amount, note, face_amount, target_premium,
+    carrier_name, product_name_carrier, application_date, mra_status
   } = req.body;
 
-  const table = type === 'life' ? 'life_orders' : 'annuity_orders';
+  const table = type === 'life_orders' ? 'life_orders' : 'annuity_orders';
 
   try {
     const client = await pool.connect();
 
-    // 查询原始状态
+    // 查询原始订单状态
     const originalResult = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
     const originalOrder = originalResult.rows[0];
     if (!originalOrder) {
@@ -118,19 +119,29 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           commission_percent = $3,
           initial_premium = $4,
           commission_amount = $5,
-          note = $6
-      WHERE id = $7
+          note = $6,
+          face_amount = $7,
+          target_premium = $8,
+          carrier_name = $9,
+          product_name_carrier = $10,
+          application_date = $11,
+          mra_status = $12
+      WHERE id = $13
       RETURNING *;
     `;
     const values = [
       application_status, policy_number, commission_percent,
-      initial_premium, commission_amount, note, id
+      initial_premium, commission_amount, note,
+      face_amount, target_premium, carrier_name,
+      product_name_carrier, application_date, mra_status, id
     ];
+
     const result = await client.query(updateQuery, values);
     const updatedOrder = result.rows[0];
 
-    // 如果状态变更为 completed，执行佣金分发
+    // 如果状态变为 completed 且原状态不是 completed，则触发佣金发放
     if (application_status === 'completed' && originalOrder.application_status !== 'completed') {
+      updatedOrder.table_type = table; // 添加 table_type 供 handleCommissions 使用
       await handleCommissions(updatedOrder, updatedOrder.user_id);
     }
 

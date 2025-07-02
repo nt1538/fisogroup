@@ -83,7 +83,7 @@ onMounted(async () => {
 
 async function saveUser() {
   await axios.put(`/admin/employees/${userId}`, user.value);
-  alert('保存成功！');
+  alert('Save Completed! ');
 }
 </script>
 
