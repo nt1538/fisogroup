@@ -46,7 +46,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       full_name,
       national_producer_number,
       hierarchy_level = 'Level A',
-      split_percent = 100,
       mra_status = 'none'
     } = req.body;
 
@@ -65,7 +64,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       `INSERT INTO ${tableName} (
         user_id, policy_number, order_type, commission_percent, commission_amount,
         application_status, full_name, national_producer_number, hierarchy_level,
-        split_percent, carrier_name, product_type, product_name_carrier,
+        carrier_name, product_type, product_name_carrier,
         application_date, face_amount, target_premium, initial_premium,
         flex_premium, commission_from_carrier, mra_status
       ) VALUES (
@@ -86,7 +85,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
         full_name,
         national_producer_number,
         currentLevel,
-        split_percent,
         carrier_name,
         product_type,
         product_name,
