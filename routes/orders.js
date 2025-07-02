@@ -103,109 +103,58 @@ async function createBaseOrder(req, res, tableName, defaultType) {
   }
 }
 
-// ======== ADMIN：Update Order Status + Trigger Commissions ========
-router.post('/admin-orders/update-status', verifyToken, async (req, res) => {
-  const { id, table, status } = req.body;
-  const client = await pool.connect();
+router.get('/life', async (req, res) => {
+  const { status, order_type } = req.query;
+
+  let query = 'SELECT * FROM life_orders WHERE 1=1';
+  const params = [];
+  let i = 1;
+
+  if (status) {
+    query += ` AND application_status = $${i++}`;
+    params.push(status);
+  }
+
+  if (order_type) {
+    query += ` AND order_type = $${i++}`;
+    params.push(order_type);
+  }
+
   try {
-    await client.query(
-      `UPDATE ${table} SET application_status = $1 WHERE id = $2`,
-      [status, id]
-    );
-
-    if (status === 'completed') {
-      const createCommission = require('../utils/createCommission');
-      await createCommission(client, id, table);
-    }
-
-    res.json({ success: true });
+    const result = await pool.query(query, params);
+    res.json(result.rows);
   } catch (err) {
-    console.error('Failed to update order status:', err);
-    res.status(500).json({ success: false, error: 'Update failed' });
-  } finally {
-    client.release();
+    console.error('Error fetching life orders:', err);
+    res.status(500).json({ error: 'Failed to fetch life orders' });
   }
 });
 
-// ========== 管理员查询所有订单 ==========
-router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
+router.get('/annuity', async (req, res) => {
+  const { status, order_type } = req.query;
+
+  let query = 'SELECT * FROM annuity_orders WHERE 1=1';
+  const params = [];
+  let i = 1;
+
+  if (status) {
+    query += ` AND application_status = $${i++}`;
+    params.push(status);
+  }
+
+  if (order_type) {
+    query += ` AND order_type = $${i++}`;
+    params.push(order_type);
+  }
+
   try {
-    const {
-      query = '',
-      status,
-      sort = 'desc',
-      startDate,
-      endDate,
-    } = req.query;
-
-    let sql = `
-      SELECT o.*, u.name AS employee_name
-      FROM life_orders o
-      JOIN users u ON o.user_id = u.id
-      WHERE 1=1
-    `;
-    let params = [];
-
-    if (query) {
-      sql += ` AND (u.name ILIKE $${params.length + 1} OR o.policy_number ILIKE $${params.length + 1})`;
-      params.push(`%${query}%`);
-    }
-
-    if (status) {
-      sql += ` AND o.application_status = $${params.length + 1}`;
-      params.push(status);
-    }
-
-    if (startDate) {
-      sql += ` AND o.created_at >= $${params.length + 1}`;
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      sql += ` AND o.created_at <= $${params.length + 1}`;
-      params.push(endDate);
-    }
-
-    sql += ` ORDER BY o.created_at ${sort.toLowerCase() === 'asc' ? 'ASC' : 'DESC'}`;
-
-    const { rows } = await pool.query(sql, params);
-    res.json(rows);
+    const result = await pool.query(query, params);
+    res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching orders:', err);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    console.error('Error fetching annuity orders:', err);
+    res.status(500).json({ error: 'Failed to fetch annuity orders' });
   }
 });
 
-// ========== 获取单个订单 ==========
-router.get('/admin/order/:table/:id', verifyToken, async (req, res) => {
-  const { table, id } = req.params;
-  try {
-    const { rows } = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
-    if (!rows.length) return res.status(404).json({ error: 'Order not found' });
-    res.json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch order' });
-  }
-});
-
-// ========== 更新订单字段 ==========
-router.post('/admin/order/update', verifyToken, async (req, res) => {
-  const { table, id, updates } = req.body;
-  const keys = Object.keys(updates);
-  const values = Object.values(updates);
-  const sets = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
-  try {
-    await pool.query(
-      `UPDATE ${table} SET ${sets} WHERE id = $${keys.length + 1}`,
-      [...values, id]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Update failed' });
-  }
-});
 
 module.exports = router;
 
