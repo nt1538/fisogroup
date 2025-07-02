@@ -9,18 +9,18 @@
           <table class="commission-table">
             <thead>
               <tr>
-                <th>ID</th><th>Name</th><th>NPN</th>
-                <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th>
-                <th>Product</th><th>App Date</th><th>Policy #</th><th>Face Amt</th>
-                <th>Target Prem</th><th>Init Prem</th><th>Comm from Carrier</th>
-                <th>Status</th><th>MRA</th><th>Commission Type</th>
+                <th>User ID</th><th>Name</th><th>National Producer Number</th>
+                <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
+                <th>Product</th><th>Application Date</th><th>Policy #</th><th>Face Amount</th>
+                <th>Target Premium</th><th>Initial Premium</th><th>Commission from Carrier</th>
+                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in lifeOrders" :key="item.id">
-                <td>{{ item.id }}</td><td>{{ item.name }}</td><td>{{ item.national_producer_number }}</td>
+                <td>{{ item.user_id }}</td><td>{{ item.full_name }}</td><td>{{ item.national_producer_number }}</td>
                 <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
-                <td>{{ item.carrier_name }}</td><td>{{ item.product_name_carrier }}</td>
+                <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
                 <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
@@ -34,19 +34,19 @@
           <table class="commission-table">
             <thead>
               <tr>
-                <th>ID</th><th>Name</th><th>NPN</th>
-                <th>Level</th><th>Comm %</th><th>Commission Amount</th><th>Carrier</th>
-                <th>Product</th><th>App Date</th><th>Policy #</th><th>Flex Prem</th><th>Comm from Carrier</th>
-                <th>Status</th><th>MRA</th><th>Commission Type</th>
+                <th>User ID</th><th>Name</th><th>National Producer Number</th>
+                <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
+                <th>Product</th><th>Application Date</th><th>Policy #</th><th>Initial Premium</th><th>Flex Premium</th><th>Commission from Carrier</th>
+                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in annuityOrders" :key="item.id">
-                <td>{{ item.id }}</td><td>{{ item.name }}</td><td>{{ item.national_producer_number }}</td>
+                <td>{{ item.user_id }}</td><td>{{ item.full_name }}</td><td>{{ item.national_producer_number }}</td>
                 <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
-                <td>{{ item.carrier_name }}</td><td>{{ item.product_name_carrier }}</td>
+                <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
-                <td>{{ item.initial_premium }}</td><td>{{ item.commission_from_carrier }}</td>
+                <td>{{ item.initial_premium }}</td><td>{{ item.flex_premium }}</td><td>{{ item.commission_from_carrier }}</td>
                 <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
