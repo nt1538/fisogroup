@@ -45,6 +45,9 @@ import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const searchName = ref('');
 const searchOrderId = ref('');
+const startDate = ref('');
+const endDate = ref('');
+
 const table_type = route.params.table_type;
 const userId = route.params.id;
 const orders = ref([]);
