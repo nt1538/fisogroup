@@ -8,7 +8,6 @@ router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
   const {
     user_name,
     order_id,
-    status,
     start_date,
     end_date
   } = req.query;
@@ -34,10 +33,6 @@ router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
       if (order_id) {
         query += ` AND o.id::TEXT ILIKE $${count++}`;
         values.push(`%${order_id}%`);
-      }
-      if (status) {
-        query += ` AND o.application_status = $${count++}`;
-        values.push(status);
       }
       if (start_date) {
         query += ` AND o.created_at >= $${count++}`;
