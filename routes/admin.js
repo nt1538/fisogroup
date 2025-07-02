@@ -4,7 +4,7 @@ const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
 // 🔍 多条件搜索订单（life + annuity 合并）
-router.get('/admin/orders', verifyToken, verifyAdmin, async (req, res) => {
+router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
   const {
     user_name,
     order_id,
@@ -179,6 +179,25 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error searching employees:', err);
     res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+router.get('/summary', async (req, res) => {
+  try {
+    const { rows: lifeOrders } = await db.query(`SELECT COUNT(*) FROM life_orders`);
+    const { rows: annuityOrders } = await db.query(`SELECT COUNT(*) FROM annuity_orders`);
+    const { rows: totalCommission } = await db.query(`
+      SELECT COALESCE(SUM(commission_amount), 0) as total FROM commissions
+    `);
+
+    res.json({
+      lifeOrderCount: parseInt(lifeOrders[0].count),
+      annuityOrderCount: parseInt(annuityOrders[0].count),
+      totalCommissionAmount: parseFloat(totalCommission[0].total),
+    });
+  } catch (err) {
+    console.error('Error in /admin/summary:', err);
+    res.status(500).json({ error: 'Failed to get summary' });
   }
 });
 
