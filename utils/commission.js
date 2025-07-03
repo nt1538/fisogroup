@@ -171,7 +171,7 @@ async function handleCommissions(order, userId) {
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
 
   if (!splitPoints) {
-    await handleCommissionSegment(order, user, chart, profitBefore, profitAfter, parseFloat(order.split_percent || 100));
+    await handleCommissionSegment(order, user, chart, profitBefore, profitAfter, parseFloat(order.commission_percent || 100));
     await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [baseAmount, userId]);
 
     const newLevel = getLevelTitleByProfit(profitAfter, chart);
@@ -185,7 +185,7 @@ async function handleCommissions(order, userId) {
   for (let i = 0; i < profitSegments.length - 1; i++) {
     const segmentStart = profitSegments[i];
     const segmentEnd = profitSegments[i + 1];
-    const used = await handleCommissionSegment(order, user, chart, segmentStart, segmentEnd, parseFloat(order.split_percent || 100));
+    const used = await handleCommissionSegment(order, user, chart, segmentStart, segmentEnd, parseFloat(order.commission_percent || 100));
     await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [used, userId]);
 
     const updatedUser = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
