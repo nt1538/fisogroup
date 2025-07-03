@@ -66,11 +66,17 @@ async function checkSplitPoints(order, chart, hierarchy) {
   const points = new Set();
 
   for (const [id, [before, after]] of profitMap.entries()) {
-    if (beforeLevels.get(id) !== afterLevels.get(id)) {
-      for (const row of chart) {
-        if (row.min_amount > before && row.min_amount < after) {
-          points.add(row.min_amount - parseFloat(self.profit));
-        }
+    const user = allUsers.find(u => u.id === id);
+    const currentLevelTitle = reconcileLevel(before, user.hierarchy_level, chart);
+    const currentLevelObj = chart.find(c => c.title === currentLevelTitle);
+
+    for (const row of chart) {
+      if (
+        row.min_amount > before &&
+        row.min_amount > currentLevelObj.min_amount &&
+        row.min_amount < after
+      ) {
+        points.add(row.min_amount - parseFloat(self.profit));
       }
     }
   }
