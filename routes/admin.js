@@ -95,7 +95,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const {
     application_status, policy_number, commission_percent, initial_premium,
     commission_amount, face_amount, target_premium,
-    carrier_name, product_name_carrier, application_date, mra_status
+    carrier_name, product_name, application_date, mra_status
   } = req.body;
 
   const table = type === 'life_orders' ? 'life_orders' : 'annuity_orders';
@@ -122,7 +122,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           face_amount = $6,
           target_premium = $7,
           carrier_name = $8,
-          product_name_carrier = $9,
+          product_name = $9,
           application_date = $10,
           mra_status = $11
       WHERE id = $12
@@ -132,7 +132,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
       application_status, policy_number, commission_percent,
       initial_premium, commission_amount, 
       face_amount, target_premium, carrier_name,
-      product_name_carrier, application_date, mra_status, id
+      product_name, application_date, mra_status, id
     ];
 
     const result = await client.query(updateQuery, values);
