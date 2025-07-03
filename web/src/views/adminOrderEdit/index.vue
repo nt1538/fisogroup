@@ -21,40 +21,36 @@
           <input type="text" v-model="order[key]" :id="key" />
         </template>
       </div>
-      <el-button type="danger" @click="confirmDelete" style="margin-top: 20px">
-        Delete Order
-      </el-button>
-
-      <el-dialog
-        title="Confirm Deletion"
-      :visible.sync="deleteDialogVisible"
-      width="30%"
-      center
-      >
-        <span>Do you really want to delete this order permanently? This cannot be reversed.</span>
-        <template #footer>
-          <el-button @click="deleteDialogVisible = false">Cancel</el-button>
-          <el-button type="danger" @click="deleteOrder">Confirm</el-button>
-        </template>
-      </el-dialog>
-      <button @click="saveOrder">Save</button>
+      <div class="button-row">
+        <button @click="saveOrder">Save</button>
+        <button class="delete" @click="confirmDelete">Delete</button>
+      </div>
     </div>
     <div v-else>Loading...</div>
+
+    <div v-if="showDeleteConfirm" class="confirm-dialog">
+      <p>Are you sure you want to permanently delete this order?</p>
+      <div class="dialog-buttons">
+        <button @click="showDeleteConfirm = false">Cancel</button>
+        <button class="delete" @click="deleteOrder">Confirm Delete</button>
+      </div>
+    </div>
   </AdminLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const route = useRoute();
+const router = useRouter();
 const orderId = route.params.id;
 const tableType = route.params.table_type;
 const order = ref(null);
+const showDeleteConfirm = ref(false);
 
-// 设置允许编辑的字段
 const editableFields = ref({
   product_name: '',
   carrier_name: '',
@@ -72,15 +68,29 @@ const editableFields = ref({
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
-  // 初始化 editableFields
   for (const key in editableFields.value) {
     if (key in order.value) editableFields.value[key] = order.value[key];
   }
 });
 
 async function saveOrder() {
-  const res = await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
+  await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
   alert('Order saved successfully');
+}
+
+function confirmDelete() {
+  showDeleteConfirm.value = true;
+}
+
+async function deleteOrder() {
+  try {
+    await axios.delete(`/admin/orders/${tableType}/${orderId}`);
+    alert('Order deleted successfully');
+    router.push('/admin/orders');
+  } catch (err) {
+    console.error('Delete failed', err);
+    alert('Failed to delete the order');
+  }
 }
 </script>
 
@@ -94,12 +104,34 @@ label {
   font-weight: bold;
   margin-bottom: 5px;
 }
-input, select {
+input,
+select {
   padding: 8px;
   border: 1px solid #ccc;
 }
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
 button {
   padding: 10px 20px;
+}
+button.delete {
+  background-color: #c0392b;
+  color: white;
+  border: none;
+}
+.confirm-dialog {
+  background-color: #fff;
+  border: 1px solid #aaa;
+  padding: 20px;
   margin-top: 20px;
+}
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
 }
 </style>
