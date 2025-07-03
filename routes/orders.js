@@ -103,12 +103,13 @@ async function createBaseOrder(req, res, tableName, defaultType) {
   }
 }
 
-router.get('/life', async (req, res) => {
+router.get('/life', verifyToken, async (req, res) => {
   const { status, order_type } = req.query;
+  const userId = req.user.id;
 
-  let query = 'SELECT * FROM life_orders WHERE 1=1';
-  const params = [];
-  let i = 1;
+  let query = 'SELECT * FROM life_orders WHERE user_id = $1';
+  const params = [userId];
+  let i = 2;
 
   if (status) {
     query += ` AND application_status = $${i++}`;
@@ -129,12 +130,14 @@ router.get('/life', async (req, res) => {
   }
 });
 
-router.get('/annuity', async (req, res) => {
-  const { status, order_type } = req.query;
 
-  let query = 'SELECT * FROM annuity_orders WHERE 1=1';
-  const params = [];
-  let i = 1;
+router.get('/annuity', verifyToken, async (req, res) => {
+  const { status, order_type } = req.query;
+  const userId = req.user.id;
+
+  let query = 'SELECT * FROM annuity_orders WHERE user_id = $1';
+  const params = [userId];
+  let i = 2;
 
   if (status) {
     query += ` AND application_status = $${i++}`;
@@ -154,6 +157,7 @@ router.get('/annuity', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch annuity orders' });
   }
 });
+
 
 
 module.exports = router;
