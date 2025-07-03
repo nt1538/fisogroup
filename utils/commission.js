@@ -101,7 +101,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
     )
   `, [
     user.id, user.name, user.national_producer_number, user.hierarchy_level,
-    percent, amount, order.carrier_name, order.product_name_carrier,
+    percent, amount, order.carrier_name, order.product_name,
     order.application_date, order.policy_number, order.face_amount, order.target_premium,
     order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
     type, parentId, explanation

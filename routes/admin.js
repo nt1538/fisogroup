@@ -37,15 +37,15 @@ router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
         values.push(`%${order_id}%`);
       }
       if (start_date) {
-        query += ` AND o.created_at >= $${count++}`;
+        query += ` AND o.application_date >= $${count++}`;
         values.push(start_date);
       }
       if (end_date) {
-        query += ` AND o.created_at <= $${count++}`;
+        query += ` AND o.application_date <= $${count++}`;
         values.push(end_date);
       }
 
-      query += ` ORDER BY o.created_at DESC LIMIT 100`;
+      query += ` ORDER BY o.application_date DESC LIMIT 100`;
 
       const result = await pool.query(query, values);
       allResults.push(...result.rows);
