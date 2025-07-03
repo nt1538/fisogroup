@@ -143,7 +143,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     // 如果状态变为 completed 且原状态不是 completed，则触发佣金发放
     if (application_status === 'completed' && originalOrder.application_status !== 'completed') {
       updatedOrder.table_type = table; // 添加 table_type 供 handleCommissions 使用
-      await handleCommissions(updatedOrder, updatedOrder.user_id);
+      await handleCommissions(updatedOrder, updatedOrder.user_id, updatedOrder.table_type);
     }
 
     client.release();
