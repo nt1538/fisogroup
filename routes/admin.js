@@ -166,7 +166,7 @@ router.delete('/orders/:type/:id', async (req, res) => {
   if (!table) return res.status(400).json({ error: 'Invalid order type' });
 
   try {
-    await db.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
     res.json({ message: 'Order Deleted' });
   } catch (err) {
     console.error('Failed to Delete Order:', err);
