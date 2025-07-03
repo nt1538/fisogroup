@@ -157,9 +157,9 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 router.delete('/orders/:type/:id', async (req, res) => {
   const { type, id } = req.params;
   const table =
-    type === 'life'
+    type === 'life_orders'
       ? 'life_orders'
-      : type === 'annuity'
+      : type === 'annuity_orders'
       ? 'annuity_orders'
       : null;
 
