@@ -154,6 +154,26 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+router.delete('/orders/:type/:id', async (req, res) => {
+  const { type, id } = req.params;
+  const table =
+    type === 'life'
+      ? 'life_orders'
+      : type === 'annuity'
+      ? 'annuity_orders'
+      : null;
+
+  if (!table) return res.status(400).json({ error: 'Invalid order type' });
+
+  try {
+    await db.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    res.json({ message: 'Order Deleted' });
+  } catch (err) {
+    console.error('Failed to Delete Order:', err);
+    res.status(500).json({ error: 'Failed to Delete Order' });
+  }
+});
+
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;

@@ -59,7 +59,7 @@ async function insertCommissionOrder(order, user, type, percent, amount) {
       initial_premium, commission_from_carrier, application_status, mra_status, order_type
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8,
-      $9, $10, $11, $12, $13, $14, 'in_progress', 'none', $15
+      $9, $10, $11, $12, $13, $14, $15, $16, $17
     )`,
     [
       user.id,
@@ -76,6 +76,8 @@ async function insertCommissionOrder(order, user, type, percent, amount) {
       order.target_premium,
       order.initial_premium,
       order.commission_from_carrier,
+      order.application_status,
+      order.mra_status,
       type
     ]
   );

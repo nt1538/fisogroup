@@ -21,6 +21,22 @@
           <input type="text" v-model="order[key]" :id="key" />
         </template>
       </div>
+      <el-button type="danger" @click="confirmDelete" style="margin-top: 20px">
+        Delete Order
+      </el-button>
+
+      <el-dialog
+        title="Confirm Deletion"
+      :visible.sync="deleteDialogVisible"
+      width="30%"
+      center
+      >
+        <span>Do you really want to delete this order permanently? This cannot be reversed.</span>
+        <template #footer>
+          <el-button @click="deleteDialogVisible = false">Cancel</el-button>
+          <el-button type="danger" @click="deleteOrder">Confirm</el-button>
+        </template>
+      </el-dialog>
       <button @click="saveOrder">Save</button>
     </div>
     <div v-else>Loading...</div>
