@@ -142,7 +142,7 @@ async function distributeUpline(order, baseAmount, chart, parentId) {
       const overridePercent = generation === 0 ? 5 : generation === 1 ? 3 : 1;
       const overrideAmount = baseAmount * (overridePercent / 100);
       if (overrideAmount > 0.01) {
-        await insertCommissionOrder(order, u, 'Generation Override', overridePercent, overrideAmount, `Generation ${generation + 1}, Diff = ${diff}`, parentId);
+        await insertCommissionOrder(order, u, 'Generation Override', overridePercent, overrideAmount, `Generation ${generation + 1}, up = ${uPercent},dp = ${downPercent}`, parentId);
       }
     }
 
