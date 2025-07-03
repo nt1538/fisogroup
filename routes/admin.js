@@ -113,6 +113,12 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    // 如果订单状态已为 completed，拒绝修改
+    if (originalOrder.application_status === 'completed') {
+      client.release();
+      return res.status(400).json({ error: 'Completed orders cannot be modified' });
+    }
+
     // 更新订单
     const updateQuery = `
       UPDATE ${table}
@@ -141,8 +147,8 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     const updatedOrder = result.rows[0];
 
     // 如果状态变为 completed 且原状态不是 completed，则触发佣金发放
-    if (application_status === 'completed' && originalOrder.application_status !== 'completed') {
-      updatedOrder.table_type = table; // 添加 table_type 供 handleCommissions 使用
+    if (application_status === 'completed') {
+      updatedOrder.table_type = table;
       await handleCommissions(updatedOrder, updatedOrder.user_id, updatedOrder.table_type);
     }
 
@@ -177,17 +183,17 @@ router.delete('/orders/:type/:id', async (req, res) => {
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, hierarchy_level, national_producer_number} = req.body;
+  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number} = req.body;
 
   try {
     const query = `
       UPDATE users
       SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, profit = $8,
-      hierarchy_level = $9, national_producer_number = $10
-      WHERE id = $11
+      national_producer_number = $9
+      WHERE id = $10
       RETURNING *;
     `;
-    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, hierarchy_level, national_producer_number, id];
+    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number, id];
 
     const result = await pool.query(query, values);
     if (result.rowCount === 0) {

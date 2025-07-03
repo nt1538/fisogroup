@@ -16,7 +16,7 @@
           <th>Employee</th>
           <th>Type</th>
           <th>Status</th>
-          <th>Created At</th>
+          <th>Applicaton Date</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -26,7 +26,7 @@
           <td>{{ order.user_name }}</td>
           <td>{{ order.table_type }}</td>
           <td>{{ order.application_status }}</td>
-          <td>{{ formatDate(order.created_at) }}</td>
+          <td>{{ formatDate(order.application_date) }}</td>
           <td>
             <router-link :to="`/admin/adminOrderEdit/${order.table_type}/${order.id}`">Edit</router-link>
           </td>
