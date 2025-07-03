@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
+const { handleCommissions } = require('../utils/commission');
+
 
 // 🔍 多条件搜索订单（life + annuity 合并）
 router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
