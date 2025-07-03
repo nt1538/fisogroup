@@ -6,7 +6,7 @@ async function getCommissionChart() {
   return result.rows;
 }
 
-// 根据 profit 获取等级名
+// 获取等级名称（根据 profit）
 function getLevelTitleByProfit(profit, chart) {
   for (const row of chart) {
     if (profit >= row.min_amount && profit <= row.max_amount) return row.title;
@@ -14,13 +14,13 @@ function getLevelTitleByProfit(profit, chart) {
   return chart[0]?.title || 'Level A';
 }
 
-// 获取等级名对应提成比例
+// 获取等级对应的提成百分比
 function getLevelPercentByTitle(title, chart) {
   const found = chart.find(r => r.title === title);
   return found ? found.commission_percent : chart[0].commission_percent;
 }
 
-// 获取 rolling 一年团队 profit
+// 获取 rolling 一年团队 profit（用于 introducer 计算等级）
 async function getRollingYearTeamProfit(userId) {
   const queue = [userId];
   let total = 0;
@@ -34,7 +34,8 @@ async function getRollingYearTeamProfit(userId) {
       queue.push(u.id);
       const res2 = await db.query(
         `SELECT SUM(commission_from_carrier) AS profit FROM life_orders 
-         WHERE user_id = $1 AND application_status = 'completed' AND order_type = 'Personal Commission' AND application_date >= $2`,
+         WHERE user_id = $1 AND application_status = 'completed' 
+         AND order_type = 'Personal Commission' AND application_date >= $2`,
         [u.id, oneYearAgo]
       );
       total += parseFloat(res2.rows[0].profit || 0);
@@ -84,7 +85,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
   await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
 }
 
-// 分发 introducer 级差与代际提成
+// 分发 introducer 的级差和代际佣金
 async function distributeCommissions(order, currentUserId, segments, parentOrderId = null, depth = 1) {
   if (!currentUserId) return;
 
@@ -100,12 +101,13 @@ async function distributeCommissions(order, currentUserId, segments, parentOrder
     const diff = introducerPercent - seg.user_percent;
     if (diff > 0.01) {
       const diffAmount = seg.amount * (diff / 100);
-      const explanation = `Level Difference for profit segment [${seg.start}–${seg.end}]`;
-      await insertCommissionOrder(order, user, 'Level Difference', diff, diffAmount, explanation, parentOrderId);
+      if (diffAmount > 0.01) {
+        const explanation = `Level Difference for segment [${seg.start} – ${seg.end}]`;
+        await insertCommissionOrder(order, user, 'Level Difference', diff, diffAmount, explanation, parentOrderId);
+      }
     }
   }
 
-  // Generation Override
   if (depth <= 3) {
     const percent = depth === 1 ? 5 : depth === 2 ? 3 : 1;
     const base = segments.reduce((sum, s) => sum + s.amount, 0);
@@ -121,7 +123,7 @@ async function distributeCommissions(order, currentUserId, segments, parentOrder
   }
 }
 
-// 主函数：处理一个完整订单的佣金逻辑
+// 主函数：处理佣金分发（主订单）
 async function handleCommissions(order, userId) {
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
   const user = userRes.rows[0];
@@ -132,14 +134,13 @@ async function handleCommissions(order, userId) {
   const baseAmount = parseFloat(order.commission_from_carrier || 0);
   const profitAfter = profitBefore + baseAmount;
 
-  const levelSegments = chart.filter(c => c.max_amount > profitBefore && c.min_amount < profitAfter);
+  // 分段计算
   const segments = [];
-
+  const levelSegments = chart.filter(c => c.max_amount > profitBefore && c.min_amount < profitAfter);
   for (const seg of levelSegments) {
     const start = Math.max(seg.min_amount, profitBefore);
     const end = Math.min(seg.max_amount, profitAfter);
     const amount = end - start;
-
     if (amount > 0.01) {
       segments.push({
         start,
@@ -150,6 +151,7 @@ async function handleCommissions(order, userId) {
     }
   }
 
+  // 计算个人提成
   const split = parseFloat(order.split_percent || 100);
   let totalCommission = 0;
 
@@ -157,26 +159,25 @@ async function handleCommissions(order, userId) {
     const percent = (seg.user_percent * split) / 100;
     const commissionAmount = seg.amount * (percent / 100);
     totalCommission += commissionAmount;
-
-    const explanation = `Personal Commission [${seg.start}–${seg.end}] as ${seg.user_percent}%`;
+    const explanation = `Personal Commission [${seg.start} – ${seg.end}] as ${seg.user_percent}%`;
     await insertCommissionOrder(order, user, 'Personal Commission', percent, commissionAmount, explanation, order.id);
   }
 
-  // 原订单更新为已拆分
+  // 原订单更新状态
   await db.query(
-    `UPDATE life_orders SET application_status = 'splitted', commission_percent = $1, commission_amount = $2 WHERE id = $3`,
-    [null, null, order.id]
+    `UPDATE life_orders SET application_status = 'splitted', commission_percent = NULL, commission_amount = NULL 
+     WHERE id = $1`,
+    [order.id]
   );
 
-  // 更新用户 profit & hierarchy_level（只计 base，不计总佣金）
-  await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [baseAmount, userId]);
-
+  // 更新用户 profit（只计 baseAmount）与可能的等级变化
+  await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [baseAmount, user.id]);
   const newLevel = getLevelTitleByProfit(profitAfter, chart);
   if (newLevel !== user.hierarchy_level) {
-    await db.query('UPDATE users SET hierarchy_level = $1 WHERE id = $2', [newLevel, userId]);
+    await db.query('UPDATE users SET hierarchy_level = $1 WHERE id = $2', [newLevel, user.id]);
   }
 
-  // introducer 处理级差 + generation
+  // 分发 introducer 的级差提成和代际提成
   await distributeCommissions(order, user.introducer_id, segments, order.id, 1);
 }
 
