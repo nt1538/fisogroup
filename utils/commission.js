@@ -110,7 +110,7 @@ async function distributeUpline(order, hierarchy, baseAmount, chart, parentId) {
   let generation = 0;
 
   while (true) {
-    const res = await db.query('SELECT id, full_name, national_producer_number, profit, hierarchy_level, introducer_id FROM users WHERE id = $1', [currentId]);
+    const res = await db.query('SELECT id, name, national_producer_number, profit, hierarchy_level, introducer_id FROM users WHERE id = $1', [currentId]);
     if (!res.rows.length) break;
     const currentUser = res.rows[0];
     if (!currentUser.introducer_id) break;
