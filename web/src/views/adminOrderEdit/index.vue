@@ -86,7 +86,7 @@ async function deleteOrder() {
   try {
     await axios.delete(`/admin/orders/${tableType}/${orderId}`);
     alert('Order deleted successfully');
-    router.push('/admin/orders');
+    router.push('/admin/adminOrderSearch'); // Redirect to search page after deletion
   } catch (err) {
     console.error('Delete failed', err);
     alert('Failed to delete the order');
