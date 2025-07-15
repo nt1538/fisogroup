@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
-const { handleCommissions } = require('../utils/commission');
+const { handleCommissions, getHierarchy } = require('../utils/commission');
 
 
 // 🔍 多条件搜索订单（life + annuity 合并）
@@ -197,6 +197,12 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
          WHERE id = $3`,
         [baseAmount, personalCommission, userId]
       );
+
+      const hierarchy = await getHierarchy(userId);
+      const idsToUpdate = hierarchy.map(u => u.id).concat(userId);
+      for (const uid of idsToUpdate) {
+        await pool.query('UPDATE users SET team_profit = GREATEST(team_profit - $1, 0) WHERE id = $2', [amount, uid]);
+      }
 
       // 🧹 同时删除该订单产生的所有佣金记录
       await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);

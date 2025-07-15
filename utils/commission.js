@@ -29,6 +29,14 @@ function getLevelPercentByTitle(title, chart) {
   return row ? row.commission_percent : chart[0].commission_percent;
 }
 
+async function updateTeamProfit(userId, amount) {
+  const hierarchy = await getHierarchy(userId);
+  const idsToUpdate = hierarchy.map(u => u.id).concat(userId);
+  for (const uid of idsToUpdate) {
+    await db.query('UPDATE users SET team_profit = team_profit + $1 WHERE id = $2', [amount, uid]);
+  }
+}
+
 // 获取用户向上所有层级（不限制代数）
 async function getHierarchy(userId) {
   const hierarchy = [];
@@ -110,40 +118,40 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
   await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
 }
 
-// 分发层级提成（级差 + 代际）
-async function distributeUpline(order, baseAmount, chart, parentId) {
-  let currentId = order.user_id;
-  let generation = 0;
-
-  const employeeRes = await db.query('SELECT id, hierarchy_level FROM users WHERE id = $1', [currentId]);
-  const employeeLevel = employeeRes.rows[0].hierarchy_level;
+// 拆段后分发级差佣金
+async function distributeLevelDifference(order, baseAmount, chart, parentId, segmentProfit, hierarchy) {
+  const employeeLevel = reconcileLevel(segmentProfit, order.hierarchy_level, chart);
   const employeePercent = getLevelPercentByTitle(employeeLevel, chart);
 
-  while (true) {
-    const res = await db.query('SELECT id, name, national_producer_number, profit, hierarchy_level, introducer_id FROM users WHERE id = $1', [currentId]);
+  for (const u of hierarchy) {
+    const uPercent = getLevelPercentByTitle(u.hierarchy_level, chart);
+    const diff = uPercent - employeePercent;
+
+    if (diff > 0.01) {
+      const diffAmount = baseAmount * (diff / 100);
+      await insertCommissionOrder(order, u, 'Level Difference', diff, diffAmount, `Level Diff from ${order.full_name}`, parentId);
+    }
+  }
+}
+
+// 统一发放代际佣金
+async function distributeGenerationOverride(order, chart, parentId) {
+  let currentId = order.user_id;
+  let generation = 0;
+  while (generation < 3) {
+    const res = await db.query('SELECT id, name, national_producer_number, introducer_id FROM users WHERE id = $1', [currentId]);
     if (!res.rows.length) break;
     const currentUser = res.rows[0];
     if (!currentUser.introducer_id) break;
 
     const uRes = await db.query('SELECT * FROM users WHERE id = $1', [currentUser.introducer_id]);
     if (!uRes.rows.length) break;
-
     const u = uRes.rows[0];
-    const uPercent = getLevelPercentByTitle(u.hierarchy_level, chart);
-    const downPercent = generation === 0 ? employeePercent : getLevelPercentByTitle(currentUser.hierarchy_level, chart);
-    const diff = uPercent - downPercent;
 
-    if (diff > 0.01) {
-      const diffAmount = baseAmount * (diff / 100);
-      await insertCommissionOrder(order, u, 'Level Difference', diff, diffAmount, `Level Diff with ${currentUser.name}`, parentId);
-    }
-
-    if (generation < 3) {
-      const overridePercent = generation === 0 ? 5 : generation === 1 ? 3 : 1;
-      const overrideAmount = baseAmount * (overridePercent / 100);
-      if (overrideAmount > 0.01) {
-        await insertCommissionOrder(order, u, 'Generation Override', overridePercent, overrideAmount, `Generation ${generation + 1}`, parentId);
-      }
+    const overridePercent = generation === 0 ? 5 : generation === 1 ? 3 : 1;
+    const overrideAmount = parseFloat(order.commission_from_carrier) * (overridePercent / 100);
+    if (overrideAmount > 0.01) {
+      await insertCommissionOrder(order, u, 'Generation Override', overridePercent, overrideAmount, `Generation ${generation + 1}`, parentId);
     }
 
     currentId = u.id;
@@ -162,19 +170,9 @@ async function handleCommissions(order, userId) {
   const profitBefore = parseFloat(user.profit || 0);
   const hierarchy = await getHierarchy(userId);
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
+  const segments = splitPoints ? [0, ...splitPoints, baseAmount] : [0, baseAmount];
+  let totalProfitAdded = 0;
 
-  if (!splitPoints) {
-    const level = reconcileLevel(profitBefore, user.hierarchy_level, chart);
-    const percent = getLevelPercentByTitle(level, chart);
-    const amount = baseAmount * (percent / 100);
-    await insertCommissionOrder(order, user, 'Personal Commission', percent, amount, 'Full Commission', order.id);
-    await distributeUpline(order, baseAmount, chart, order.id);
-    await db.query('UPDATE users SET profit = profit + $1, hierarchy_level = $2 WHERE id = $3', [baseAmount, level, userId]);
-    await db.query('DELETE FROM life_orders WHERE id = $1', [order.id]);
-    return;
-  }
-
-  const segments = [0, ...splitPoints, baseAmount];
   for (let i = 0; i < segments.length - 1; i++) {
     const segmentAmount = segments[i + 1] - segments[i];
     const segmentProfit = profitBefore + segments[i];
@@ -182,25 +180,26 @@ async function handleCommissions(order, userId) {
     const percent = getLevelPercentByTitle(level, chart);
     const commissionAmount = segmentAmount * (percent / 100);
 
+    // 插入个人佣金
     await insertCommissionOrder(order, user, 'Personal Commission', percent, commissionAmount, `Segment ${i + 1}`, order.id);
-    await distributeUpline(order, segmentAmount, chart, order.id);
+
+    // 更新 profit 和 team_profit
+    totalProfitAdded += segmentAmount;
+    await updateTeamProfit(userId, segmentAmount);
     await db.query('UPDATE users SET profit = profit + $1, hierarchy_level = $2 WHERE id = $3', [segmentAmount, level, userId]);
 
-    const updatedUserRes = await db.query('SELECT profit, hierarchy_level FROM users WHERE id = $1', [userId]);
-    user.profit = parseFloat(updatedUserRes.rows[0].profit);
-    user.hierarchy_level = updatedUserRes.rows[0].hierarchy_level;
-
-    for (const h of hierarchy) {
-      const hr = await db.query('SELECT profit FROM users WHERE id = $1', [h.id]);
-      const p = parseFloat(hr.rows[0].profit || 0);
-      const newL = reconcileLevel(p, h.hierarchy_level, chart);
-      await db.query('UPDATE users SET hierarchy_level = $1 WHERE id = $2', [newL, h.id]);
-    }
+    // 插入级差佣金
+    await distributeLevelDifference(order, segmentAmount, chart, order.id, segmentProfit, hierarchy);
   }
 
+  // 统一发放代际佣金
+  await distributeGenerationOverride(order, chart, order.id);
+
+  // 修改原始订单状态
   await db.query('UPDATE life_orders SET application_status = $1 WHERE id = $2', ['splitted', order.id]);
 }
 
 module.exports = {
-  handleCommissions
+  handleCommissions,
+  getHierarchy
 };
