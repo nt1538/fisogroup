@@ -160,7 +160,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-router.delete('/orders/:type/:id', async (req, res) => {
+router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
   const table =
     type === 'life_orders'
@@ -171,12 +171,46 @@ router.delete('/orders/:type/:id', async (req, res) => {
 
   if (!table) return res.status(400).json({ error: 'Invalid order type' });
 
+  const client = await pool.connect();
+
   try {
-    await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
-    res.json({ message: 'Order Deleted' });
+    // 1. 查找订单信息
+    const orderResult = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+    const order = orderResult.rows[0];
+    if (!order) {
+      client.release();
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // 2. 如果订单是 completed 状态，扣除用户的 profit 和 commission
+    if (order.application_status === 'completed') {
+      const userId = order.user_id;
+      const baseAmount = parseFloat(order.commission_from_carrier || 0);
+      const percent = parseFloat(order.commission_percent || 0);
+      const personalCommission = baseAmount * (percent / 100);
+
+      // 扣减用户数据（profit 和 commission）
+      await client.query(
+        `UPDATE users 
+         SET profit = GREATEST(profit - $1, 0), 
+             commission = GREATEST(commission - $2, 0)
+         WHERE id = $3`,
+        [baseAmount, personalCommission, userId]
+      );
+
+      // 🧹 同时删除该订单产生的所有佣金记录
+      await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);
+    }
+
+    // 3. 删除订单
+    await client.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+
+    client.release();
+    res.json({ message: 'Order deleted and user records updated' });
   } catch (err) {
-    console.error('Failed to Delete Order:', err);
-    res.status(500).json({ error: 'Failed to Delete Order' });
+    console.error('Failed to delete order:', err);
+    client.release();
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 
