@@ -184,7 +184,7 @@ async function handleCommissions(order, userId) {
     }
   }
 
-  await db.query('UPDATE life_orders SET application_status = $1 WHERE id = $2', ['splitted', order.id]);
+  await db.query('UPDATE life_orders SET application_status = $1 WHERE id = $2', ['Distributed', order.id]);
 }
 
 module.exports = {
