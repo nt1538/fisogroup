@@ -97,7 +97,7 @@ async function checkSplitPoints(order, chart, hierarchy) {
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId) {
   await db.query(`
     INSERT INTO life_orders (
-      user_id, name, national_producer_number, hierarchy_level,
+      user_id, full_name, national_producer_number, hierarchy_level,
       commission_percent, commission_amount, carrier_name, product_name,
       application_date, policy_number, face_amount, target_premium,
       initial_premium, commission_from_carrier, application_status, mra_status,
