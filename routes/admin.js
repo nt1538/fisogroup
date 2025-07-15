@@ -239,8 +239,8 @@ router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
     const query = `
       UPDATE users
       SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, profit = $8, team_profit = $9,
-      national_producer_number = $9, hierarchy_level = $10
-      WHERE id = $11
+      national_producer_number = $10, hierarchy_level = $11
+      WHERE id = $12
       RETURNING *;
     `;
     const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level, id];
