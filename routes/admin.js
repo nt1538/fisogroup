@@ -114,10 +114,10 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     }
 
     // 如果订单状态已为 completed，拒绝修改
-    if (originalOrder.application_status === 'completed') {
-      client.release();
-      return res.status(400).json({ error: 'Completed orders cannot be modified' });
-    }
+    // if (originalOrder.application_status === 'completed') {
+    //   client.release();
+    //   return res.status(400).json({ error: 'Completed orders cannot be modified' });
+    // }
 
     // 更新订单
     const updateQuery = `
