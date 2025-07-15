@@ -43,6 +43,11 @@
       </div>
 
       <div class="form-group">
+        <label>Team Profit</label>
+        <input v-model="user.team_profit" type="number" />
+      </div>
+
+      <div class="form-group">
         <label>Hierarchy Level</label>
         <select v-model="user.hierarchy_level">
           <option value="Level A">Level A</option>
@@ -54,7 +59,7 @@
           <option value="Vice President">Vice President</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label>National Producer Number</label>
         <input v-model="user.national_producer_number" type="text" />

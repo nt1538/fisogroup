@@ -233,17 +233,17 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number, hierarchy_level} = req.body;
+  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level} = req.body;
 
   try {
     const query = `
       UPDATE users
-      SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, profit = $8,
+      SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, profit = $8, team_profit = $9,
       national_producer_number = $9, hierarchy_level = $10
       WHERE id = $11
       RETURNING *;
     `;
-    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number, hierarchy_level, id];
+    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level, id];
 
     const result = await pool.query(query, values);
     if (result.rowCount === 0) {
@@ -262,7 +262,7 @@ router.get('/employees/:id', verifyToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, state, introducer_id, level_percent, total_earnings, commission, profit, hierarchy_level, national_producer_number
+      `SELECT id, name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, hierarchy_level, national_producer_number
        FROM users
        WHERE id = $1`,
       [userId]
@@ -283,7 +283,7 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
   const { query = '' } = req.query;
   try {
     const result = await pool.query(
-      `SELECT id, name, email, total_earnings, hierarchy_level
+      `SELECT id, name, email, total_earnings, hierarchy_level, team_profit
        FROM users
        WHERE name ILIKE $1 OR email ILIKE $1
        ORDER BY id DESC
