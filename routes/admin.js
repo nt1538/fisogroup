@@ -233,17 +233,17 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number} = req.body;
+  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number, hierarchy_level} = req.body;
 
   try {
     const query = `
       UPDATE users
       SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, profit = $8,
-      national_producer_number = $9
-      WHERE id = $10
+      national_producer_number = $9, hierarchy_level = $10
+      WHERE id = $11
       RETURNING *;
     `;
-    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number, id];
+    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, national_producer_number, hierarchy_level, id];
 
     const result = await pool.query(query, values);
     if (result.rowCount === 0) {
