@@ -201,7 +201,7 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
       const hierarchy = await getHierarchy(userId);
       const idsToUpdate = hierarchy.map(u => u.id).concat(userId);
       for (const uid of idsToUpdate) {
-        await pool.query('UPDATE users SET team_profit = GREATEST(team_profit - $1, 0) WHERE id = $2', [amount, uid]);
+        await pool.query('UPDATE users SET team_profit = GREATEST(team_profit - $1, 0) WHERE id = $2', [baseAmount, uid]);
       }
 
       // 🧹 同时删除该订单产生的所有佣金记录
