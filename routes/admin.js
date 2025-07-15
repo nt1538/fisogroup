@@ -212,7 +212,8 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
       // 如果是 completed 状态但不是个人佣金，则不扣减用户的 profit
       await client.query(
         `UPDATE users 
-         SET profit = GREATEST(profit - $1, 0)
+         SET profit = GREATEST(profit - $1, 0), 
+             commission = GREATEST(total_earnings - $1, 0)
          WHERE id = $2`,
         [parseFloat(order.commission_from_carrier || 0), order.user_id]
       );
