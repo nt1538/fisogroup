@@ -183,7 +183,7 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
     }
 
     // 2. 如果订单是 completed 状态，扣除用户的 profit 和 commission
-    if (order.application_status === 'completed') {
+    if (order.application_status === 'completed' && order.order_type === 'Personal Commission') {
       const userId = order.user_id;
       const baseAmount = parseFloat(order.commission_from_carrier || 0);
       const percent = parseFloat(order.commission_percent || 0);
@@ -205,7 +205,17 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
       }
 
       // 🧹 同时删除该订单产生的所有佣金记录
-      await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);
+      //await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);
+    }
+
+    else if (order.application_status === 'completed') {
+      // 如果是 completed 状态但不是个人佣金，则不扣减用户的 profit
+      await client.query(
+        `UPDATE users 
+         SET profit = GREATEST(profit - $1, 0)
+         WHERE id = $2`,
+        [parseFloat(order.commission_from_carrier || 0), order.user_id]
+      );
     }
 
     // 3. 删除订单
