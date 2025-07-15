@@ -64,7 +64,7 @@ async function checkSplitPoints(order, chart, hierarchy) {
   const allUsers = [...hierarchy, self];
 
   for (const u of allUsers) {
-    const before = parseFloat(u.profit || 0);
+    const before = parseFloat(u.team_profit || 0);
     const after = before + baseAmount;
     profitMap.set(u.id, [before, after]);
     beforeLevels.set(u.id, reconcileLevel(before, u.hierarchy_level, chart));
@@ -75,16 +75,19 @@ async function checkSplitPoints(order, chart, hierarchy) {
 
   for (const [id, [before, after]] of profitMap.entries()) {
     const user = allUsers.find(u => u.id === id);
-    const currentLevelTitle = reconcileLevel(before, user.hierarchy_level, chart);
-    const currentLevelObj = chart.find(c => c.title === currentLevelTitle);
+    const beforeLevel = reconcileLevel(before, user.hierarchy_level, chart);
+    const afterLevel = reconcileLevel(after, user.hierarchy_level, chart);
 
-    for (const row of chart) {
-      if (
-        row.min_amount > before &&
-        row.min_amount > currentLevelObj.min_amount &&
-        row.min_amount < after
-      ) {
-        points.add(row.min_amount - parseFloat(self.profit));
+    if (beforeLevel !== afterLevel) {
+      const currentLevelObj = chart.find(c => c.title === beforeLevel);
+      for (const row of chart) {
+        if (
+          row.min_amount > before &&
+          row.min_amount > currentLevelObj.min_amount &&
+          row.min_amount < after
+        ) {
+          points.add(row.min_amount - parseFloat(self.team_profit));
+        }
       }
     }
   }
@@ -187,7 +190,15 @@ async function handleCommissions(order, userId) {
     totalProfitAdded += segmentAmount;
     await updateTeamProfit(userId, segmentAmount);
     await db.query('UPDATE users SET profit = profit + $1, hierarchy_level = $2 WHERE id = $3', [segmentAmount, level, userId]);
-
+    for (const h of hierarchy) {
+      const hRes = await db.query('SELECT profit, hierarchy_level FROM users WHERE id = $1', [h.id]);
+      const currentProfit = parseFloat(hRes.rows[0].team_profit || 0);
+      const currentLevel = hRes.rows[0].hierarchy_level;
+      const newLevel = reconcileLevel(currentProfit, currentLevel, chart);
+      if (newLevel !== currentLevel) {
+        await db.query('UPDATE users SET hierarchy_level = $1 WHERE id = $2', [newLevel, h.id]);
+      }
+    }
     // 插入级差佣金
     await distributeLevelDifference(order, segmentAmount, chart, order.id, segmentProfit, hierarchy);
   }
