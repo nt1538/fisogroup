@@ -88,13 +88,11 @@ async function checkSplitPoints(order, chart, hierarchy) {
       const threshold = chart[i].min_amount;
 
       if (before < threshold && after >= threshold) {
-        // 基于发起订单者自身的 team_profit 计算 offset 拆分点
-        const offset = threshold - parseFloat(self.team_profit || 0);
-        if (offset > 0 && offset < baseAmount) {
-          splitSet.add(offset);
-
-          // 打印调试信息
-          //console.log(`[SPLIT] User ${u.name} (${u.hierarchy_level}) will cross ${chart[i].title} at offset = ${offset}`);
+        const offset = threshold - before;
+        const globalOffset = offset + (before - parseFloat(self.team_profit || 0));
+        if (globalOffset > 0 && globalOffset < baseAmount) {
+          splitSet.add(globalOffset);
+          console.log(`[SPLIT] ${u.name} (${u.hierarchy_level}) will cross ${chart[i].title} at self-offset ${globalOffset}`);
         }
       }
     }
@@ -103,6 +101,7 @@ async function checkSplitPoints(order, chart, hierarchy) {
   const sorted = [...splitSet].sort((a, b) => a - b);
   return sorted.length > 0 ? sorted : false;
 }
+
 
 
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId) {
