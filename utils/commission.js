@@ -7,17 +7,21 @@ async function getCommissionChart() {
 }
 
 function reconcileLevel(profit, currentLevel, chart) {
-  let profitLevel = chart[0].title;
-  for (const row of chart) {
-    if (profit >= row.min_amount && profit <= row.max_amount) {
-      profitLevel = row.title;
+  let matchedTitle = chart[0].title;
+
+  for (let i = chart.length - 1; i >= 0; i--) {
+    const row = chart[i];
+    if (profit >= row.min_amount) {
+      matchedTitle = row.title;
       break;
     }
   }
+
   const currentIndex = chart.findIndex(row => row.title === currentLevel);
-  const profitIndex = chart.findIndex(row => row.title === profitLevel);
-  return profitIndex > currentIndex ? profitLevel : currentLevel;
+  const newIndex = chart.findIndex(row => row.title === matchedTitle);
+  return newIndex > currentIndex ? matchedTitle : currentLevel;
 }
+
 
 function getLevelPercentByTitle(title, chart) {
   const row = chart.find(r => r.title === title);
@@ -72,7 +76,7 @@ async function checkSplitPoints(order, chart, hierarchy) {
   const allUsers = [...hierarchy, self];
 
   for (const u of allUsers) {
-    const before = parseFloat(u.profit || 0);
+    const before = parseFloat(u.team_profit || 0);
     const after = before + baseAmount;
     const beforeLevel = reconcileLevel(before, u.hierarchy_level, chart);
     const afterLevel = reconcileLevel(after, u.hierarchy_level, chart);
