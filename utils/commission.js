@@ -82,16 +82,20 @@ async function checkSplitPoints(order, chart, hierarchy) {
     const after = before + baseAmount;
 
     const currentIndex = chart.findIndex(c => c.title === u.hierarchy_level);
-    const nextLevelRow = chart[currentIndex + 1];
+    if (currentIndex === -1) continue;
 
-    if (!nextLevelRow) continue;
+    for (let i = currentIndex + 1; i < chart.length; i++) {
+      const threshold = chart[i].min_amount;
 
-    const splitThreshold = nextLevelRow.min_amount;
-    if (before < splitThreshold && after >= splitThreshold) {
-      // 注意使用 self.profit 来对齐 order 的拆分点（必须基于当前订单）
-      const offset = splitThreshold - parseFloat(self.team_profit || 0);
-      if (offset > 0 && offset < baseAmount) {
-        splitSet.add(offset);
+      if (before < threshold && after >= threshold) {
+        // 基于发起订单者自身的 team_profit 计算 offset 拆分点
+        const offset = threshold - parseFloat(self.team_profit || 0);
+        if (offset > 0 && offset < baseAmount) {
+          splitSet.add(offset);
+
+          // 打印调试信息
+          //console.log(`[SPLIT] User ${u.name} (${u.hierarchy_level}) will cross ${chart[i].title} at offset = ${offset}`);
+        }
       }
     }
   }
@@ -99,6 +103,7 @@ async function checkSplitPoints(order, chart, hierarchy) {
   const sorted = [...splitSet].sort((a, b) => a - b);
   return sorted.length > 0 ? sorted : false;
 }
+
 
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId) {
   await db.query(`
@@ -138,7 +143,7 @@ async function handleCommissions(order, userId) {
   let totalPersonalCommission = 0;
   const levelDiffMap = new Map();
   const genOverrideMap = new Map();
-  console.log(segments);
+  //console.log(segments);
   for (let i = 0; i < segments.length - 1; i++) {
     const segAmount = segments[i + 1] - segments[i];
     const segProfit = profitBefore + segments[i];
