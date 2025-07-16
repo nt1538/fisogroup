@@ -7,21 +7,17 @@ async function getCommissionChart() {
 }
 
 function reconcileLevel(teamProfit, currentLevel, chart) {
-  const currentIndex = chart.findIndex(row => row.title === currentLevel);
-  const currentLevelRow = chart[currentIndex];
-  const nextLevelRow = chart[currentIndex + 1];
+  let currentIndex = chart.findIndex(row => row.title === currentLevel);
+  if (currentIndex === -1) return currentLevel;
 
-  // 如果没有更高等级了，保持当前等级
-  if (!nextLevelRow) return currentLevel;
-
-  // 如果 team_profit 达到下一等级门槛，则晋升
-  if (teamProfit >= nextLevelRow.min_amount) {
-    return nextLevelRow.title;
+  // 连续晋升直到 team_profit 不满足更高等级门槛
+  while (currentIndex + 1 < chart.length && teamProfit >= chart[currentIndex + 1].min_amount) {
+    currentIndex++;
   }
 
-  // 否则保持当前等级
-  return currentLevel;
+  return chart[currentIndex].title;
 }
+
 
 
 
