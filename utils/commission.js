@@ -6,21 +6,23 @@ async function getCommissionChart() {
   return res.rows;
 }
 
-function reconcileLevel(profit, currentLevel, chart) {
-  let matchedTitle = chart[0].title;
+function reconcileLevel(teamProfit, currentLevel, chart) {
+  const currentIndex = chart.findIndex(row => row.title === currentLevel);
+  const currentLevelRow = chart[currentIndex];
+  const nextLevelRow = chart[currentIndex + 1];
 
-  for (let i = chart.length - 1; i >= 0; i--) {
-    const row = chart[i];
-    if (profit >= row.min_amount) {
-      matchedTitle = row.title;
-      break;
-    }
+  // 如果没有更高等级了，保持当前等级
+  if (!nextLevelRow) return currentLevel;
+
+  // 如果 team_profit 达到下一等级门槛，则晋升
+  if (teamProfit >= nextLevelRow.min_amount) {
+    return nextLevelRow.title;
   }
 
-  const currentIndex = chart.findIndex(row => row.title === currentLevel);
-  const newIndex = chart.findIndex(row => row.title === matchedTitle);
-  return newIndex > currentIndex ? matchedTitle : currentLevel;
+  // 否则保持当前等级
+  return currentLevel;
 }
+
 
 
 function getLevelPercentByTitle(title, chart) {
