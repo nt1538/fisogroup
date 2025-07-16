@@ -17,12 +17,12 @@ function getPercentByLevel(level) {
 }
 // ======== CREATE LIFE ORDER =========
 router.post('/life', verifyToken, async (req, res) => {
-  await createBaseOrder(req, res, 'life_orders', 'Personal Commission');
+  await createBaseOrder(req, res, 'application_life', 'Personal Commission');
 });
 
 // ======== CREATE ANNUITY ORDER ========
 router.post('/annuity', verifyToken, async (req, res) => {
-  await createBaseOrder(req, res, 'annuity_orders', 'Personal Commission');
+  await createBaseOrder(req, res, 'application_annuity', 'Personal Commission');
 });
 
 // ========== HELPER: Create Base Order (no commissions yet) ==========
@@ -82,10 +82,10 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       mra_status
     ];
 
-    if (tableName === 'life_orders') {
+    if (tableName === 'application_life') {
       insertSQL += `, face_amount, target_premium`;
       values.push(face_amount, target_premium);
-    } else if (tableName === 'annuity_orders') {
+    } else if (tableName === 'application_annuity') {
       insertSQL += `, flex_premium`;
       values.push(flex_premium);
     }

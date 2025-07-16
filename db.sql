@@ -212,3 +212,27 @@ SET hierarchy_level = CASE
   ELSE 'Level A'
 END
 WHERE hierarchy_level IS NULL OR hierarchy_level = '';
+
+CREATE TABLE application_annuity (
+  LIKE annuity_orders INCLUDING ALL
+);
+
+CREATE TABLE commission_annuity (
+  LIKE annuity_orders INCLUDING ALL
+);
+
+CREATE TABLE saved_annuity_orders (
+  LIKE annuity_orders INCLUDING ALL
+);
+
+CREATE TABLE application_life (
+  LIKE life_orders INCLUDING ALL
+);
+
+CREATE TABLE commission_life (
+  LIKE life_orders INCLUDING ALL
+);
+
+CREATE TABLE saved_life_orders (
+  LIKE life_orders INCLUDING ALL
+);
