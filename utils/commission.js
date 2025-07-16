@@ -146,9 +146,6 @@ async function handleCommissions(order, userId) {
     const percent = getLevelPercentByTitle(level, chart);
     totalPersonalCommission += segAmount * (percent / 100);
 
-    await updateTeamProfit(userId, segAmount);
-    await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [segAmount, userId]);
-
     let currentId = userId;
     let generation = 0;
     const employeePercent = percent;
@@ -180,6 +177,8 @@ async function handleCommissions(order, userId) {
       currentId = u.id;
       generation++;
     }
+    await updateTeamProfit(userId, segAmount);
+    await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [segAmount, userId]);
   }
 
   // Insert merged commissions
