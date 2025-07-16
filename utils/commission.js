@@ -143,7 +143,7 @@ async function handleCommissions(order, userId) {
   let totalPersonalCommission = 0;
   const levelDiffMap = new Map();
   const genOverrideMap = new Map();
-  //console.log(segments);
+  console.log(segments);
   for (let i = 0; i < segments.length - 1; i++) {
     const segAmount = segments[i + 1] - segments[i];
     const segProfit = profitBefore + segments[i];
