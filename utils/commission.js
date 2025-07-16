@@ -71,26 +71,33 @@ async function getHierarchy(userId) {
 }
 
 async function checkSplitPoints(order, chart, hierarchy) {
-  const profitMap = new Map();
   const baseAmount = parseFloat(order.commission_from_carrier || 0);
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
   const self = userRes.rows[0];
   const allUsers = [...hierarchy, self];
+  const splitSet = new Set();
 
   for (const u of allUsers) {
     const before = parseFloat(u.team_profit || 0);
     const after = before + baseAmount;
-    const beforeLevel = reconcileLevel(before, u.hierarchy_level, chart);
-    const afterLevel = reconcileLevel(after, u.hierarchy_level, chart);
-    if (beforeLevel !== afterLevel) {
-      for (const row of chart) {
-        if (row.min_amount > before && row.min_amount < after) {
-          profitMap.set(row.min_amount - parseFloat(self.profit), true);
-        }
+
+    const currentIndex = chart.findIndex(c => c.title === u.hierarchy_level);
+    const nextLevelRow = chart[currentIndex + 1];
+
+    if (!nextLevelRow) continue;
+
+    const splitThreshold = nextLevelRow.min_amount;
+    if (before < splitThreshold && after >= splitThreshold) {
+      // 注意使用 self.profit 来对齐 order 的拆分点（必须基于当前订单）
+      const offset = splitThreshold - parseFloat(self.team_profit || 0);
+      if (offset > 0 && offset < baseAmount) {
+        splitSet.add(offset);
       }
     }
   }
-  return [...profitMap.keys()].sort((a, b) => a - b) || false;
+
+  const sorted = [...splitSet].sort((a, b) => a - b);
+  return sorted.length > 0 ? sorted : false;
 }
 
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId) {
