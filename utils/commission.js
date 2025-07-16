@@ -26,7 +26,7 @@ function getLevelPercentByTitle(title, chart) {
 
 async function updateTeamProfit(userId, amount) {
   const hierarchy = await getHierarchy(userId);
-  const idsToUpdate = hierarchy.map(u => u.id).concat(userId); // 包括本人
+  const idsToUpdate = hierarchy.map(u => u.id); // 包括本人
 
   const chart = await getCommissionChart();
 
