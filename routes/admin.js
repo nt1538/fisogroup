@@ -194,7 +194,7 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
         `UPDATE users 
          SET profit = GREATEST(profit - $1, 0), 
              commission = GREATEST(commission - $2, 0),
-             total_earnings = GREATEST(total_earnings - $2, 0),
+             total_earnings = GREATEST(total_earnings - $2, 0)
          WHERE id = $3`,
         [baseAmount, personalCommission, userId]
       );
