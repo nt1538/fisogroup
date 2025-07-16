@@ -47,7 +47,7 @@ async function updateTeamProfit(userId, amount) {
     const teamProfit = parseFloat(res.rows[0].team_profit || 0);
     const currentLevel = res.rows[0].hierarchy_level;
     const newLevel = reconcileLevel(teamProfit, currentLevel, chart);
-
+    console.log(`User ${uid} updated team_profit to ${teamProfit}, new level: ${newLevel}`);
     // 若等级变更则更新
     if (newLevel !== currentLevel) {
       await db.query('UPDATE users SET hierarchy_level = $1 WHERE id = $2', [newLevel, uid]);
