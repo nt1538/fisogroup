@@ -57,8 +57,8 @@ async function getHierarchy(userId) {
     const res = await db.query('SELECT id, introducer_id, profit, hierarchy_level, name, national_producer_number FROM users WHERE id = $1', [currentId]);
     if (!res.rows.length) break;
     const u = res.rows[0];
-    if (!u.introducer_id) break;
     hierarchy.push(u);
+    if (!u.introducer_id) break;
     currentId = u.introducer_id;
   }
   return hierarchy;
