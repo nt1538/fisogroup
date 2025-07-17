@@ -343,19 +343,32 @@ router.get('/summary', async (req, res) => {
     const { rows: users } = await pool.query(`SELECT COUNT(*) FROM users`);
     const userCount = parseInt(users[0].count);
 
-    // 2. 当前 application 状态为 in_progress 的订单数量
-    const { rows: appLife } = await pool.query(`SELECT COUNT(*) FROM application_life WHERE application_status = 'in_progress'`);
-    const { rows: appAnnuity } = await pool.query(`SELECT COUNT(*) FROM application_annuity WHERE application_status = 'in_progress'`);
+    // 2. application 状态为 in_progress 的订单数
+    const { rows: appLife } = await pool.query(`
+      SELECT COUNT(*) FROM application_life WHERE application_status = 'in_progress'
+    `);
+    const { rows: appAnnuity } = await pool.query(`
+      SELECT COUNT(*) FROM application_annuity WHERE application_status = 'in_progress'
+    `);
     const applicationOrderCount = parseInt(appLife[0].count) + parseInt(appAnnuity[0].count);
 
-    // 3. saved_orders 状态为 distributed 的订单数量
-    const { rows: savedLife } = await pool.query(`SELECT COUNT(*) FROM saved_life_orders WHERE application_status = 'distributed'`);
-    const { rows: savedAnnuity } = await pool.query(`SELECT COUNT(*) FROM saved_annuity_orders WHERE application_status = 'distributed'`);
+    // 3. saved_orders 中 application_status 为 distributed 的订单数量
+    const { rows: savedLife } = await pool.query(`
+      SELECT COUNT(*) FROM saved_life_orders WHERE application_status = 'distributed'
+    `);
+    const { rows: savedAnnuity } = await pool.query(`
+      SELECT COUNT(*) FROM saved_annuity_orders WHERE application_status = 'distributed'
+    `);
     const distributedOrderCount = parseInt(savedLife[0].count) + parseInt(savedAnnuity[0].count);
 
-    // 4. 总佣金分发金额
-    const { rows: commissions } = await pool.query(`SELECT COALESCE(SUM(commission_amount), 0) AS total FROM commissions`);
-    const totalCommissionAmount = parseFloat(commissions[0].total);
+    // 4. 汇总 commission_life 和 commission_annuity 的总佣金金额
+    const { rows: lifeTotal } = await pool.query(`
+      SELECT COALESCE(SUM(commission_amount), 0) AS total FROM commission_life
+    `);
+    const { rows: annuityTotal } = await pool.query(`
+      SELECT COALESCE(SUM(commission_amount), 0) AS total FROM commission_annuity
+    `);
+    const totalCommissionAmount = parseFloat(lifeTotal[0].total) + parseFloat(annuityTotal[0].total);
 
     res.json({
       userCount,
@@ -369,6 +382,7 @@ router.get('/summary', async (req, res) => {
     res.status(500).json({ error: 'Failed to get summary' });
   }
 });
+
 
 
 module.exports = router;
