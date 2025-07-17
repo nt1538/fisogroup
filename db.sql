@@ -236,3 +236,9 @@ CREATE TABLE commission_life (
 CREATE TABLE saved_life_orders (
   LIKE life_orders INCLUDING ALL
 );
+ALTER TABLE application_annuity ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE commission_annuity ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE saved_annuity_orders ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE application_life ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE commission_life ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE saved_life_orders ADD COLUMN IF NOT EXISTS comment TEXT;

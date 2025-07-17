@@ -32,7 +32,7 @@
           <td>{{ order.policy_number }}</td>
           <td>{{ formatDate(order.application_date) }}</td>
           <td>
-            <router-link :to="`/admin/adminOrderEdit/${order.table_type}/${order.id}`">Edit</router-link>
+            <router-link :to="`/admin/adminOrderEditApp/${order.table_type}/${order.id}`">Edit</router-link>
           </td>
         </tr>
       </tbody>

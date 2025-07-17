@@ -2,10 +2,10 @@
   <AdminLayout>
     <h2>Dashboard</h2>
     <div class="grid">
-      <div class="card">User Count: {{ stats.userCount }}</div>
-      <div class="card">Life Order Count: {{ stats.lifeOrderCount }}</div>
-      <div class="card">Annuity Order Count: {{ stats.annuityOrderCount }}</div>
-      <div class="card">Total Commission: ${{ stats.totalCommissionAmount }}</div>
+      <div class="card">👥 User Count: {{ stats.userCount }}</div>
+      <div class="card">📝 Application Orders: {{ stats.applicationOrderCount }}</div>
+      <div class="card">📦 Distributed Orders: {{ stats.distributedOrderCount }}</div>
+      <div class="card">💰 Total Commission Distributed: ${{ stats.totalCommissionAmount }}</div>
     </div>
   </AdminLayout>
 </template>
@@ -17,8 +17,8 @@ import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const stats = ref({
   userCount: 0,
-  lifeOrderCount: 0,
-  annuityOrderCount: 0,
+  applicationOrderCount: 0,
+  distributedOrderCount: 0,
   totalCommissionAmount: 0,
 });
 
@@ -31,11 +31,16 @@ onMounted(async () => {
 <style scoped>
 .grid {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
+  margin-top: 20px;
 }
 .card {
   padding: 20px;
-  background: #eee;
-  border-radius: 8px;
+  background: #f0f2f5;
+  border-radius: 10px;
+  min-width: 220px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
 }
 </style>

@@ -100,9 +100,9 @@ async function checkSplitPoints(order, chart, hierarchy) {
 
 
 
-async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId) {
+async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId, tableName) {
   await db.query(`
-    INSERT INTO life_orders (
+    INSERT INTO ${tableName} (
       user_id, full_name, national_producer_number, hierarchy_level,
       commission_percent, commission_amount, carrier_name, product_name,
       application_date, policy_number, face_amount, target_premium,
@@ -123,7 +123,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
   await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
 }
 
-async function handleCommissions(order, userId) {
+async function handleCommissions(order, userId, table_type) {
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
   const user = userRes.rows[0];
   if (!user) return;
@@ -138,7 +138,11 @@ async function handleCommissions(order, userId) {
   let totalPersonalCommission = 0;
   const levelDiffMap = new Map();
   const genOverrideMap = new Map();
-  console.log(segments);
+  
+  const commissionTable = table_type === 'annuity' ? 'commission_annuity' : 'commission_life';
+  const savedTable = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
+  const originalTable = table_type === 'annuity' ? 'annuity_orders' : 'life_orders';
+
   for (let i = 0; i < segments.length - 1; i++) {
     const segAmount = segments[i + 1] - segments[i];
     const segProfit = profitBefore + segments[i];
@@ -182,21 +186,22 @@ async function handleCommissions(order, userId) {
   }
 
   // Insert merged commissions
-  await insertCommissionOrder(order, user, 'Personal Commission', null, totalPersonalCommission, 'Merged Personal Commission', order.id);
+  await insertCommissionOrder(order, user, 'Personal Commission', null, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
   for (let [uid, amt] of levelDiffMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Level Difference', null, amt, 'Merged Level Difference', order.id);
+      await insertCommissionOrder(order, res.rows[0], 'Level Difference', null, amt, 'Merged Level Difference', order.id, commissionTable);
     }
   }
   for (let [uid, amt] of genOverrideMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Generation Override', null, amt, 'Merged Generation Override', order.id);
+      await insertCommissionOrder(order, res.rows[0], 'Generation Override', null, amt, 'Merged Generation Override', order.id, commissionTable);
     }
   }
 
-  await db.query('UPDATE life_orders SET application_status = $1 WHERE id = $2', ['Distributed', order.id]);
+  await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
+  await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
 }
 
 module.exports = {

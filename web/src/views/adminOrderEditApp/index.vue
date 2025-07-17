@@ -8,6 +8,7 @@
           <select v-model="order[key]" :id="key">
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled</option>
           </select>
         </template>

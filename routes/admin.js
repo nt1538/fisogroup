@@ -14,7 +14,7 @@ router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
     end_date
   } = req.query;
 
-  const tables = ['life_orders', 'annuity_orders'];
+  const tables = ['application_annuity', 'application_life', 'commission_annuity', 'commission_life', 'saved_annuity_orders', 'saved_life_orders'];
   const allResults = [];
 
   try {
@@ -63,7 +63,7 @@ router.get('/orders/:table_type/:id', verifyToken, verifyAdmin, async (req, res)
   const { table_type, id } = req.params;
 
   // 限制只能访问指定表，防止 SQL 注入
-  const validTables = ['life_orders', 'annuity_orders'];
+  const validTables = ['application_annuity', 'application_life', 'commission_annuity', 'commission_life', 'saved_annuity_orders', 'saved_life_orders'];
   if (!validTables.includes(table_type)) {
     return res.status(400).json({ error: 'Invalid table type' });
   }
@@ -97,31 +97,40 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const {
     application_status, policy_number, commission_percent, initial_premium,
     commission_amount, face_amount, target_premium,
-    carrier_name, product_name, application_date, mra_status
+    carrier_name, product_name, application_date, mra_status, Explanation
   } = req.body;
 
-  const table = type === 'life_orders' ? 'life_orders' : 'annuity_orders';
+  const allowedTables = [
+    'application_life', 'application_annuity',
+    'commission_life', 'commission_annuity',
+    'saved_life_orders', 'saved_annuity_orders'
+  ];
+
+  if (!allowedTables.includes(type)) {
+    return res.status(400).json({ error: 'Invalid table type' });
+  }
 
   try {
     const client = await pool.connect();
 
-    // 查询原始订单状态
-    const originalResult = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
-    const originalOrder = originalResult.rows[0];
-    if (!originalOrder) {
+    // 获取原始订单
+    const originalRes = await client.query(`SELECT * FROM ${type} WHERE id = $1`, [id]);
+    const original = originalRes.rows[0];
+    if (!original) {
       client.release();
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // 如果订单状态已为 completed，拒绝修改
-    // if (originalOrder.application_status === 'completed') {
-    //   client.release();
-    //   return res.status(400).json({ error: 'Completed orders cannot be modified' });
-    // }
+    // 只允许修改 comment 字段（适用于 saved 表）
+    if (type.startsWith('saved_')) {
+      await client.query(`UPDATE ${type} SET comment = $1 WHERE id = $2`, [comment, id]);
+      client.release();
+      return res.json({ ...original, comment });
+    }
 
-    // 更新订单
+    // 更新字段
     const updateQuery = `
-      UPDATE ${table}
+      UPDATE ${type}
       SET application_status = $1,
           policy_number = $2,
           commission_percent = $3,
@@ -138,95 +147,124 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     `;
     const values = [
       application_status, policy_number, commission_percent,
-      initial_premium, commission_amount, 
+      initial_premium, commission_amount,
       face_amount, target_premium, carrier_name,
       product_name, application_date, mra_status, id
     ];
 
     const result = await client.query(updateQuery, values);
     const updatedOrder = result.rows[0];
+    updatedOrder.table_type = type;
 
-    // 如果状态变为 completed 且原状态不是 completed，则触发佣金发放
-    if (application_status === 'completed') {
-      updatedOrder.table_type = table;
-      await handleCommissions(updatedOrder, updatedOrder.user_id, updatedOrder.table_type);
+    // ====== 状态转移逻辑 ======
+    const userId = updatedOrder.user_id;
+    const isLife = type.includes('life');
+    const baseType = isLife ? 'life' : 'annuity';
+
+    if (application_status === 'completed' && type.startsWith('application_')) {
+      // 移动到 commission 表并触发佣金
+      const insertCommissionQuery = `
+        INSERT INTO commission_${baseType} (${Object.keys(updatedOrder).join(',')})
+        VALUES (${Object.keys(updatedOrder).map((_, i) => `$${i + 1}`).join(',')})
+      `;
+      await client.query(insertCommissionQuery, Object.values(updatedOrder));
+      await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
+
+      await handleCommissions(updatedOrder, userId, baseType);
+
+    } else if (
+      ['cancelled', 'rejected'].includes(application_status)
+      && !type.startsWith('saved_')
+    ) {
+      // 移动到 saved 表
+      const insertSavedQuery = `
+        INSERT INTO saved_${baseType}_orders (${Object.keys(updatedOrder).join(',')})
+        VALUES (${Object.keys(updatedOrder).map((_, i) => `$${i + 1}`).join(',')})
+      `;
+      await client.query(insertSavedQuery, Object.values(updatedOrder));
+      await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
     }
 
     client.release();
     res.json(updatedOrder);
+
   } catch (err) {
-    console.error('Error updating order:', err);
+    console.error('❌ Error updating order:', err);
     res.status(500).json({ error: 'Failed to update order' });
   }
 });
 
+
 router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
-  const table =
-    type === 'life_orders'
-      ? 'life_orders'
-      : type === 'annuity_orders'
-      ? 'annuity_orders'
-      : null;
 
-  if (!table) return res.status(400).json({ error: 'Invalid order type' });
+  const allowedTables = [
+    'application_life', 'application_annuity',
+    'commission_life', 'commission_annuity'
+  ];
+
+  if (!allowedTables.includes(type)) {
+    return res.status(400).json({ error: 'Invalid or non-deletable order type' });
+  }
 
   const client = await pool.connect();
 
   try {
     // 1. 查找订单信息
-    const orderResult = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
-    const order = orderResult.rows[0];
+    const orderRes = await client.query(`SELECT * FROM ${type} WHERE id = $1`, [id]);
+    const order = orderRes.rows[0];
     if (!order) {
       client.release();
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // 2. 如果订单是 completed 状态，扣除用户的 profit 和 commission
-    if (order.application_status === 'completed' && order.order_type === 'Personal Commission') {
-      const userId = order.user_id;
-      const baseAmount = parseFloat(order.commission_from_carrier || 0);
-      const percent = parseFloat(order.commission_percent || 0);
-      const personalCommission = baseAmount * (percent / 100);
+    const userId = order.user_id;
+    const baseAmount = parseFloat(order.commission_from_carrier || 0);
+    const percent = parseFloat(order.commission_percent || 0);
+    const personalCommission = baseAmount * (percent / 100);
 
-      // 扣减用户数据（profit 和 commission）
-      await client.query(
-        `UPDATE users 
-         SET profit = GREATEST(profit - $1, 0), 
-             commission = GREATEST(commission - $2, 0),
-             total_earnings = GREATEST(total_earnings - $2, 0)
-         WHERE id = $3`,
-        [baseAmount, personalCommission, userId]
-      );
+    // 2. 如为 completed 且为 Personal Commission，则扣减相关数据
+    if (order.application_status === 'completed' && order.order_type === 'Personal Commission') {
+      await client.query(`
+        UPDATE users
+        SET profit = GREATEST(profit - $1, 0),
+            commission = GREATEST(commission - $2, 0),
+            total_earnings = GREATEST(total_earnings - $2, 0)
+        WHERE id = $3
+      `, [baseAmount, personalCommission, userId]);
 
       const hierarchy = await getHierarchy(userId);
-      const idsToUpdate = hierarchy.map(u => u.id).concat(userId);
-      for (const uid of idsToUpdate) {
-        await pool.query('UPDATE users SET team_profit = GREATEST(team_profit - $1, 0) WHERE id = $2', [baseAmount, uid]);
+      const allUserIds = hierarchy.map(u => u.id).concat(userId);
+      for (const uid of allUserIds) {
+        await client.query(`
+          UPDATE users
+          SET team_profit = GREATEST(team_profit - $1, 0)
+          WHERE id = $2
+        `, [baseAmount, uid]);
       }
 
-      // 🧹 同时删除该订单产生的所有佣金记录
-      //await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);
+      // 删除佣金记录
+      await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);
     }
 
+    // 若是非 Personal Commission 但为 completed，也需部分扣减
     else if (order.application_status === 'completed') {
-      // 如果是 completed 状态但不是个人佣金，则不扣减用户的 profit
-      await client.query(
-        `UPDATE users 
-         SET profit = GREATEST(profit - $1, 0), 
-             commission = GREATEST(total_earnings - $1, 0)
-         WHERE id = $2`,
-        [parseFloat(order.commission_from_carrier || 0), order.user_id]
-      );
+      await client.query(`
+        UPDATE users
+        SET profit = GREATEST(profit - $1, 0),
+            total_earnings = GREATEST(total_earnings - $1, 0)
+        WHERE id = $2
+      `, [baseAmount, userId]);
     }
 
     // 3. 删除订单
-    await client.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
 
     client.release();
-    res.json({ message: 'Order deleted and user records updated' });
+    res.json({ message: '✅ Order deleted and related records updated' });
+
   } catch (err) {
-    console.error('Failed to delete order:', err);
+    console.error('❌ Failed to delete order:', err);
     client.release();
     res.status(500).json({ error: 'Failed to delete order' });
   }
@@ -301,31 +339,36 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
 
 router.get('/summary', async (req, res) => {
   try {
+    // 1. 用户总数
     const { rows: users } = await pool.query(`SELECT COUNT(*) FROM users`);
-    const { rows: lifeOrders } = await pool.query(`SELECT COUNT(*) FROM life_orders`);
-    const { rows: annuityOrders } = await pool.query(`SELECT COUNT(*) FROM annuity_orders`);
-    const { rows } = await pool.query(`
-      SELECT COALESCE(SUM(commission_from_carrier), 0) as total FROM (
-        SELECT commission_from_carrier FROM life_orders 
-        WHERE application_status = 'completed' AND order_type = 'Personal Commission'
-        UNION ALL
-        SELECT commission_from_carrier FROM annuity_orders 
-        WHERE application_status = 'completed' AND order_type = 'Personal Commission'
-      ) AS combined
-    `);
+    const userCount = parseInt(users[0].count);
 
-    const totalCommissionAmount = rows[0].total;
+    // 2. 当前 application 状态为 in_progress 的订单数量
+    const { rows: appLife } = await pool.query(`SELECT COUNT(*) FROM application_life WHERE application_status = 'in_progress'`);
+    const { rows: appAnnuity } = await pool.query(`SELECT COUNT(*) FROM application_annuity WHERE application_status = 'in_progress'`);
+    const applicationOrderCount = parseInt(appLife[0].count) + parseInt(appAnnuity[0].count);
+
+    // 3. saved_orders 状态为 distributed 的订单数量
+    const { rows: savedLife } = await pool.query(`SELECT COUNT(*) FROM saved_life WHERE application_status = 'distributed'`);
+    const { rows: savedAnnuity } = await pool.query(`SELECT COUNT(*) FROM saved_annuity WHERE application_status = 'distributed'`);
+    const distributedOrderCount = parseInt(savedLife[0].count) + parseInt(savedAnnuity[0].count);
+
+    // 4. 总佣金分发金额
+    const { rows: commissions } = await pool.query(`SELECT COALESCE(SUM(commission_amount), 0) AS total FROM commissions`);
+    const totalCommissionAmount = parseFloat(commissions[0].total);
 
     res.json({
-      userCount: parseInt(users[0].count),
-      lifeOrderCount: parseInt(lifeOrders[0].count),
-      annuityOrderCount: parseInt(annuityOrders[0].count),
-      totalCommissionAmount: parseFloat(totalCommissionAmount[0].total),
+      userCount,
+      applicationOrderCount,
+      distributedOrderCount,
+      totalCommissionAmount,
     });
+
   } catch (err) {
-    console.error('Error in /admin/summary:', err);
+    console.error('❌ Error in /summary:', err);
     res.status(500).json({ error: 'Failed to get summary' });
   }
 });
+
 
 module.exports = router;

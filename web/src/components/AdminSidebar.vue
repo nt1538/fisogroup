@@ -1,7 +1,16 @@
 <template>
   <div class="sidebar">
     <router-link to="/admin/adminDashboard" class="sidebar-item">📊 Dashboard</router-link>
-    <router-link to="/admin/adminOrderSearch" class="sidebar-item">📦 Check Orders</router-link>
+    <!-- Dropdown menu -->
+    <div class="sidebar-item dropdown" @click="toggleDropdown">
+      📦 Check Orders
+      <span class="arrow" :class="{ open: dropdownOpen }">▼</span>
+    </div>
+    <div v-if="dropdownOpen" class="dropdown-menu">
+      <router-link to="/admin/adminOrderSearchApp" class="dropdown-item">📋 Application Orders</router-link>
+      <router-link to="/admin/adminOrderSearchComm" class="dropdown-item">💰 Commission Orders</router-link>
+      <router-link to="/admin/adminOrderSearchSave" class="dropdown-item">🗃️ Saved Orders</router-link>
+    </div>
     <router-link to="/admin/adminEmployeeList" class="sidebar-item">👥 Employees List</router-link>
   </div>
 </template>

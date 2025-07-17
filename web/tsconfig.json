@@ -44,7 +44,7 @@
     "src/**/*.vue",
     "tests/**/*.ts",
     "tests/**/*.tsx"
-, "src/views/adminOrderSearch"  ],
+, "src/views/adminOrderSearchComm"  ],
   "exclude": [
     "node_modules"
   ]

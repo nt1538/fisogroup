@@ -107,7 +107,7 @@ router.get('/life', verifyToken, async (req, res) => {
   const { status, order_type } = req.query;
   const userId = req.user.id;
 
-  let query = 'SELECT * FROM life_orders WHERE user_id = $1';
+  let query = 'SELECT * FROM commission_life WHERE user_id = $1';
   const params = [userId];
   let i = 2;
 
@@ -135,7 +135,7 @@ router.get('/annuity', verifyToken, async (req, res) => {
   const { status, order_type } = req.query;
   const userId = req.user.id;
 
-  let query = 'SELECT * FROM annuity_orders WHERE user_id = $1';
+  let query = 'SELECT * FROM commission_annuity WHERE user_id = $1';
   const params = [userId];
   let i = 2;
 
