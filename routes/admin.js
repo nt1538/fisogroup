@@ -349,8 +349,8 @@ router.get('/summary', async (req, res) => {
     const applicationOrderCount = parseInt(appLife[0].count) + parseInt(appAnnuity[0].count);
 
     // 3. saved_orders 状态为 distributed 的订单数量
-    const { rows: savedLife } = await pool.query(`SELECT COUNT(*) FROM saved_life WHERE application_status = 'distributed'`);
-    const { rows: savedAnnuity } = await pool.query(`SELECT COUNT(*) FROM saved_annuity WHERE application_status = 'distributed'`);
+    const { rows: savedLife } = await pool.query(`SELECT COUNT(*) FROM saved_life_orders WHERE application_status = 'distributed'`);
+    const { rows: savedAnnuity } = await pool.query(`SELECT COUNT(*) FROM saved_annuity_orders WHERE application_status = 'distributed'`);
     const distributedOrderCount = parseInt(savedLife[0].count) + parseInt(savedAnnuity[0].count);
 
     // 4. 总佣金分发金额
