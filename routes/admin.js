@@ -154,7 +154,6 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 
     const result = await client.query(updateQuery, values);
     const updatedOrder = result.rows[0];
-    updatedOrder.table_type = type;
 
     // ====== 状态转移逻辑 ======
     const userId = updatedOrder.user_id;
@@ -244,7 +243,7 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
       }
 
       // 删除佣金记录
-      await client.query(`DELETE FROM commissions WHERE source_order_id = $1`, [id]);
+      await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
     }
 
     // 若是非 Personal Commission 但为 completed，也需部分扣减
