@@ -2,7 +2,7 @@ export default {
     tabs: [
       {
         name: 'adminOrderSearchSave',
-        path: '/admin/adminOrderSearchSave/:table_type/',
+        path: '/admin/adminOrderSearchSave',
         component: () => import('./index.vue')
       }
     ]
