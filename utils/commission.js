@@ -141,7 +141,7 @@ async function handleCommissions(order, userId, table_type) {
   
   const commissionTable = table_type === 'annuity' ? 'commission_annuity' : 'commission_life';
   const savedTable = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
-  const originalTable = table_type === 'annuity' ? 'annuity_orders' : 'life_orders';
+  const originalTable = table_type === 'annuity' ? 'application_annuity' : 'application_life';
 
   for (let i = 0; i < segments.length - 1; i++) {
     const segAmount = segments[i + 1] - segments[i];
