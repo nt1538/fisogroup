@@ -199,7 +199,7 @@ async function handleCommissions(order, userId, table_type) {
       await insertCommissionOrder(order, res.rows[0], 'Generation Override', null, amt, 'Merged Generation Override', order.id, commissionTable);
     }
   }
-  await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['Distributed', order.id]);
+  await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
   await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
   await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
 }
