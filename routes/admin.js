@@ -6,15 +6,25 @@ const { handleCommissions, getHierarchy } = require('../utils/commission');
 
 
 // 🔍 多条件搜索订单（life + annuity 合并）
-router.get('/orders', verifyToken, verifyAdmin, async (req, res) => {
+router.get('/orders/:category', verifyToken, verifyAdmin, async (req, res) => {
   const {
     user_name,
     order_id,
     start_date,
-    end_date
+    end_date,
+    category
   } = req.query;
 
-  const tables = ['application_annuity', 'application_life', 'commission_annuity', 'commission_life', 'saved_annuity_orders', 'saved_life_orders'];
+  let tables = [];
+  if (category === 'application') {
+    tables = ['application_life', 'application_annuity'];
+  } else if (category === 'commission') {
+    tables = ['commission_life', 'commission_annuity'];
+  } else if (category === 'saved') {
+    tables = ['saved_life_orders', 'saved_annuity_orders'];
+  } else {
+    return res.status(400).json({ error: 'Invalid category' });
+  }
   const allResults = [];
 
   try {

@@ -58,7 +58,7 @@ const orders = ref([]);
 
 async function loadOrders() {
   try {
-    const res = await axios.get('/admin/orders', {
+    const res = await axios.get('/admin/orders/saved', {
       params: {
         user_name: searchName.value,
         order_id: searchOrderId.value,
