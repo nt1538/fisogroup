@@ -172,12 +172,12 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 
     if (application_status === 'completed' && type.startsWith('application_')) {
       // 移动到 commission 表并触发佣金
-      const insertCommissionQuery = `
-        INSERT INTO commission_${baseType} (${Object.keys(updatedOrder).join(',')})
-        VALUES (${Object.keys(updatedOrder).map((_, i) => `$${i + 1}`).join(',')})
-      `;
-      await client.query(insertCommissionQuery, Object.values(updatedOrder));
-      await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
+      // const insertCommissionQuery = `
+      //   INSERT INTO commission_${baseType} (${Object.keys(updatedOrder).join(',')})
+      //   VALUES (${Object.keys(updatedOrder).map((_, i) => `$${i + 1}`).join(',')})
+      // `;
+      // await client.query(insertCommissionQuery, Object.values(updatedOrder));
+      // await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
 
       await handleCommissions(updatedOrder, userId, baseType);
 
