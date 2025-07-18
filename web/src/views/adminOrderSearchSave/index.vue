@@ -63,7 +63,8 @@ async function loadOrders() {
         user_name: searchName.value,
         order_id: searchOrderId.value,
         start_date: startDate.value,
-        end_date: endDate.value
+        end_date: endDate.value,
+        category: 'saved'
       }
     });
     orders.value = res.data;
