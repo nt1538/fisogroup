@@ -25,7 +25,7 @@
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
                 <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
                 <td>
-                    <router-link :to="`/user/edit-application/${item.table_type}/${item.id}`">
+                    <router-link :to="`/employee/reports/app-edit/${item.table_type}/${item.id}`">
                       ✏️ Edit
                     </router-link>
                 </td>
