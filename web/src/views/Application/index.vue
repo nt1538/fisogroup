@@ -13,7 +13,7 @@
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Application Date</th><th>Policy #</th><th>Face Amount</th>
                 <th>Target Premium</th><th>Initial Premium</th><th>Commission from Carrier</th>
-                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
+                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -24,6 +24,11 @@
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
                 <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
+                <td>
+                    <router-link :to="`/user/edit-application/${item.table_type}/${item.id}`">
+                      ✏️ Edit
+                    </router-link>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -37,7 +42,7 @@
                 <th>User ID</th><th>Name</th><th>National Producer Number</th>
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Application Date</th><th>Policy #</th><th>Initial Premium</th><th>Flex Premium</th><th>Commission from Carrier</th>
-                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
+                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -48,6 +53,11 @@
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.initial_premium }}</td><td>{{ item.flex_premium }}</td><td>{{ item.commission_from_carrier }}</td>
                 <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
+                <td>
+                    <router-link :to="`/user/edit-application/${item.table_type}/${item.id}`">
+                      ✏️ Edit
+                    </router-link>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -66,8 +76,8 @@
   
   onMounted(async () => {
     try {
-      const lifeRes = await axios.get('/orders/life?status=in_progress');
-      const annuityRes = await axios.get('/orders/annuity?status=in_progress');
+      const lifeRes = await axios.get('/orders/application/life');
+      const annuityRes = await axios.get('/orders/application/annuity');
       lifeOrders.value = lifeRes.data;
       annuityOrders.value = annuityRes.data;
     } catch (err) {

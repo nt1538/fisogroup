@@ -159,6 +159,110 @@ router.get('/annuity', verifyToken, async (req, res) => {
 });
 
 
+// 用户获取自己的 application_life 订单
+router.get('/application/life', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM application_life WHERE user_id = $1',
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching user life applications:', err);
+    res.status(500).json({ error: 'Failed to fetch life application orders' });
+  }
+});
+
+// 用户获取自己的 application_annuity 订单
+router.get('/application/annuity', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM application_annuity WHERE user_id = $1',
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching user annuity applications:', err);
+    res.status(500).json({ error: 'Failed to fetch annuity application orders' });
+  }
+});
+
+router.put('/application/:type/:id', verifyToken, async (req, res) => {
+  const { type, id } = req.params;
+  const {
+    policy_number,
+    commission_percent,
+    initial_premium,
+    commission_amount,
+    face_amount,
+    target_premium,
+    carrier_name,
+    product_name,
+    application_date,
+    mra_status,
+    Explanation
+  } = req.body;
+
+  const userId = req.user.id;
+
+  // 防止非法类型
+  const allowed = ['life', 'annuity'];
+  if (!allowed.includes(type)) {
+    return res.status(400).json({ error: 'Invalid application type' });
+  }
+
+  const table = `application_${type}`;
+
+  try {
+    // 确保用户只能编辑自己的订单
+    const check = await pool.query(`SELECT * FROM ${table} WHERE id = $1 AND user_id = $2`, [id, userId]);
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'You are not authorized to edit this order' });
+    }
+
+    const updateQuery = `
+      UPDATE ${table}
+      SET policy_number = $1,
+          commission_percent = $2,
+          initial_premium = $3,
+          commission_amount = $4,
+          face_amount = $5,
+          target_premium = $6,
+          carrier_name = $7,
+          product_name = $8,
+          application_date = $9,
+          mra_status = $10,
+          explanation = $11
+      WHERE id = $12
+      RETURNING *;
+    `;
+
+    const values = [
+      policy_number,
+      commission_percent,
+      initial_premium,
+      commission_amount,
+      face_amount,
+      target_premium,
+      carrier_name,
+      product_name,
+      application_date,
+      mra_status,
+      Explanation,
+      id
+    ];
+
+    const result = await pool.query(updateQuery, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Error updating user application order:', err);
+    res.status(500).json({ error: 'Failed to update application order' });
+  }
+});
 
 module.exports = router;
 
