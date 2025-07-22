@@ -83,7 +83,7 @@ onMounted(async () => {
       form.value = order;
     } else {
       alert("Order not found");
-      router.push("/user/userDashboard");
+      router.back();
     }
   } catch (err) {
     console.error('Error fetching order:', err);
@@ -94,7 +94,7 @@ async function updateOrder() {
   try {
     const res = await axios.put(`/orders/application/${type}/${id}`, form.value);
     alert("✅ Order updated!");
-    router.push("/user/userDashboard");
+    router.back();
   } catch (err) {
     console.error("Error updating order:", err);
     alert("❌ Failed to update order.");
