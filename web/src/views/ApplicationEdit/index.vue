@@ -4,7 +4,7 @@
     <div class="upload-page">
       <h1>Edit Application</h1>
 
-      <form @submit.prevent="submitEdit" class="upload-form" v-if="form">
+      <form @submit.prevent="updateOrder" class="upload-form" v-if="form">
         <div class="form-row">
           <label>Product Type:</label>
           <select v-model="form.product_type" disabled>
@@ -66,42 +66,40 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from '@/config/axios.config';
-import Sidebar from '@/components/Sidebar.vue';
 
 const route = useRoute();
 const router = useRouter();
-const form = ref(null);
-const saved = ref(false);
+const form = ref({});
+const { type, id } = route.params;
 
-// 从路由参数获取 type 和 id（如：/admin/edit/life/123）
-const type = route.params.type;
-const id = route.params.id;
-
-// ✅ 获取当前订单数据
 onMounted(async () => {
   try {
-    const res = await axios.get(`/admin/orders/${type}/${id}`);
-    form.value = res.data;
+    const res = await axios.get(`/orders/application/${type}`);
+    const order = res.data.find(o => o.id === Number(id));
+    if (order) {
+      form.value = order;
+    } else {
+      alert("Order not found");
+      router.push("/user/userDashboard");
+    }
   } catch (err) {
-    console.error('Failed to load application', err);
+    console.error('Error fetching order:', err);
   }
 });
 
-const submitEdit = async () => {
+async function updateOrder() {
   try {
-    await axios.put(`/admin/orders/${type}/${id}`, form.value);
-    saved.value = true;
-    setTimeout(() => {
-      saved.value = false;
-      router.back();
-    }, 2000);
+    const res = await axios.put(`/user/application/${type}/${id}`, form.value);
+    alert("✅ Order updated!");
+    router.push("/user/userDashboard");
   } catch (err) {
-    console.error('Update failed', err);
+    console.error("Error updating order:", err);
+    alert("❌ Failed to update order.");
   }
-};
+}
 </script>
 
 <style scoped>
