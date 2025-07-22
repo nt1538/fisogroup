@@ -133,6 +133,7 @@ const submitForm = async () => {
   <style scoped>
   .dashboard {
     display: flex;
+    overflow-y: scroll;
   }
   .upload-page {
     flex-grow: 1;
@@ -140,7 +141,7 @@ const submitForm = async () => {
     background: #f4f4f4;
     min-height: 100vh;
     margin-left: 280px;
-    overflow-y: auto;
+    overflow-y: scroll;
   }
   .upload-form {
     background: white;
@@ -148,7 +149,7 @@ const submitForm = async () => {
     border-radius: 10px;
     max-width: 600px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    overflow-y: auto;
+    overflow-y: scroll;
   }
   .form-row {
     margin-bottom: 15px;
