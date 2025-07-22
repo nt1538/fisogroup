@@ -148,6 +148,7 @@ const submitForm = async () => {
     border-radius: 10px;
     max-width: 600px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow-y: auto;
   }
   .form-row {
     margin-bottom: 15px;
