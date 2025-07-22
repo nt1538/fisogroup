@@ -92,7 +92,7 @@ onMounted(async () => {
 
 async function updateOrder() {
   try {
-    const res = await axios.put(`/user/application/${type}/${id}`, form.value);
+    const res = await axios.put(`/orders/application/${type}/${id}`, form.value);
     alert("✅ Order updated!");
     router.push("/user/userDashboard");
   } catch (err) {
