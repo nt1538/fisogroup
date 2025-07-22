@@ -7,10 +7,6 @@
         <input v-model="form.policy_number" />
       </div>
       <div class="form-group">
-        <label>Commission %</label>
-        <input type="number" v-model="form.commission_percent" />
-      </div>
-      <div class="form-group">
         <label>Initial Premium</label>
         <input type="number" v-model="form.initial_premium" />
       </div>

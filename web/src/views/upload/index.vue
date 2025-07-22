@@ -140,6 +140,7 @@ const submitForm = async () => {
     background: #f4f4f4;
     min-height: 100vh;
     margin-left: 280px;
+    overflow-y: auto;
   }
   .upload-form {
     background: white;
@@ -163,6 +164,7 @@ const submitForm = async () => {
     border-radius: 4px;
   }
   button {
+    margin-top: auto;
     background-color: #0055a4;
     color: white;
     padding: 10px 20px;
@@ -170,6 +172,7 @@ const submitForm = async () => {
     border-radius: 4px;
     cursor: pointer;
     margin-top: 20px;
+    flex-shrink: 0;
   }
   .success-msg {
     margin-top: 20px;

@@ -195,7 +195,6 @@ router.put('/application/:type/:id', verifyToken, async (req, res) => {
   const { type, id } = req.params;
   const {
     policy_number,
-    commission_percent,
     initial_premium,
     commission_amount,
     face_amount,
@@ -227,23 +226,21 @@ router.put('/application/:type/:id', verifyToken, async (req, res) => {
     const updateQuery = `
       UPDATE ${table}
       SET policy_number = $1,
-          commission_percent = $2,
-          initial_premium = $3,
-          commission_amount = $4,
-          face_amount = $5,
-          target_premium = $6,
-          carrier_name = $7,
-          product_name = $8,
-          application_date = $9,
-          mra_status = $10,
-          explanation = $11
-      WHERE id = $12
+          initial_premium = $2,
+          commission_amount = $3,
+          face_amount = $4,
+          target_premium = $5,
+          carrier_name = $6,
+          product_name = $7,
+          application_date = $8,
+          mra_status = $9,
+          explanation = $10
+      WHERE id = $11
       RETURNING *;
     `;
 
     const values = [
       policy_number,
-      commission_percent,
       initial_premium,
       commission_amount,
       face_amount,
