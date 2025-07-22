@@ -83,6 +83,7 @@
   <style scoped>
   .dashboard {
     display: flex;
+    overflow-y: scroll;
   }
   
   .commission-page {
