@@ -82,6 +82,7 @@ async function updateOrder() {
 
 <style scoped>
 .edit-page {
+  overflow-y: scroll;
   max-width: 600px;
   margin: 40px auto;
   padding: 30px;
