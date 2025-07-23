@@ -27,11 +27,7 @@
           </el-form-item>
 
           <el-form-item class="no-border">
-            <el-input v-model="introducer_id" placeholder="Introducer ID (optional)" />
-          </el-form-item>
-
-          <el-form-item class="no-border">
-            <el-input v-model="access_code" placeholder="Access Code" />
+            <el-input v-model="introducer_id" placeholder="Introducer ID (required)" />
           </el-form-item>
 
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
@@ -65,7 +61,7 @@ const toSha256 = async (text) => {
 };
 
 const register = async () => {
-  if (!name.value || !email.value || !password.value || !state.value) {
+  if (!name.value || !email.value || !password.value || !state.value || !introducer_id.value) {
     errorMessage.value = '⚠️ All required fields must be filled.';
     return;
   }
@@ -78,14 +74,17 @@ const register = async () => {
       email: email.value,
       password: hashedPassword,
       state: state.value.toUpperCase(),
-      introducer_id: introducer_id.value || null,
+      introducer_id: introducer_id.value,
       national_producer_number: national_producer_number.value,
-      access_code: access_code.value,
     });
 
     router.push('/login');
   } catch (error) {
-    errorMessage.value = error.response?.data?.error || 'Registration failed';
+    if (error.response && error.response.data && error.response.data.error) {
+      errorMessage.value = error.response.data.error;
+    } else {
+      errorMessage.value = 'Registration failed.';
+    }
   }
 };
 </script>

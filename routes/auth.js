@@ -45,13 +45,8 @@ router.post('/register', async (req, res) => {
     password, // SHA-256 hash from frontend
     introducer_id,
     state,
-    national_producer_number,
-    access_code
+    national_producer_number
   } = req.body;
-
-  if (access_code !== ACCESS_CODE) {
-    return res.status(403).json({ error: 'Invalid access code' });
-  }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -60,6 +55,13 @@ router.post('/register', async (req, res) => {
     const hierarchy_level = getHierarchyLevel(percent);
 
     const id = await generateEmployeeId(stateUpper);
+    if (!introducer_id) {
+      return res.status(400).json({ error: 'Introducer ID is required.' });
+    }
+    const introducerCheck = await pool.query('SELECT id FROM users WHERE id = $1', [introducer_id]);
+    if (introducerCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Introducer ID does not exist.' });
+    }
 
     await pool.query(
       `INSERT INTO users (id, name, email, password, introducer_id, state, hierarchy_level, national_producer_number)
