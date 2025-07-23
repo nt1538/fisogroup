@@ -153,7 +153,7 @@ async function handleCommissions(order, userId, table_type) {
     let currentId = userId;
     let generation = 0;
     const employeePercent = percent;
-
+    const allowedLevels = ['Agency1', 'Agency2', 'Agency3', 'Vice President'];
     while (true) {
       const res = await db.query('SELECT * FROM users WHERE id = $1', [currentId]);
       const currUser = res.rows[0];
@@ -171,7 +171,7 @@ async function handleCommissions(order, userId, table_type) {
         levelDiffMap.set(u.id, prev + segAmount * (diff / 100));
       }
 
-      if (generation < 3) {
+      if (generation < 3 && allowedLevels.includes(u.hierarchy_level)) {
         const overridePercent = generation === 0 ? 5 : generation === 1 ? 3 : 1;
         const overrideAmount = segAmount * (overridePercent / 100);
         const prev = genOverrideMap.get(u.id) || 0;
