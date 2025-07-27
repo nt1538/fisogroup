@@ -282,17 +282,17 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-  const {name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level} = req.body;
+  const {name, email, state, phone, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level} = req.body;
 
   try {
     const query = `
       UPDATE users
-      SET name = $1, email = $2, state = $3, introducer_id = $4, level_percent = $5, total_earnings = $6, commission = $7, profit = $8, team_profit = $9,
-      national_producer_number = $10, hierarchy_level = $11
-      WHERE id = $12
+      SET name = $1, email = $2, phone = $3, state = $4, introducer_id = $5, level_percent = $6, total_earnings = $7, commission = $8, profit = $9, team_profit = $10,
+      national_producer_number = $11, hierarchy_level = $12
+      WHERE id = $13
       RETURNING *;
     `;
-    const values = [name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level, id];
+    const values = [name, email, phone, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level, id];
 
     const result = await pool.query(query, values);
     if (result.rowCount === 0) {
@@ -311,7 +311,7 @@ router.get('/employees/:id', verifyToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, hierarchy_level, national_producer_number
+      `SELECT id, name, email, phone, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, hierarchy_level, national_producer_number
        FROM users
        WHERE id = $1`,
       [userId]
@@ -332,7 +332,7 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
   const { query = '' } = req.query;
   try {
     const result = await pool.query(
-      `SELECT id, name, email, total_earnings, hierarchy_level, team_profit
+      `SELECT id, name, email, phone, total_earnings, hierarchy_level, team_profit
        FROM users
        WHERE name ILIKE $1 OR email ILIKE $1
        ORDER BY id DESC

@@ -19,6 +19,10 @@
           </el-form-item>
 
           <el-form-item class="no-border">
+            <el-input v-model="phone" placeholder="Phone" />
+          </el-form-item>
+
+          <el-form-item class="no-border">
             <el-input v-model="state" placeholder="State (e.g., NY, CA)" />
           </el-form-item>
 
@@ -47,6 +51,7 @@ const router = useRouter();
 const name = ref('');
 const email = ref('');
 const password = ref('');
+const phone = ref('');
 const state = ref('');
 const national_producer_number = ref('');
 const introducer_id = ref('');
@@ -61,7 +66,7 @@ const toSha256 = async (text) => {
 };
 
 const register = async () => {
-  if (!name.value || !email.value || !password.value || !state.value || !introducer_id.value) {
+  if (!name.value || !email.value || !password.value || !phone.value || !state.value || !introducer_id.value) {
     errorMessage.value = '⚠️ All required fields must be filled.';
     return;
   }
@@ -73,6 +78,7 @@ const register = async () => {
       name: name.value,
       email: email.value,
       password: hashedPassword,
+      phone: phone.value,
       state: state.value.toUpperCase(),
       introducer_id: introducer_id.value,
       national_producer_number: national_producer_number.value,

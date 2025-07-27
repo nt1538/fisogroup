@@ -13,6 +13,11 @@
       </div>
 
       <div class="form-group">
+        <label>Phone</label>
+        <input v-model="user.phone" type="text" />
+      </div>
+
+      <div class="form-group">
         <label>State</label>
         <input v-model="user.state" type="text" />
       </div>
