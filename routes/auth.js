@@ -104,7 +104,7 @@ router.post('/register', async (req, res) => {
     if (!introducer_id) {
       return res.status(400).json({ error: 'Introducer ID is required.' });
     }
-    const introducerCheck = await pool.query('SELECT id FROM users WHERE id = $1', [introducer_id]);
+    const introducerCheck = await pool.query('SELECT name, email FROM users WHERE id = $1', [introducer_id]);
     if (introducerCheck.rows.length === 0) {
       return res.status(400).json({ error: 'Introducer ID does not exist.' });
     }
