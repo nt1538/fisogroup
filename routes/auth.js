@@ -117,12 +117,15 @@ router.post('/register', async (req, res) => {
         email,
         phone,
         hashedPassword,
-        introducer_id || null,
+        introducer_id,
         state?.toUpperCase() || null,
         hierarchy_level,
         national_producer_number
       ]
     );
+
+    // ✅ 这一行确保 introducer 有值
+    const introducer = introducerCheck.rows[0];
 
     // Send welcome email to new user
     await transporter.sendMail({
