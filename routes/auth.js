@@ -48,12 +48,12 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-function createWelcomeEmail(userName, agentCode, introducerName) {
+function createWelcomeEmail(userName, agentCode, introducerName, introducerCode) {
   return `Dear ${userName}:
 
 Congratulations!
 
-Welcome to join FISO Wealth Insurance Agency, a BDA name of FISO Group LLC. Your Agent Code is ${agentCode}, and your Direct sponsor is ${introducerName}.
+Welcome to join FISO Group LLC. Your Agent Code is ${agentCode}, and your Direct sponsor is ${introducerName}, ${introducerCode}.
 
 Now you can update your information online and start getting appointment process. Please contact your sponsors or contracting@fisogroup.com if you have any questions.
 
@@ -62,13 +62,13 @@ Best regards,
 FISO Group LLC`;
 }
 
-function createIntroducerEmail(introducerName, newUserName, agentCode, phone, email) {
+function createIntroducerEmail(introducerName, newUserName, agentCode, phone, email, introducerCode) {
   const today = new Date().toLocaleDateString();
   return `Dear ${introducerName}:
 
 Congratulations!
 
-${newUserName} with Agent Code ${agentCode} has joined your team on ${today}. Direct sponsor is ${introducerName}.
+${newUserName} with Agent Code ${agentCode} has joined your team on ${today}. Direct sponsor is ${introducerName}, ${introducerCode}.
 
 Please call or email to welcome the new joiner ${newUserName}: 
 Phone: ${phone}

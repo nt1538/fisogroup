@@ -392,6 +392,20 @@ router.get('/summary', async (req, res) => {
   }
 });
 
+// 组织结构树接口（全公司）
+router.get('/org-chart', verifyAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, name, introducer_id, hierarchy_level
+      FROM users
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching org chart:', err);
+    res.status(500).json({ error: 'Failed to load organization chart' });
+  }
+});
 
 
 module.exports = router;
