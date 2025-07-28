@@ -48,6 +48,37 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+async function getAllSupervisors(userId) {
+  const supervisors = [];
+
+  let currentId = userId;
+
+  while (currentId) {
+    const res = await pool.query(
+      'SELECT introducer_id, name, email FROM users WHERE id = $1',
+      [currentId]
+    );
+
+    const row = res.rows[0];
+    if (!row || !row.introducer_id) break;
+
+    const supervisor = await pool.query(
+      'SELECT id, name, email FROM users WHERE id = $1',
+      [row.introducer_id]
+    );
+
+    if (supervisor.rows[0]) {
+      supervisors.push(supervisor.rows[0]);
+      currentId = supervisor.rows[0].id;
+    } else {
+      break;
+    }
+  }
+
+  return supervisors; // 从近到远
+}
+
+
 function createWelcomeEmail(userName, agentCode, introducerName, introducerCode) {
   return `Dear ${userName}:
 
@@ -108,7 +139,6 @@ router.post('/register', async (req, res) => {
     if (introducerCheck.rows.length === 0) {
       return res.status(400).json({ error: 'Introducer ID does not exist.' });
     }
-
     await pool.query(
       `INSERT INTO users (id, name, email, phone, password, introducer_id, state, hierarchy_level, national_producer_number)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -126,22 +156,23 @@ router.post('/register', async (req, res) => {
 
     // ✅ 这一行确保 introducer 有值
     const introducer = introducerCheck.rows[0];
-
+    const hierarchy = await getAllSupervisors(id);
     // Send welcome email to new user
     await transporter.sendMail({
       from: process.env.SMTP_USER,
       to: email,
       subject: 'Welcome to FISO Group!',
-      text: createWelcomeEmail(name, id, introducer.name)
+      text: createWelcomeEmail(name, id, introducer.name, introducer.id)
     });
 
-    // Send introducer notification
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: introducer.email,
-      subject: 'New Team Member Joined',
-      text: createIntroducerEmail(introducer.name, name, id, phone, email)
-    });
+    for (const supervisor of hierarchy) {
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: supervisor.email,
+        subject: 'New Team Member Joined',
+        text: createIntroducerEmail(introducer.name, name, id, phone, email, introducer.id)
+      });
+    }
 
     res.json({ message: 'User registered successfully and emails sent.' });
 
