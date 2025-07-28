@@ -15,7 +15,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import TreeNode from '@/components/TreeNode.vue'
+import TreeNode from './TreeNode.vue'
 
 const orgData = ref([])
 const rootNodes = ref([])
