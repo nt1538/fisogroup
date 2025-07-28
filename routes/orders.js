@@ -41,7 +41,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       application_date,
       face_amount,
       target_premium,
-      commission_from_carrier,
       full_name,
       national_producer_number,
       hierarchy_level = 'Level A',
@@ -62,7 +61,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     let insertSQL = `INSERT INTO ${tableName} (
       user_id, policy_number, order_type, commission_percent, commission_amount,
       application_status, full_name, national_producer_number, hierarchy_level,
-      carrier_name, product_name, application_date, initial_premium, commission_from_carrier, mra_status`;
+      carrier_name, product_name, application_date, initial_premium, mra_status`;
     
     const values = [
       user_id,
@@ -78,7 +77,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       product_name,
       application_date,
       initial_premium,
-      commission_from_carrier,
       mra_status
     ];
 

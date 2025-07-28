@@ -23,7 +23,13 @@
           </el-form-item>
 
           <el-form-item class="no-border">
-            <el-input v-model="state" placeholder="State (e.g., NY, CA)" />
+            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <select v-model="state" id="state" required class="block w-full border border-gray-300 rounded-md p-2">
+              <option value="">Select State</option>
+              <option v-for="abbr in US_STATE_ABBREVIATIONS" :key="abbr" :value="abbr">
+                {{ abbr }}
+              </option>
+            </select>
           </el-form-item>
 
           <el-form-item class="no-border">
@@ -56,8 +62,13 @@ const state = ref('');
 const national_producer_number = ref('');
 const introducer_id = ref('');
 const errorMessage = ref('');
-
-const access_code = ref('');
+const US_STATE_ABBREVIATIONS = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+]
 
 const toSha256 = async (text) => {
   const buffer = new TextEncoder().encode(text);

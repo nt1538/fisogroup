@@ -51,11 +51,6 @@
           <input v-model.number="form.flex_premium" type="number" required />
         </div>
 
-        <div class="form-row">
-          <label>Commission From Carrier:</label>
-          <input v-model.number="form.commission_from_carrier" type="number" required />
-        </div>
-
         <button type="submit">Submit</button>
       </form>
 
@@ -84,8 +79,7 @@ const form = ref({
   face_amount: null,
   target_premium: null,
   initial_premium: null,
-  flex_premium: null,
-  commission_from_carrier: null,
+  flex_premium: null
 });
 
 const submitForm = async () => {
@@ -121,7 +115,6 @@ const submitForm = async () => {
       face_amount: null,
       target_premium: null,
       initial_premium: null,
-      commission_from_carrier: null,
     };
   } catch (err) {
     console.error('Submission failed', err);
