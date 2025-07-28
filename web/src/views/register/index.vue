@@ -23,13 +23,14 @@
           </el-form-item>
 
           <el-form-item class="no-border">
-            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <select v-model="state" id="state" required class="block w-full border border-gray-300 rounded-md p-2">
-              <option value="">Select State</option>
-              <option v-for="abbr in US_STATE_ABBREVIATIONS" :key="abbr" :value="abbr">
-                {{ abbr }}
-              </option>
-            </select>
+            <el-select v-model="state" placeholder="Select State" filterable clearable class="w-full">
+              <el-option
+                v-for="abbr in US_STATE_ABBREVIATIONS"
+                :key="abbr"
+                :label="abbr"
+                :value="abbr"
+              />
+            </el-select>
           </el-form-item>
 
           <el-form-item class="no-border">
