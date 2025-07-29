@@ -1,7 +1,7 @@
 <template>
   <div class="node">
     <div class="node-info">
-      {{ node.name }} - {{ node.hierarchy_level }}
+      {{ node.name }} - {{ node.id }} - {{ node.hierarchy_level }}
     </div>
 
     <!-- 子节点递归 -->

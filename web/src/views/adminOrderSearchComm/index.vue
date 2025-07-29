@@ -13,7 +13,7 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Employee</th>
+          <th>Agent Name</th>
           <th>Type</th>
           <th>Status</th>
           <th>Commission Amount</th>

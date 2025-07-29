@@ -15,6 +15,15 @@
         <template v-else-if="key === 'application_date'">
           <input type="date" v-model="order[key]" :id="key" />
         </template>
+        <template v-else-if="key === 'commission_distribution_date'">
+          <input type="date" v-model="order[key]" :id="key" />
+        </template>
+        <template v-else-if="key === 'policy_effective_date'">
+          <input type="date" v-model="order[key]" :id="key" />
+        </template>
+        <template v-else-if="key === 'commission_from_carrier'">
+          <input type="number" v-model="order[key]" :id="key" required/>
+        </template>
         <template v-else-if="typeof value === 'number'">
           <input type="number" v-model="order[key]" :id="key" />
         </template>

@@ -186,17 +186,17 @@ async function handleCommissions(order, userId, table_type) {
   }
 
   // Insert merged commissions
-  await insertCommissionOrder(order, user, 'Personal Commission', totalPersonalCommission / order.commission_from_carrier, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
+  await insertCommissionOrder(order, user, 'Personal Commission', Math.round(totalPersonalCommission / order.commission_from_carrier * 10000) / 100, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
   for (let [uid, amt] of levelDiffMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Level Difference', amt / order.commission_from_carrier, amt, 'Merged Level Difference', order.id, commissionTable);
+      await insertCommissionOrder(order, res.rows[0], 'Level Difference', amt / order.commission_from_carrier * 100, amt, 'Merged Level Difference', order.id, commissionTable);
     }
   }
   for (let [uid, amt] of genOverrideMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Generation Override', amt / order.commission_from_carrier * 100, amt, 'Merged Generation Override', order.id, commissionTable);
+      await insertCommissionOrder(order, res.rows[0], 'Generation Override', amt / order.commission_from_carrier* 100, amt, 'Merged Generation Override', order.id, commissionTable);
     }
   }
   await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);

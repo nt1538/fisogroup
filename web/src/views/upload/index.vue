@@ -105,8 +105,6 @@ const form = ref({
   initial_premium: null,
   flex_premium: null,
   commission_from_carrier: null,
-  split_percent: 100,
-  split_with_id: ''
 });
 
 const submitForm = async () => {
@@ -148,10 +146,7 @@ const submitForm = async () => {
       face_amount: null,
       target_premium: null,
       initial_premium: null,
-      flex_premium: null,
       commission_from_carrier: null,
-      split_percent: 100,
-      split_with_id: ''
     };
     isSplit.value = false;
 

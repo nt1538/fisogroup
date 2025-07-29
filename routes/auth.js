@@ -3,8 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db'); // adjust if your DB connection file is different
 const router = express.Router();
-
-const ACCESS_CODE = 'Access121'; // Hardcoded for now, move to env in production
+const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 // ==============================
 // Register Route
@@ -38,10 +38,87 @@ async function generateEmployeeId(stateAbbr) {
   return `${prefix}${String(number).padStart(4, '0')}`;
 }
 
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  }
+});
+
+async function getAllSupervisors(userId) {
+  const supervisors = [];
+
+  let currentId = userId;
+
+  while (currentId) {
+    const res = await pool.query(
+      'SELECT introducer_id, name, email FROM users WHERE id = $1',
+      [currentId]
+    );
+
+    const row = res.rows[0];
+    if (!row || !row.introducer_id) break;
+
+    const supervisor = await pool.query(
+      'SELECT id, name, email FROM users WHERE id = $1',
+      [row.introducer_id]
+    );
+
+    if (supervisor.rows[0]) {
+      supervisors.push(supervisor.rows[0]);
+      currentId = supervisor.rows[0].id;
+    } else {
+      break;
+    }
+  }
+
+  return supervisors; // 从近到远
+}
+
+
+function createWelcomeEmail(userName, agentCode, introducerName, introducerCode) {
+  return `Dear ${userName}:
+
+Congratulations!
+
+Welcome to join FISO Group LLC. Your Agent Code is ${agentCode}, and your Direct sponsor is ${introducerName}, ${introducerCode}.
+
+Now you can update your information online and start getting appointment process. Please contact your sponsors or contracting@fisogroup.com if you have any questions.
+
+Best regards,
+
+FISO Group LLC`;
+}
+
+function createIntroducerEmail(introducerName, newUserName, agentCode, phone, email, introducerCode) {
+  const today = new Date().toLocaleDateString();
+  return `Dear ${introducerName}:
+
+Congratulations!
+
+${newUserName} with Agent Code ${agentCode} has joined your team on ${today}. Direct sponsor is ${introducerName}, ${introducerCode}.
+
+Please call or email to welcome the new joiner ${newUserName}: 
+Phone: ${phone}
+Email: ${email}
+
+Please help to ensure the new joiner takes the new member fast start training within 24–48 hours, because the easiest way for the new joiner to succeed is to fully understand the FISO System, learn sales and product knowledge from Trainer and do it in practice.
+
+I am looking forward to hearing more great news about business growth from your team!
+
+Best regard,
+
+FISO Group LLC`;
+}
+
 router.post('/register', async (req, res) => {
   const {
     name,
     email,
+    phone,
     password, // SHA-256 hash from frontend
     introducer_id,
     state,
@@ -58,26 +135,49 @@ router.post('/register', async (req, res) => {
     if (!introducer_id) {
       return res.status(400).json({ error: 'Introducer ID is required.' });
     }
-    const introducerCheck = await pool.query('SELECT id FROM users WHERE id = $1', [introducer_id]);
+    const introducerCheck = await pool.query('SELECT name, email FROM users WHERE id = $1', [introducer_id]);
     if (introducerCheck.rows.length === 0) {
       return res.status(400).json({ error: 'Introducer ID does not exist.' });
     }
-
     await pool.query(
-      `INSERT INTO users (id, name, email, password, introducer_id, state, hierarchy_level, national_producer_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `INSERT INTO users (id, name, email, phone, password, introducer_id, state, hierarchy_level, national_producer_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [ id,
         name,
         email,
+        phone,
         hashedPassword,
-        introducer_id || null,
+        introducer_id,
         state?.toUpperCase() || null,
         hierarchy_level,
         national_producer_number
       ]
     );
 
-    res.json({ message: 'User registered successfully' });
+    // ✅ 这一行确保 introducer 有值
+    const introducer = introducerCheck.rows[0];
+    const hierarchy = await getAllSupervisors(id);
+    // Send welcome email to new user
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: 'Welcome to FISO Group!',
+      text: createWelcomeEmail(name, id, introducer.name, introducer.id)
+    });
+
+    for (const supervisor of hierarchy) {
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: supervisor.email,
+        subject: 'New Team Member Joined',
+        text: createIntroducerEmail(introducer.name, name, id, phone, email, introducer.id)
+      });
+    }
+
+    res.json({ message: 'User registered successfully and emails sent.' });
+
+
+    //res.json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Registration failed' });
@@ -116,6 +216,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         is_admin: user.is_admin,
         state: user.state,
         level_percent: user.level_percent,
