@@ -56,6 +56,24 @@
           <input v-model.number="form.commission_from_carrier" type="number" required />
         </div>
 
+        <!-- ✅ 分成逻辑 -->
+        <div class="form-row">
+          <label>
+            <input type="checkbox" v-model="isSplit" />
+            Split this order with another agent
+          </label>
+        </div>
+
+        <div class="form-row" v-if="isSplit">
+          <label>Split Percent (you):</label>
+          <input type="number" v-model.number="form.split_percent" min="1" max="99" />
+        </div>
+
+        <div class="form-row" v-if="isSplit">
+          <label>Split With User ID:</label>
+          <input v-model="form.split_with_id" />
+        </div>
+
         <button type="submit">Submit</button>
       </form>
 
@@ -74,7 +92,8 @@ import Sidebar from '@/components/Sidebar.vue';
 const user = JSON.parse(localStorage.getItem('user'));
 const submitted = ref(false);
 
-// 表单中仅包含员工自己需要输入的内容（订单信息）
+const isSplit = ref(false);
+
 const form = ref({
   product_type: '',
   carrier_name: '',
@@ -86,6 +105,8 @@ const form = ref({
   initial_premium: null,
   flex_premium: null,
   commission_from_carrier: null,
+  split_percent: 100,
+  split_with_id: ''
 });
 
 const submitForm = async () => {
@@ -93,6 +114,12 @@ const submitForm = async () => {
     const endpoint = form.value.product_type === 'life'
       ? '/orders/life'
       : '/orders/annuity';
+
+    // fallback to default split if not splitting
+    if (!isSplit.value) {
+      form.value.split_percent = 100;
+      form.value.split_with_id = '';
+    }
 
     const payload = {
       ...form.value,
@@ -102,7 +129,6 @@ const submitForm = async () => {
       license_number: user.license_number || '',
       hierarchy_level: user.hierarchy_level || '',
       commission_percent: user.level_percent || 70,
-      split_percent: 100,
       application_status: 'in_progress',
       mra_status: 'none',
       order_type: 'Personal Commission'
@@ -112,6 +138,7 @@ const submitForm = async () => {
 
     submitted.value = true;
     setTimeout(() => submitted.value = false, 3000);
+
     form.value = {
       product_type: '',
       carrier_name: '',
@@ -121,65 +148,68 @@ const submitForm = async () => {
       face_amount: null,
       target_premium: null,
       initial_premium: null,
+      flex_premium: null,
       commission_from_carrier: null,
+      split_percent: 100,
+      split_with_id: ''
     };
+    isSplit.value = false;
+
   } catch (err) {
     console.error('Submission failed', err);
   }
 };
 </script>
 
-  
-  <style scoped>
-  .dashboard {
-    display: flex;
-    overflow-y: scroll;
-  }
-  .upload-page {
-    flex-grow: 1;
-    padding: 40px;
-    background: #f4f4f4;
-    min-height: 100vh;
-    margin-left: 280px;
-  }
-  .upload-form {
-    background: white;
-    padding: 30px;
-    border-radius: 10px;
-    max-width: 600px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  .form-row {
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-  }
-  label {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  input, select {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  button {
-    margin-top: auto;
-    background-color: #0055a4;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 20px;
-    flex-shrink: 0;
-  }
-  .success-msg {
-    margin-top: 20px;
-    background: #e0ffe0;
-    padding: 15px;
-    border-radius: 5px;
-    color: green;
-  }
-  </style>
-  
+<style scoped>
+.dashboard {
+  display: flex;
+  overflow-y: scroll;
+}
+.upload-page {
+  flex-grow: 1;
+  padding: 40px;
+  background: #f4f4f4;
+  min-height: 100vh;
+  margin-left: 280px;
+}
+.upload-form {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  max-width: 600px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.form-row {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+input, select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+button {
+  margin-top: auto;
+  background-color: #0055a4;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 20px;
+  flex-shrink: 0;
+}
+.success-msg {
+  margin-top: 20px;
+  background: #e0ffe0;
+  padding: 15px;
+  border-radius: 5px;
+  color: green;
+}
+</style>
