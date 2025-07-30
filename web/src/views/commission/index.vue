@@ -87,6 +87,8 @@
       const annuityRes = await axios.get(`/orders/annuity?status=completed&range=${range}`);
       lifeOrders.value = lifeRes.data;
       annuityOrders.value = annuityRes.data;
+      console.log('Life Orders:', lifeRes.data);
+      console.log('Annuity Orders:', annuityRes.data);
     } catch (err) {
       console.error('Error fetching orders:', err);
     }
@@ -106,9 +108,9 @@
   
   onMounted(() => fetchData());
 
-  </script>
+</script>
   
-  <style scoped>
+<style scoped>
   .dashboard {
     display: flex;
     overflow-y: scroll;
@@ -148,32 +150,32 @@
   }
 
   .filter-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
 
-.filter-buttons button,
-.date-range button {
-  margin: 5px 10px 5px 0;
-  padding: 6px 14px;
-  border: none;
-  background-color: #0055a4;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-}
+  .filter-buttons button,
+  .date-range button {
+    margin: 5px 10px 5px 0;
+    padding: 6px 14px;
+    border: none;
+    background-color: #0055a4;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+  }
 
-.filter-buttons button:hover,
-.date-range button:hover {
-  background-color: #003f82;
-}
+  .filter-buttons button:hover,
+  .date-range button:hover {
+    background-color: #003f82;
+  }
 
-.date-range label {
-  margin-right: 10px;
-  font-size: 14px;
-}
-  </style>
+  .date-range label {
+    margin-right: 10px;
+    font-size: 14px;
+  }
+</style>
   
