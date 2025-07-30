@@ -106,8 +106,8 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
   const {
     application_status, policy_number, commission_percent, initial_premium,
-    commission_amount, face_amount, target_premium,
-    carrier_name, product_name, application_date, mra_status, Explanation
+    face_amount, target_premium, commission_from_carrier, carrier_name, product_name, application_date, 
+    mra_status, split_percent, split_user_id, Explanation
   } = req.body;
 
   const allowedTables = [
@@ -145,21 +145,23 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           policy_number = $2,
           commission_percent = $3,
           initial_premium = $4,
-          commission_amount = $5,
-          face_amount = $6,
-          target_premium = $7,
+          face_amount = $5,
+          target_premium = $6,
+          commission_from_carrier = $7,
           carrier_name = $8,
           product_name = $9,
           application_date = $10,
-          mra_status = $11
-      WHERE id = $12
+          mra_status = $11,
+          split_percent = $12,
+          split_user_id = $13,
+          explanation = $14
+      WHERE id = $15
       RETURNING *;
     `;
     const values = [
       application_status, policy_number, commission_percent,
-      initial_premium, commission_amount,
-      face_amount, target_premium, carrier_name,
-      product_name, application_date, mra_status, id
+      initial_premium, face_amount, target_premium, commission_from_carrier, carrier_name,
+      product_name, application_date, mra_status, split_percent, split_user_id, Explanation, id
     ];
 
     const result = await client.query(updateQuery, values);
@@ -171,15 +173,50 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     const baseType = isLife ? 'life' : 'annuity';
 
     if (application_status === 'completed' && type.startsWith('application_')) {
-      // 移动到 commission 表并触发佣金
-      // const insertCommissionQuery = `
-      //   INSERT INTO commission_${baseType} (${Object.keys(updatedOrder).join(',')})
-      //   VALUES (${Object.keys(updatedOrder).map((_, i) => `$${i + 1}`).join(',')})
-      // `;
-      // await client.query(insertCommissionQuery, Object.values(updatedOrder));
-      // await client.query(`DELETE FROM ${type} WHERE id = $1`, [id]);
+      if (split_user_id && split_percent < 100) {
+        const remainingPercent = 100 - split_percent;
 
-      await handleCommissions(updatedOrder, userId, baseType);
+        // 当前用户保留部分
+        const userPart = {
+          ...updatedOrder,
+          commission_from_carrier: (updatedOrder.commission_from_carrier * remainingPercent / 100),
+        };
+
+        // 拆分给 split_user_id 的部分
+        const splitPart = {
+          ...updatedOrder,
+          user_id: split_user_id,
+          commission_from_carrier: (updatedOrder.commission_from_carrier * split_percent / 100),
+        };
+
+        const insertQuery = `
+          INSERT INTO application_${baseType} (${Object.keys(splitPart).join(',')})
+          VALUES (${Object.keys(splitPart).map((_, i) => `$${i + 1}`).join(',')})
+          RETURNING *;
+        `;
+        const insertRes = await client.query(insertQuery, Object.values(splitPart));
+        const insertedSplitOrder = insertRes.rows[0];
+
+        // 插入当前用户原订单更新为他的部分
+        const updateQuery = `
+          UPDATE ${type}
+          SET commission_from_carrier = $1,
+          WHERE id = $2
+          RETURNING *;
+        `;
+        const updatedUserRes = await client.query(updateQuery, [
+          userPart.commission_from_carrier,
+          updatedOrder.id
+        ]);
+        const updatedUserOrder = updatedUserRes.rows[0];
+
+        // 分别执行佣金逻辑
+        await handleCommissions(updatedUserOrder, id, baseType);
+        await handleCommissions(insertedSplitOrder, split_user_id, baseType);
+      } else {
+        // 没有分成情况，直接处理佣金
+        await handleCommissions(updatedOrder, userId, baseType);
+      }
 
     } else if (
       ['cancelled', 'rejected'].includes(application_status)

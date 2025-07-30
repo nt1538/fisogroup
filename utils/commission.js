@@ -107,22 +107,24 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
       commission_percent, commission_amount, carrier_name, product_name,
       application_date, policy_number, face_amount, target_premium,
       initial_premium, commission_from_carrier, application_status, mra_status,
-      order_type, parent_order_id, explanation
+      order_type, parent_order_id, explanation,
+      split_percent, split_user_id
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,
       $9,$10,$11,$12,$13,$14,$15,$16,
-      $17,$18,$19
+      $17,$18,$19,
+      $20,$21
     )
   `, [
     user.id, user.name, user.national_producer_number, user.hierarchy_level,
     percent, amount, order.carrier_name, order.product_name,
     order.application_date, order.policy_number, order.face_amount, order.target_premium,
     order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
-    type, parentId, explanation
+    type, parentId, explanation,
+    order.split_percent, order.split_user_id
   ]);
   await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
 }
-
 async function handleCommissions(order, userId, table_type) {
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
   const user = userRes.rows[0];
