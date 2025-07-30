@@ -30,7 +30,7 @@
 
         <div class="form-row">
           <label>Policy Number:</label>
-          <input v-model="form.policy_number" required />
+          <input v-model="form.policy_number" type="text" required />
         </div>
 
         <div class="form-row" v-if="form.product_type === 'life'">
@@ -53,6 +53,21 @@
         <div class="form-row">
           <label>Commission From Carrier:</label>
           <input v-model.number="form.commission_from_carrier" type="number" required />
+        </div>
+
+        <div class="form-row">
+          <label>Split ID</label>
+          <input v-model="form.split_with_id" type="text" required />
+        </div>
+
+        <div class="form-row">
+          <label>Split Percentage</label>
+          <input v-model.number="form.split_percent" type="number" required />
+        </div>
+
+        <div class="form-row">
+          <label>Explanation</label>
+          <input v-model="form.explanation" type="text" required />
         </div>
 
         <button type="submit">Save Changes</button>

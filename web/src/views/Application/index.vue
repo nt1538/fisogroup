@@ -23,6 +23,7 @@
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name}}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
+                <td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td>
                 <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
                 <td>
                     <router-link :to="`/employee/reports/app-edit/life/${item.id}`">
@@ -52,6 +53,7 @@
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name}}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.initial_premium }}</td><td>{{ item.flex_premium }}</td><td>{{ item.commission_from_carrier }}</td>
+                <td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td>
                 <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
                 <td>
                     <router-link :to="`/employee/reports/app-edit/annuity/${item.id}`">

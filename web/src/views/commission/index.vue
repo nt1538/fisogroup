@@ -26,7 +26,7 @@
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Application Date</th><th>Policy #</th><th>Face Amount</th>
                 <th>Target Premium</th><th>Initial Premium</th><th>Commission from Carrier</th>
-                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
+                <th>Split Percentage</th><th>Split ID</th><th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
@@ -36,7 +36,8 @@
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.target_premium }}</td><td>{{ item.initial_premium }}</td>
-                <td>{{ item.commission_from_carrier }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
+                <td>{{ item.commission_from_carrier }}</td><td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td>
+                <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
           </table>
@@ -50,7 +51,7 @@
                 <th>User ID</th><th>Name</th><th>National Producer Number</th>
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Application Date</th><th>Policy #</th><th>Initial Premium</th><th>Flex Premium</th><th>Commission from Carrier</th>
-                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
+                <th>Split Percentage</th><th>Split ID</th><th>Status</th><th>Matter Require Attention</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
@@ -60,7 +61,7 @@
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.application_date) }}</td><td>{{ item.policy_number }}</td>
                 <td>{{ item.initial_premium }}</td><td>{{ item.flex_premium }}</td><td>{{ item.commission_from_carrier }}</td>
-                <td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
+                <td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td><td>{{ item.application_status }}</td><td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
           </table>
