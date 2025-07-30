@@ -12,6 +12,9 @@
             <option value="cancelled">Cancelled</option>
           </select>
         </template>
+        <template v-else-if="key === 'policy_number'">
+          <input type="text" v-model="order[key]" :id="key" required/>
+        </template>
         <template v-else-if="key === 'application_date'">
           <input type="date" v-model="order[key]" :id="key" />
         </template>
@@ -22,6 +25,18 @@
           <input type="date" v-model="order[key]" :id="key" />
         </template>
         <template v-else-if="key === 'commission_from_carrier'">
+          <input type="number" v-model="order[key]" :id="key" required/>
+        </template>
+        <template v-else-if="key === 'commission_percent'">
+          <input type="number" :value="order[key]" disabled :id="key" />
+        </template>
+        <template v-else-if="key === 'explanation'">
+          <input type="text" v-model="order[key]" :id="key" required/>
+        </template>
+        <template v-else-if="key === 'split_user_id'">
+          <input type="text" v-model="order[key]" :id="key" required/>
+        </template>
+        <template v-else-if="key === 'split_percent'">
           <input type="number" v-model="order[key]" :id="key" required/>
         </template>
         <template v-else-if="typeof value === 'number'">
