@@ -25,13 +25,13 @@ router.get('/me/:id', verifyToken, async (req, res) => {
 
     // 当年起的总佣金（YTD）
     const ytdQueryLife = await client.query(
-      `SELECT COALESCE(SUM(commission_amount), 0) AS total
+      `SELECT COALESCE(SUM(commission_from_carrier), 0) AS total
        FROM commission_life
        WHERE user_id = $1 AND application_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
     );
     const ytdQueryAnnuity = await client.query(
-      `SELECT COALESCE(SUM(commission_amount), 0) AS total
+      `SELECT COALESCE(SUM(commission_from_carrier), 0) AS total
        FROM commission_annuity
        WHERE user_id = $1 AND application_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
@@ -40,13 +40,13 @@ router.get('/me/:id', verifyToken, async (req, res) => {
 
     // 近12个月的总佣金
     const rollingQueryLife = await client.query(
-      `SELECT COALESCE(SUM(commission_amount), 0) AS total
+      `SELECT COALESCE(SUM(commission_from_carrier), 0) AS total
        FROM commission_life
        WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
     const rollingQueryAnnuity = await client.query(
-      `SELECT COALESCE(SUM(commission_amount), 0) AS total
+      `SELECT COALESCE(SUM(commission_from_carrier), 0) AS total
        FROM commission_annuity
        WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
@@ -58,7 +58,7 @@ router.get('/me/:id', verifyToken, async (req, res) => {
   `SELECT 
     MIN(application_date) AS period_start,
     MAX(application_date) AS period_end,
-    SUM(commission_amount) AS total
+    SUM(commission_from_carrier) AS total
   FROM (
     SELECT *,
       width_bucket(
@@ -78,7 +78,7 @@ router.get('/me/:id', verifyToken, async (req, res) => {
   `SELECT 
     MIN(application_date) AS period_start,
     MAX(application_date) AS period_end,
-    SUM(commission_amount) AS total
+    SUM(commission_from_carrier) AS total
   FROM (
     SELECT *,
       width_bucket(
