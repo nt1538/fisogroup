@@ -182,37 +182,43 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           commission_from_carrier: (updatedOrder.commission_from_carrier * remainingPercent / 100),
         };
 
-        // 拆分给 split_user_id 的部分
-        const splitPart = {
+        // 拆分给 split_user_id 的部分（注意移除 id）
+        const { id: _, ...splitPart } = {
           ...updatedOrder,
           user_id: split_with_id,
           commission_from_carrier: (updatedOrder.commission_from_carrier * split_percent / 100),
         };
 
+        // 插入拆分订单
+        const keys = Object.keys(splitPart);
+        const values = Object.values(splitPart);
+        const placeholders = keys.map((_, i) => `$${i + 1}`);
+
         const insertQuery = `
-          INSERT INTO application_${baseType} (${Object.keys(splitPart).join(',')})
-          VALUES (${Object.keys(splitPart).map((_, i) => `$${i + 1}`).join(',')})
-          RETURNING *;
+          INSERT INTO application_${baseType} (${keys.join(',')})
+          VALUES (${placeholders.join(',')})
+        RETURNING *;
         `;
-        const insertRes = await client.query(insertQuery, Object.values(splitPart));
+        const insertRes = await client.query(insertQuery, values);
         const insertedSplitOrder = insertRes.rows[0];
 
-        // 插入当前用户原订单更新为他的部分
-        const updateQuery = `
-          UPDATE ${type}
-          SET commission_from_carrier = $1,
+        // 更新当前用户订单为其部分
+        const updateUserQuery = `
+        UPDATE ${type}
+          SET commission_from_carrier = $1
           WHERE id = $2
           RETURNING *;
         `;
-        const updatedUserRes = await client.query(updateQuery, [
+        const updatedUserRes = await client.query(updateUserQuery, [
           userPart.commission_from_carrier,
-          updatedOrder.id
-        ]);
+          updatedOrder.id,
+      ]);
         const updatedUserOrder = updatedUserRes.rows[0];
 
-        // 分别执行佣金逻辑
-        await handleCommissions(updatedUserOrder, id, baseType);
-        await handleCommissions(insertedSplitOrder, split_with_id, baseType);
+        // 分别处理两人的佣金
+        await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
+        await handleCommissions(insertedSplitOrder, insertedSplitOrder.user_id, baseType);
+
       } else {
         // 没有分成情况，直接处理佣金
         await handleCommissions(updatedOrder, userId, baseType);
