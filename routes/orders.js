@@ -105,11 +105,38 @@ async function createBaseOrder(req, res, tableName, defaultType) {
   }
 }
 
-router.get('/life', verifyToken, async (req, res) => {
-  const { status, order_type } = req.query;
+function getDateRange(range) {
+  const now = new Date();
+  let start;
+
+  switch (range) {
+    case 'ytd':
+      start = new Date(now.getFullYear(), 0, 1);
+      break;
+    case 'rolling_3':
+      start = new Date();
+      start.setMonth(now.getMonth() - 3);
+      break;
+    case 'rolling_12':
+      start = new Date();
+      start.setFullYear(now.getFullYear() - 1);
+      break;
+    default:
+      return null;
+  }
+
+  return {
+    start: start.toISOString().split('T')[0],
+    end: now.toISOString().split('T')[0]
+  };
+}
+
+// ✅ 通用逻辑
+async function fetchCommissionData(type, req, res) {
+  const { status, order_type, range, startDate, endDate } = req.query;
   const userId = req.user.id;
 
-  let query = 'SELECT * FROM commission_life WHERE user_id = $1';
+  let query = `SELECT * FROM commission_${type} WHERE user_id = $1`;
   const params = [userId];
   let i = 2;
 
@@ -123,41 +150,36 @@ router.get('/life', verifyToken, async (req, res) => {
     params.push(order_type);
   }
 
+  if (range && range !== 'all') {
+    const dates = getDateRange(range);
+    if (dates) {
+      query += ` AND application_date BETWEEN $${i++} AND $${i++}`;
+      params.push(dates.start, dates.end);
+    }
+  } else if (startDate && endDate) {
+    query += ` AND application_date BETWEEN $${i++} AND $${i++}`;
+    params.push(startDate, endDate);
+  }
+
+  query += ` ORDER BY application_date DESC`;
+
   try {
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching life orders:', err);
-    res.status(500).json({ error: 'Failed to fetch life orders' });
+    console.error(`Error fetching ${type} orders:`, err);
+    res.status(500).json({ error: `Failed to fetch ${type} orders` });
   }
+}
+
+// ✅ life route
+router.get('/life', verifyToken, (req, res) => {
+  fetchCommissionData('life', req, res);
 });
 
-
-router.get('/annuity', verifyToken, async (req, res) => {
-  const { status, order_type } = req.query;
-  const userId = req.user.id;
-
-  let query = 'SELECT * FROM commission_annuity WHERE user_id = $1';
-  const params = [userId];
-  let i = 2;
-
-  if (status) {
-    query += ` AND application_status = $${i++}`;
-    params.push(status);
-  }
-
-  if (order_type) {
-    query += ` AND order_type = $${i++}`;
-    params.push(order_type);
-  }
-
-  try {
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching annuity orders:', err);
-    res.status(500).json({ error: 'Failed to fetch annuity orders' });
-  }
+// ✅ annuity route
+router.get('/annuity', verifyToken, (req, res) => {
+  fetchCommissionData('annuity', req, res);
 });
 
 
