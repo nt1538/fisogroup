@@ -27,9 +27,6 @@
         <template v-else-if="key === 'commission_from_carrier'">
           <input type="number" v-model="order[key]" :id="key" required/>
         </template>
-        <template v-else-if="key === 'commission_percent'">
-          <input type="number" :value="order[key]" disabled :id="key" />
-        </template>
         <template v-else-if="key === 'explanation'">
           <input type="text" v-model="order[key]" :id="key" required/>
         </template>
@@ -80,14 +77,18 @@ const editableFields = ref({
   product_name: '',
   carrier_name: '',
   application_date: '',
+  commission_distribution_date: '',
+  policy_effective_date: '',
   policy_number: '',
   face_amount: 0,
   target_premium: 0,
   initial_premium: 0,
   commission_from_carrier: 0,
-  commission_percent: 0,
   application_status: '',
-  mra_status: ''
+  mra_status: '',
+  split_user_id: '',
+  split_percent: 0,
+  explanation: '',
 });
 
 onMounted(async () => {
