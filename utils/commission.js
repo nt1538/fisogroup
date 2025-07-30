@@ -108,7 +108,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
       application_date, policy_number, face_amount, target_premium,
       initial_premium, commission_from_carrier, application_status, mra_status,
       order_type, parent_order_id, explanation,
-      split_percent, split_user_id
+      split_percent, split_with_id
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,
       $9,$10,$11,$12,$13,$14,$15,$16,
@@ -121,7 +121,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
     order.application_date, order.policy_number, order.face_amount, order.target_premium,
     order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
     type, parentId, explanation,
-    order.split_percent, order.split_user_id
+    order.split_percent, order.split_with_id
   ]);
   await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
 }

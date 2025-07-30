@@ -30,7 +30,7 @@
         <template v-else-if="key === 'explanation'">
           <input type="text" v-model="order[key]" :id="key" required/>
         </template>
-        <template v-else-if="key === 'split_user_id'">
+        <template v-else-if="key === 'split_with_id'">
           <input type="text" v-model="order[key]" :id="key" required/>
         </template>
         <template v-else-if="key === 'split_percent'">
@@ -86,7 +86,7 @@ const editableFields = ref({
   commission_from_carrier: 0,
   application_status: '',
   mra_status: '',
-  split_user_id: '',
+  split_with_id: '',
   split_percent: 0,
   explanation: '',
 });

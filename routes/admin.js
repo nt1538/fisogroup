@@ -107,7 +107,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const {
     application_status, policy_number, commission_percent, initial_premium,
     face_amount, target_premium, commission_from_carrier, carrier_name, product_name, application_date, 
-    mra_status, split_percent, split_user_id, Explanation
+    mra_status, split_percent, split_with_id, Explanation
   } = req.body;
 
   const allowedTables = [
@@ -153,7 +153,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           application_date = $10,
           mra_status = $11,
           split_percent = $12,
-          split_user_id = $13,
+          split_with_id = $13,
           explanation = $14
       WHERE id = $15
       RETURNING *;
@@ -161,7 +161,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     const values = [
       application_status, policy_number, commission_percent,
       initial_premium, face_amount, target_premium, commission_from_carrier, carrier_name,
-      product_name, application_date, mra_status, split_percent, split_user_id, Explanation, id
+      product_name, application_date, mra_status, split_percent, split_with_id, Explanation, id
     ];
 
     const result = await client.query(updateQuery, values);
@@ -173,7 +173,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     const baseType = isLife ? 'life' : 'annuity';
 
     if (application_status === 'completed' && type.startsWith('application_')) {
-      if (split_user_id && split_percent < 100) {
+      if (split_with_id && split_percent < 100) {
         const remainingPercent = 100 - split_percent;
 
         // 当前用户保留部分
@@ -185,7 +185,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
         // 拆分给 split_user_id 的部分
         const splitPart = {
           ...updatedOrder,
-          user_id: split_user_id,
+          user_id: split_with_id,
           commission_from_carrier: (updatedOrder.commission_from_carrier * split_percent / 100),
         };
 
@@ -212,7 +212,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 
         // 分别执行佣金逻辑
         await handleCommissions(updatedUserOrder, id, baseType);
-        await handleCommissions(insertedSplitOrder, split_user_id, baseType);
+        await handleCommissions(insertedSplitOrder, split_with_id, baseType);
       } else {
         // 没有分成情况，直接处理佣金
         await handleCommissions(updatedOrder, userId, baseType);
