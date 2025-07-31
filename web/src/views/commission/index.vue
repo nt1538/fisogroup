@@ -105,6 +105,10 @@
       console.error('Error fetching orders:', err);
     }
   }
+
+  function formatDate(date) {
+    return new Date(date).toLocaleDateString();
+  }
   
   onMounted(() => fetchData());
 
