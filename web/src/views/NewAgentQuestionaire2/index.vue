@@ -1,117 +1,114 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-xl font-bold text-gray-800 border-b pb-2">Business Entity Information (if applicable)</h2>
+  <div class="dashboard">
+    <Sidebar />
+    <div class="form-container">
+      <h1>Business Entity Information (DBA)</h1>
+      <p>
+        Complete the following only if you are Doing Business As (DBA) a Business Entity. Please
+        ensure all required documents are uploaded and accurate.
+      </p>
 
-    <!-- EIN, Business Name, Website -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">EIN</label>
-        <input v-model="form.ein" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Business Name</label>
-        <input v-model="form.businessName" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Website</label>
-        <input v-model="form.website" type="text" class="input" />
-      </div>
-    </div>
-
-    <!-- Title, Phone -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Your Title</label>
-        <input v-model="form.title" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Phone</label>
-        <input v-model="form.phone" type="text" class="input" />
-      </div>
-    </div>
-
-    <!-- Principal Info -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Principal Name</label>
-        <input v-model="form.principalName" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Principal Title</label>
-        <input v-model="form.principalTitle" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Principal Email</label>
-        <input v-model="form.principalEmail" type="email" class="input" />
-      </div>
-    </div>
-
-    <!-- Company Type Radio Group -->
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2">Company Type</label>
-      <div class="space-y-2">
-        <label class="flex items-center space-x-2">
-          <input type="radio" value="Corporation" v-model="form.companyType" />
-          <span>Corporation</span>
+      <form @submit.prevent="submitForm" class="form-grid">
+        <label>
+          EIN
+          <input type="text" v-model="form.ein" placeholder="XX-XXXXXXX" required />
         </label>
-        <label class="flex items-center space-x-2">
-          <input type="radio" value="Partnership" v-model="form.companyType" />
-          <span>Partnership</span>
-        </label>
-        <label class="flex items-center space-x-2">
-          <input type="radio" value="LLC" v-model="form.companyType" />
-          <span>LLC</span>
-        </label>
-        <label class="flex items-center space-x-2">
-          <input type="radio" value="LLP" v-model="form.companyType" />
-          <span>LLP</span>
-        </label>
-      </div>
-    </div>
 
-    <!-- Company Address -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Company Address (Line 1)</label>
-        <input v-model="form.companyAddress" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Start Date</label>
-        <input v-model="form.startDate" type="date" class="input" />
-      </div>
-    </div>
+        <label>
+          Business Name
+          <input type="text" v-model="form.businessName" required />
+        </label>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">City</label>
-        <input v-model="form.city" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">State</label>
-        <input v-model="form.state" type="text" class="input" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Zip Code</label>
-        <input v-model="form.zip" type="text" class="input" />
-      </div>
-    </div>
+        <label>
+          Website
+          <input type="url" v-model="form.website" placeholder="https://example.com" />
+        </label>
 
-    <!-- Upload Instructions -->
-    <div class="mt-8">
-      <h3 class="text-lg font-semibold text-gray-800 mb-2">Additional Instructions</h3>
-      <ul class="list-disc pl-6 text-sm text-gray-600 space-y-1">
-        <li>Attach a copy of your Individual or Corporate Insurance License</li>
-        <li>Attach your E&O (Errors and Omissions Insurance)</li>
-        <li>Attach a voided check</li>
-        <li>Attach your AML Certificate (if not completed via LIMRA)</li>
-        <li>List the name of the insurance company you wish to contract with</li>
-      </ul>
+        <label>
+          Your Title
+          <input type="text" v-model="form.title" required />
+        </label>
+
+        <label>
+          Phone
+          <input type="tel" v-model="form.phone" placeholder="123-456-7890" required />
+        </label>
+
+        <label>
+          Principal Name
+          <input type="text" v-model="form.principalName" required />
+        </label>
+
+        <label>
+          Principal Title
+          <input type="text" v-model="form.principalTitle" />
+        </label>
+
+        <label>
+          Principal Email
+          <input type="email" v-model="form.principalEmail" required />
+        </label>
+
+        <label>
+          Company Type
+          <select v-model="form.companyType" required>
+            <option disabled value="">Select</option>
+            <option>Corporation</option>
+            <option>Partnership</option>
+            <option>LLC</option>
+            <option>LLP</option>
+          </select>
+        </label>
+
+        <label>
+          Company Address (No PO Boxes)
+          <textarea v-model="form.companyAddress" required></textarea>
+        </label>
+
+        <label>
+          Start Date
+          <input type="date" v-model="form.startDate" required />
+        </label>
+
+        <label>
+          City
+          <input type="text" v-model="form.city" required />
+        </label>
+
+        <label>
+          State
+          <input type="text" v-model="form.state" required />
+        </label>
+
+        <label>
+          Zip Code
+          <input type="text" v-model="form.zip" required />
+        </label>
+
+        <div class="form-actions">
+          <button type="submit">Next Page</button>
+        </div>
+      </form>
+
+      <div class="attachment-info">
+        <p><strong>Please prepare and attach the following documents:</strong></p>
+        <ul>
+          <li>1. Individual or Corporate Insurance License</li>
+          <li>2. E&O (Errors and Omissions Insurance)</li>
+          <li>3. Voided Check</li>
+          <li>4. AML Certificate (if not with LIMRA)</li>
+          <li>5. Insurance company you wish to contract with</li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const form = ref({
   ein: '',
@@ -127,17 +124,115 @@ const form = ref({
   startDate: '',
   city: '',
   state: '',
-  zip: '',
+  zip: ''
 })
+
+// 可以在 onMounted 中回显前一页数据
+onMounted(() => {
+  const saved = localStorage.getItem('newAgentPage2')
+  if (saved) {
+    form.value = JSON.parse(saved)
+  }
+})
+
+function submitForm() {
+  // 存储第二页数据
+  localStorage.setItem('newAgentPage2', JSON.stringify(form.value))
+
+  // 跳转下一页
+  router.push('/employee/form3') // 可以预设第三页或提交完成页
+}
 </script>
 
 <style scoped>
-.input {
-  width: 100%;
-  padding: 8px 10px;
+.form-container {
+  flex-grow: 1;
+  padding: 40px;
+  background-color: #f4f4f4;
+  min-height: 100vh;
+  margin-left: 280px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #555;
+  max-width: 900px;
+  margin-bottom: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+input,
+textarea,
+select {
+  margin-top: 6px;
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 14px;
 }
-</style>
 
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+button {
+  background-color: #0055a4;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #003f82;
+}
+
+.attachment-info {
+  margin-top: 40px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  max-width: 800px;
+}
+
+.attachment-info ul {
+  margin-top: 12px;
+  padding-left: 18px;
+  color: #444;
+}
+</style>
