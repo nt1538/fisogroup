@@ -13,6 +13,7 @@
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Application Date</th><th>Policy #</th><th>Face Amount</th>
                 <th>Target Premium</th><th>Initial Premium</th><th>Commission from Carrier</th>
+                <th>Split Percentage</th><th>Split ID</th>
                 <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th><th>Actions</th>
               </tr>
             </thead>
@@ -43,7 +44,7 @@
                 <th>User ID</th><th>Name</th><th>National Producer Number</th>
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Application Date</th><th>Policy #</th><th>Initial Premium</th><th>Flex Premium</th><th>Commission from Carrier</th>
-                <th>Status</th><th>Matter Require Attention</th><th>Commission Type</th><th>Actions</th>
+                <th>Split Percentage</th><th>Split ID</th><th>Status</th><th>Matter Require Attention</th><th>Commission Type</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>

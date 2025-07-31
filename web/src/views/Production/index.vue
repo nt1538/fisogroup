@@ -3,7 +3,19 @@
       <Sidebar />
       <div class="commission-page">
         <h1>Production Report (Completed Deals)</h1>
-  
+        <div class="filter-controls">
+          <div class="filter-buttons">
+            <button @click="fetchData('all')">All</button>
+            <button @click="fetchData('ytd')">YTD</button>
+            <button @click="fetchData('rolling_3')">Rolling 3 Months</button>
+            <button @click="fetchData('rolling_12')">Rolling 12 Months</button>
+          </div>
+          <div class="date-range">
+            <label>From: <input type="date" v-model="startDate" /></label>
+            <label>To: <input type="date" v-model="endDate" /></label>
+            <button @click="fetchDataByDate">Search</button>
+          </div>
+        </div>
         <div class="section">
           <h2>Life Products - Completed</h2>
           <table class="commission-table">
@@ -64,22 +76,42 @@
   
   const lifeOrders = ref([]);
   const annuityOrders = ref([]);
-  
-  onMounted(async () => {
+
+  const startDate = ref('');
+  const endDate = ref('');
+
+  async function fetchData(range = 'all') {
     try {
-      const lifeRes = await axios.get('/orders/life?status=completed&order_type=Personal Commission');
-      const annuityRes = await axios.get('/orders/annuity?status=completed&order_type=Personal Commission');
+      const lifeRes = await axios.get(`/orders/life?status=completed&range=${range}&order_type=Personal Commission`);
+      const annuityRes = await axios.get(`/orders/annuity?status=completed&range=${range}&order_type=Personal Commission`);
+      lifeOrders.value = lifeRes.data;
+      annuityOrders.value = annuityRes.data;
+      console.log('Life Orders:', lifeRes.data);
+      console.log('Annuity Orders:', annuityRes.data);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    }
+  }
+
+  async function fetchDataByDate() {
+    if (!startDate.value || !endDate.value) return alert('Please select both start and end dates.');
+    try {
+      const lifeRes = await axios.get(`/orders/life?status=completed&startDate=${startDate.value}&endDate=${endDate.value}&order_type=Personal Commission`);
+      const annuityRes = await axios.get(`/orders/annuity?status=completed&startDate=${startDate.value}&endDate=${endDate.value}&order_type=Personal Commission`);
       lifeOrders.value = lifeRes.data;
       annuityOrders.value = annuityRes.data;
     } catch (err) {
       console.error('Error fetching orders:', err);
     }
-  });
-  
+  }
+
   function formatDate(date) {
     return new Date(date).toLocaleDateString();
   }
-  </script>
+  
+  onMounted(() => fetchData());
+
+</script>
   
   <style scoped>
   .dashboard {
