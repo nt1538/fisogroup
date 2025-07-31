@@ -3,7 +3,12 @@
     <Sidebar />
     <div class="form-container">
       <h1>New Agent Information Collection Form</h1>
-      <p>This form is for collecting your information for contracting and commission processing.</p>
+      <p>This form is designed to collect the necessary information to assist new agents in completing
+their contracting process. The information provided will only be used for this purpose. All the
+information will be submitted through our online licensing system, SureLC. Signing and
+submitting the information and Signature Page authorizes FISO GROUP LLC( FISO) to submit
+your information through our online licensing program. Signing the EFT Authorization allows for
+carriers and FISO to direct deposit your commissions. </p>
       <form @submit.prevent="submitForm" class="form-grid">
 
         <label>
@@ -175,9 +180,19 @@ function submitForm() {
 }
 
 h1 {
-  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
 }
 
+p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #555;
+  max-width: 900px;
+  margin-bottom: 24px;
+}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
