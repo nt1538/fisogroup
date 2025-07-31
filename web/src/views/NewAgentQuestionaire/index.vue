@@ -151,6 +151,7 @@ const submitForm = async () => {
 <style scoped>
 .dashboard {
   display: flex;
+  overflow-y: scroll;
 }
 .form-page {
   flex: 1;

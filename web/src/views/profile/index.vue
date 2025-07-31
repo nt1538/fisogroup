@@ -97,6 +97,7 @@
   <style scoped>
   .dashboard {
     display: flex;
+    overflow-y: scroll;
   }
   
   .profile-page {
