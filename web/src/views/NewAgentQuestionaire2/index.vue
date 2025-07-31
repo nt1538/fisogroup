@@ -91,7 +91,7 @@
       </form>
 
       <div class="attachment-info">
-        <p><strong>Please prepare and attach the following documents:</strong></p>
+        <p><strong>Please attach the following documents along with this form and send them to contracting@fisogroup.com:</strong></p>
         <ul>
           <li>1. Individual or Corporate Insurance License</li>
           <li>2. E&O (Errors and Omissions Insurance)</li>
