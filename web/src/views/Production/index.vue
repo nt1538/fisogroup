@@ -113,7 +113,7 @@
 
 </script>
   
-  <style scoped>
+<style scoped>
   .dashboard {
     display: flex;
     overflow-y: scroll;
@@ -132,7 +132,7 @@
     background: white;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
   
   .commission-table {
@@ -151,5 +151,34 @@
     background-color: #0055a4;
     color: white;
   }
-  </style>
+
+  .filter-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .filter-buttons button,
+  .date-range button {
+    margin: 5px 10px 5px 0;
+    padding: 6px 14px;
+    border: none;
+    background-color: #0055a4;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .filter-buttons button:hover,
+  .date-range button:hover {
+    background-color: #003f82;
+  }
+
+  .date-range label {
+    margin-right: 10px;
+    font-size: 14px;
+  }
+</style>
   
