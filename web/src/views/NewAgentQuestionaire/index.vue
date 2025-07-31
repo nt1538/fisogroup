@@ -1,113 +1,131 @@
 <template>
   <div class="dashboard">
     <Sidebar />
-    <div class="form-page">
-      <h1 class="text-2xl font-bold mb-6">FISO Agent Information Form</h1>
-
+    <div class="form-container">
+      <h1>New Agent Information Collection Form</h1>
+      <p>This form is for collecting your information for contracting and commission processing.</p>
       <form @submit.prevent="submitForm" class="form-grid">
-        <div class="form-section">
-          <h2>General Info</h2>
-          <label>
-            Full Legal Name:
-            <input v-model="form.fullName" type="text" required />
-          </label>
-          <label>
-            SSN:
-            <input v-model="form.ssn" type="text" required />
-          </label>
-          <label>
-            Date of Birth:
-            <input v-model="form.dob" type="date" required />
-          </label>
-          <label>
-            Phone Number:
-            <input v-model="form.phone" type="tel" required />
-          </label>
-          <label>
-            Email Address:
-            <input v-model="form.email" type="email" required />
-          </label>
-        </div>
 
-        <div class="form-section">
-          <h2>Address</h2>
-          <label>
-            Residential Address:
-            <input v-model="form.address" type="text" required />
-          </label>
-          <label>
-            City:
-            <input v-model="form.city" type="text" required />
-          </label>
-          <label>
-            State:
-            <input v-model="form.state" type="text" required />
-          </label>
-          <label>
-            ZIP Code:
-            <input v-model="form.zip" type="text" required />
-          </label>
-        </div>
+        <label>
+          Last Name (as shown on Driver’s License)
+          <input type="text" v-model="form.last_name" required />
+        </label>
 
-        <div class="form-section">
-          <h2>Contract Type</h2>
+        <label>
+          First Name (as shown on Driver’s License)
+          <input type="text" v-model="form.first_name" required />
+        </label>
+
+        <label>
+          Social Security Number (SSN)
+          <input type="text" v-model="form.ssn" placeholder="XXX-XX-XXXX" required />
+        </label>
+
+        <label>
+          Date of Birth (DOB)
+          <input type="date" v-model="form.dob" required />
+        </label>
+
+        <label>
+          Gender
+          <select v-model="form.gender" required>
+            <option disabled value="">Select</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </label>
+
+        <label>
+          Email Address
+          <input type="email" v-model="form.email" required />
+        </label>
+
+        <label>
+          Phone Number
+          <input type="tel" v-model="form.phone" placeholder="123-456-7890" required />
+        </label>
+
+        <label>
+          Driver’s License State
+          <input type="text" v-model="form.dl_state" required />
+        </label>
+
+        <label>
+          Driver’s License Number
+          <input type="text" v-model="form.dl_number" required />
+        </label>
+
+        <label>
+          Driver’s License Expiration Date
+          <input type="date" v-model="form.dl_expiration" required />
+        </label>
+
+        <label>
+          Resident Address
+          <textarea v-model="form.resident_address" required></textarea>
+        </label>
+
+        <label>
+          Business Address
+          <textarea v-model="form.business_address"></textarea>
+        </label>
+
+        <label>
+          Mailing Address
+          <textarea v-model="form.mailing_address"></textarea>
+        </label>
+
+        <label>
+          Are you a Registered Rep with FINRA?
+          <select v-model="form.finra_registered" required>
+            <option disabled value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <template v-if="form.finra_registered === 'Yes'">
           <label>
-            Contract As:
-            <select v-model="form.contractType" required>
-              <option value="individual">Individual</option>
-              <option value="solicitor">Solicitor/LOA</option>
-              <option value="business">Business Entity</option>
-            </select>
+            Broker/Dealer Name
+            <input type="text" v-model="form.broker_dealer" />
           </label>
 
-          <div v-if="form.contractType === 'solicitor'">
-            <label>
-              Upline Name:
-              <input v-model="form.uplineName" type="text" required />
-            </label>
-            <label>
-              Upline NPN:
-              <input v-model="form.uplineNPN" type="text" required />
-            </label>
-          </div>
-
-          <div v-if="form.contractType === 'business'">
-            <label>
-              Business Name:
-              <input v-model="form.businessName" type="text" required />
-            </label>
-            <label>
-              EIN:
-              <input v-model="form.ein" type="text" required />
-            </label>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h2>Licensing</h2>
           <label>
-            Resident State License:
-            <input v-model="form.residentLicense" type="text" required />
+            CRD #
+            <input type="text" v-model="form.crd_number" />
           </label>
-          <label>
-            NPN:
-            <input v-model="form.npn" type="text" required />
-          </label>
-        </div>
+        </template>
 
-        <div class="form-section">
-          <h2>EO Coverage</h2>
-          <label>
-            Do you have E&O Insurance?
-            <select v-model="form.eoCoverage" required>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </label>
-        </div>
+        <label>
+          Please list any Honors you currently hold
+          <input type="text" v-model="form.honors" />
+        </label>
 
-        <div class="form-section">
-          <button type="submit" class="submit-btn">Submit</button>
+        <label>
+          If AML provider is LIMRA, date completed
+          <input type="date" v-model="form.aml_date" />
+        </label>
+
+        <label>
+          Doing Business As:
+          <select v-model="form.dba" required>
+            <option disabled value="">Select</option>
+            <option>Individual</option>
+            <option>Business Entity</option>
+            <option>Solicitor/LOA</option>
+          </select>
+        </label>
+
+        <template v-if="form.dba === 'Solicitor/LOA'">
+          <label>
+            Who are you assigning commissions to?
+            <input type="text" v-model="form.assign_to" />
+          </label>
+        </template>
+
+        <div class="form-actions">
+          <button type="submit">Next Page</button>
         </div>
       </form>
     </div>
@@ -119,85 +137,97 @@ import { ref } from 'vue';
 import Sidebar from '@/components/Sidebar.vue';
 
 const form = ref({
-  fullName: '',
+  last_name: '',
+  first_name: '',
   ssn: '',
   dob: '',
-  phone: '',
+  gender: '',
   email: '',
-  address: '',
-  city: '',
-  state: '',
-  zip: '',
-  contractType: 'individual',
-  uplineName: '',
-  uplineNPN: '',
-  businessName: '',
-  ein: '',
-  residentLicense: '',
-  npn: '',
-  eoCoverage: 'yes'
+  phone: '',
+  dl_state: '',
+  dl_number: '',
+  dl_expiration: '',
+  resident_address: '',
+  business_address: '',
+  mailing_address: '',
+  finra_registered: '',
+  broker_dealer: '',
+  crd_number: '',
+  honors: '',
+  aml_date: '',
+  dba: '',
+  assign_to: ''
 });
 
-const submitForm = async () => {
-  try {
-    console.log('Submitting:', form.value);
-    // send to backend later
-  } catch (err) {
-    console.error('Submit error:', err);
-  }
-};
+function submitForm() {
+  console.log('Form submitted:', form.value);
+  // TODO: 发送表单数据至后端 API，或进入下一页表单逻辑
+}
 </script>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  overflow-y: scroll;
-}
-.form-page {
-  flex: 1;
+.form-container {
+  flex-grow: 1;
   padding: 40px;
-  background-color: #f9f9f9;
-  margin-left: 280px;
+  background-color: #f4f4f4;
   min-height: 100vh;
+  margin-left: 280px;
 }
+
+h1 {
+  margin-bottom: 10px;
+}
+
 .form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-.form-section {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
-.form-section h2 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
+
 label {
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
+  font-weight: 600;
   font-size: 14px;
-  font-weight: 500;
 }
-input, select {
+
+input,
+textarea,
+select {
+  margin-top: 6px;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 14px;
 }
-.submit-btn {
-  background: #0055a4;
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+button {
+  background-color: #0055a4;
   color: white;
+  border: none;
   padding: 10px 20px;
   border-radius: 6px;
-  border: none;
   cursor: pointer;
+  font-weight: bold;
 }
-.submit-btn:hover {
-  background: #003f82;
+
+button:hover {
+  background-color: #003f82;
 }
 </style>
