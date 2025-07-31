@@ -138,35 +138,34 @@ carriers and FISO to direct deposit your commissions. </p>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import Sidebar from '@/components/Sidebar.vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const form = ref({
-  last_name: '',
-  first_name: '',
-  ssn: '',
-  dob: '',
-  gender: '',
-  email: '',
+  ein: '',
+  businessName: '',
+  website: '',
+  title: '',
   phone: '',
-  dl_state: '',
-  dl_number: '',
-  dl_expiration: '',
-  resident_address: '',
-  business_address: '',
-  mailing_address: '',
-  finra_registered: '',
-  broker_dealer: '',
-  crd_number: '',
-  honors: '',
-  aml_date: '',
-  dba: '',
-  assign_to: ''
-});
+  principalName: '',
+  principalTitle: '',
+  principalEmail: '',
+  companyType: '',
+  companyAddress: '',
+  startDate: '',
+  city: '',
+  state: '',
+  zip: '',
+})
 
 function submitForm() {
-  console.log('Form submitted:', form.value);
-  // TODO: 发送表单数据至后端 API，或进入下一页表单逻辑
+  // 存储到 localStorage（或后续可用 Pinia / Vuex）
+  localStorage.setItem('newAgentPage1', JSON.stringify(form.value))
+
+  // 跳转到下一页
+  router.push('/employee/form2')
 }
 </script>
 

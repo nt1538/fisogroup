@@ -36,7 +36,7 @@
         </transition>
 
         <li @click="navigate('/employee/licensing')">📁 Licensing</li>
-        <li @click="navigate('/employee/form')">Collection Form</li>
+        <li @click="navigate('/employee/form1')">Collection Form</li>
       </ul>
     </nav>
   </div>
