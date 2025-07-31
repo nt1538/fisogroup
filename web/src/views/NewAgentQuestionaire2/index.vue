@@ -87,11 +87,12 @@
 
         <div class="form-actions">
           <button type="submit">Next Page</button>
+          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
         </div>
       </form>
 
       <div class="attachment-info">
-        <p><strong>Please attach the following documents along with this form and send them to contracting@fisogroup.com:</strong></p>
+        <p><strong>Please attach the following documents and send them to contracting@fisogroup.com:</strong></p>
         <ul>
           <li>1. Individual or Corporate Insurance License</li>
           <li>2. E&O (Errors and Omissions Insurance)</li>
@@ -141,6 +142,12 @@ function submitForm() {
 
   // 跳转下一页
   router.push('/employee/form3') // 可以预设第三页或提交完成页
+}
+
+function skipToNextPage() {
+  // 保存表单空数据（或当前已有数据）
+  localStorage.setItem('newAgentPage2', JSON.stringify(form.value))
+  router.push('/employee/form3')
 }
 </script>
 
