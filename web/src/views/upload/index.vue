@@ -51,11 +51,6 @@
           <input v-model.number="form.flex_premium" type="number" required />
         </div>
 
-        <div class="form-row">
-          <label>Commission From Carrier:</label>
-          <input v-model.number="form.commission_from_carrier" type="number" required />
-        </div>
-
         <!-- ✅ 分成逻辑 -->
         <div class="form-row">
           <label>
@@ -104,7 +99,6 @@ const form = ref({
   target_premium: null,
   initial_premium: null,
   flex_premium: null,
-  commission_from_carrier: null,
 });
 
 const submitForm = async () => {
@@ -146,7 +140,6 @@ const submitForm = async () => {
       face_amount: null,
       target_premium: null,
       initial_premium: null,
-      commission_from_carrier: null,
     };
     isSplit.value = false;
 

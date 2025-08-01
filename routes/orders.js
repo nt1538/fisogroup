@@ -81,7 +81,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       initial_premium,
       mra_status,
       split_percent,
-      split_user_id
+      split_with_id
     ];
 
     if (tableName === 'application_life') {
