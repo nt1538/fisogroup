@@ -105,7 +105,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
     INSERT INTO ${tableName} (
       user_id, full_name, national_producer_number, hierarchy_level,
       commission_percent, commission_amount, carrier_name, product_name,
-      application_date, policy_number, face_amount, target_premium,
+      application_date, policy_number, insured_name, writing_agent, face_amount, target_premium,
       initial_premium, commission_from_carrier, application_status, mra_status,
       order_type, parent_order_id, explanation,
       split_percent, split_with_id
@@ -118,7 +118,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
   `, [
     user.id, user.name, user.national_producer_number, user.hierarchy_level,
     percent, amount, order.carrier_name, order.product_name,
-    order.application_date, order.policy_number, order.face_amount, order.target_premium,
+    order.application_date, order.policy_number, order.insured_name, order.writing_agent, order.face_amount, order.target_premium,
     order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
     type, parentId, explanation,
     order.split_percent, order.split_with_id

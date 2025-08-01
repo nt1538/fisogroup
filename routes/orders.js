@@ -46,7 +46,9 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       hierarchy_level = 'Level A',
       mra_status = 'none',
       split_percent = 100,
-      split_with_id = null
+      split_with_id = null,
+      insured_name,
+      writing_agent = full_name
     } = req.body;
 
     const userRes = await client.query(
@@ -63,7 +65,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     let insertSQL = `INSERT INTO ${tableName} (
       user_id, policy_number, order_type, commission_percent, commission_amount,
       application_status, full_name, national_producer_number, hierarchy_level,
-      carrier_name, product_name, application_date, initial_premium, mra_status, split_percent, split_with_id`;
+      carrier_name, product_name, application_date, insured_name, writing_agent, initial_premium, mra_status, split_percent, split_with_id`;
     
     const values = [
       user_id,
@@ -78,6 +80,8 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       carrier_name,
       product_name,
       application_date,
+      insured_name,
+      writing_agent,
       initial_premium,
       mra_status,
       split_percent,
