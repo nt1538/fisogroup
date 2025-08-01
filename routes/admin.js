@@ -436,7 +436,7 @@ router.get('/summary', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 // 组织结构树接口（全公司）
-router.get('/org-chart', verifyAdmin, async (req, res) => {
+router.get('/org-chart', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT id, name, introducer_id, hierarchy_level
