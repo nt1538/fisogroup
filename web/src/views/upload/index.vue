@@ -5,6 +5,7 @@
       <h1>Submit New Application</h1>
 
       <form @submit.prevent="submitForm" class="upload-form">
+        
         <div class="form-row">
           <label>Product Type:</label>
           <select v-model="form.product_type" required>
@@ -12,6 +13,11 @@
             <option value="life">Life</option>
             <option value="annuity">Annuity</option>
           </select>
+        </div>
+
+        <div class="form-row">
+          <label>Application Date:</label>
+          <input type="date" v-model="form.application_date" required />
         </div>
 
         <div class="form-row">
@@ -25,13 +31,13 @@
         </div>
 
         <div class="form-row">
-          <label>Application Date:</label>
-          <input type="date" v-model="form.application_date" required />
+          <label>Policy Number:</label>
+          <input v-model="form.policy_number" required />
         </div>
 
         <div class="form-row">
-          <label>Policy Number:</label>
-          <input v-model="form.policy_number" required />
+          <label>Insured Name:</label>
+          <input v-model="form.insured_name" required />
         </div>
 
         <div class="form-row" v-if="form.product_type === 'life'">
@@ -47,7 +53,7 @@
         </div>
 
         <div class="form-row" v-if="form.product_type === 'annuity'">
-          <label>Flex Premium:</label>
+          <label>Base Premium:</label>
           <input v-model.number="form.flex_premium" type="number" required />
         </div>
 
@@ -90,6 +96,7 @@ const submitted = ref(false);
 const isSplit = ref(false);
 
 const form = ref({
+  insured_name: '',
   product_type: '',
   carrier_name: '',
   product_name: '',
@@ -135,11 +142,14 @@ const submitForm = async () => {
       product_type: '',
       carrier_name: '',
       product_name: '',
+      insured_name: '',
       application_date: '',
       policy_number: '',
       face_amount: null,
       target_premium: null,
       initial_premium: null,
+      flex_premium: null,
+      
     };
     isSplit.value = false;
 

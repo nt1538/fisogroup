@@ -7,7 +7,7 @@
 
     <!-- Sidebar -->
     <nav :class="['sidebar', { open: sidebarOpen }]">
-      <h2 class="title">Dashboard</h2>
+      <h2 class="title">Welcome, {{ userName }}</h2>
       <ul class="menu">
         <!-- Me Section -->
         <li @click="toggleSection('me')">
@@ -49,6 +49,8 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 const sidebarOpen = ref(true);
 
+const userName = ref('')
+
 // 使用 Set 结构存储展开的 Section
 const activeSections = ref(new Set());
 
@@ -56,6 +58,8 @@ const activeSections = ref(new Set());
 onMounted(() => {
   const saved = JSON.parse(localStorage.getItem('sidebarOpenSections') || '[]');
   activeSections.value = new Set(saved);
+  const user = JSON.parse(localStorage.getItem('user'))
+  userName.value = user?.full_name || 'User'
 });
 
 // 判断是否展开
@@ -89,6 +93,7 @@ const logout = () => {
   localStorage.removeItem('sidebarOpenSections');
   router.push('/login');
 };
+
 </script>
 
 <style scoped>

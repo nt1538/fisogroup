@@ -267,3 +267,27 @@ ADD COLUMN split_with_id VARCHAR(36);
 ALTER TABLE saved_annuity_orders
 ADD COLUMN split_percent INT DEFAULT 100,
 ADD COLUMN split_with_id VARCHAR(36);
+
+ALTER TABLE application_life
+ADD COLUMN insured_name TEXT,
+ADD COLUMN writing_agent TEXT;
+
+ALTER TABLE commission_life
+ADD COLUMN insured_name TEXT,
+ADD COLUMN writing_agent TEXT;
+
+ALTER TABLE saved_life_orders
+ADD COLUMN insured_name TEXT,
+ADD COLUMN writing_agent TEXT;
+
+ALTER TABLE application_annuity
+ADD COLUMN insured_name TEXT,
+ADD COLUMN writing_agent TEXT;
+
+ALTER TABLE commission_annuity
+ADD COLUMN insured_name TEXT,
+ADD COLUMN writing_agent TEXT;
+
+ALTER TABLE saved_annuity_orders
+ADD COLUMN insured_name TEXT,
+ADD COLUMN writing_agent TEXT;
