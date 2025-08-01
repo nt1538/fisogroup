@@ -99,7 +99,7 @@ function submitForm() {
 }
 .form-container {
   flex-grow: 1;
-  padding: 40px;
+  padding: 40px 40px 100px;
   background-color: #f4f4f4;
   min-height: 100vh;
   margin-left: 280px;
