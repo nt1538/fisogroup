@@ -103,7 +103,7 @@ function submitForm() {
   background-color: #f4f4f4;
   min-height: 100vh;
   margin-left: 280px;
-  overflow-y: auto;
+  overflow-y: scroll;
 }
 
 h1 {
