@@ -3,7 +3,7 @@
     <h2>Order List</h2>
     <div class="filters">
       <input v-model="searchName" placeholder="Search by Employee Name" />
-      <input v-model="searchOrderId" placeholder="Search by Order ID" />
+      <input v-model="searchPolicyNumber" placeholder="Search by Policy Number" />
       <input type="date" v-model="startDate" />
       <input type="date" v-model="endDate" />
       <button @click="loadOrders">Search</button>
@@ -48,7 +48,7 @@ import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
 const searchName = ref('');
-const searchOrderId = ref('');
+const searchPolicyNumber = ref('');
 const startDate = ref('');
 const endDate = ref('');
 
@@ -61,7 +61,7 @@ async function loadOrders() {
     const res = await axios.get('/admin/orders/application', {
       params: {
         user_name: searchName.value,
-        order_id: searchOrderId.value,
+        policy_number: searchPolicyNumber.value,
         start_date: startDate.value,
         end_date: endDate.value,
         category: 'application'

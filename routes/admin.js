@@ -9,7 +9,7 @@ const { handleCommissions, getHierarchy } = require('../utils/commission');
 router.get('/orders/:category', verifyToken, verifyAdmin, async (req, res) => {
   const {
     user_name,
-    order_id,
+    policy_number,
     start_date,
     end_date,
     category
@@ -42,9 +42,9 @@ router.get('/orders/:category', verifyToken, verifyAdmin, async (req, res) => {
         query += ` AND u.name ILIKE $${count++}`;
         values.push(`%${user_name}%`);
       }
-      if (order_id) {
-        query += ` AND o.id::TEXT ILIKE $${count++}`;
-        values.push(`%${order_id}%`);
+      if (policy_number) {
+        query += ` AND o.policy_number::TEXT ILIKE $${count++}`;
+        values.push(`%${policy_number}%`);
       }
       if (start_date) {
         query += ` AND o.application_date >= $${count++}`;
