@@ -110,6 +110,7 @@ function submitForm() {
   // 保存数据到 localStorage，或后端
   localStorage.setItem('appointmentCases', JSON.stringify(cases.value))
   alert('Saved successfully.')
+  router.push('/employee/form4')
   // router.push('/employee/form5') // 如有下一页
 }
 </script>
