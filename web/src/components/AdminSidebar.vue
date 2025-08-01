@@ -2,15 +2,9 @@
   <div class="sidebar">
     <router-link to="/admin/adminDashboard" class="sidebar-item">📊 Dashboard</router-link>
 
-    <!-- 订单模块，支持下拉 -->
-    <div class="sidebar-item" @click="toggleOrdersDropdown">
-      📦 Check Orders
-    </div>
-    <div v-show="showOrdersDropdown" class="dropdown">
-      <router-link to="/admin/adminOrderSearchApp" class="dropdown-item">📝 Application Orders</router-link>
-      <router-link to="/admin/adminOrderSearchComm" class="dropdown-item">💰 Commission Orders</router-link>
-      <router-link to="/admin/adminOrderSearchSave" class="dropdown-item">📁 Saved Orders</router-link>
-    </div>
+    <router-link to="/admin/adminOrderSearchApp" class="dropdown-item">📝 Application Orders</router-link>
+    <router-link to="/admin/adminOrderSearchComm" class="dropdown-item">💰 Commission Orders</router-link>
+    <router-link to="/admin/adminOrderSearchSave" class="dropdown-item">📁 Saved Orders</router-link>
 
     <router-link to="/admin/adminEmployeeList" class="sidebar-item">👥 Employees List</router-link>
     <router-link to="/admin/adminOrgChart" class="sidebar-item">👥 Organization Chart</router-link>
