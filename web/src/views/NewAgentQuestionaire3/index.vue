@@ -102,7 +102,7 @@ function removeCase(index) {
 
 function skipToNextPage() {
   // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('newAgentPage3', JSON.stringify(form.value))
+  localStorage.setItem('appointmentCases', JSON.stringify(form.value))
   router.push('/employee/form4')
 }
 
