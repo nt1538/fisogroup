@@ -24,6 +24,11 @@
         </div>
 
         <div class="form-row">
+          <label>Insured Name:</label>
+          <input v-model="form.insured_name" required />
+        </div>
+
+        <div class="form-row">
           <label>Application Date:</label>
           <input type="date" v-model="form.application_date" required />
         </div>
@@ -46,13 +51,8 @@
         </div>
 
         <div class="form-row" v-if="form.product_type === 'annuity'">
-          <label>Flex Premium:</label>
+          <label>Base Premium:</label>
           <input v-model.number="form.flex_premium" type="number" />
-        </div>
-
-        <div class="form-row">
-          <label>Commission From Carrier:</label>
-          <input v-model.number="form.commission_from_carrier" type="number" required />
         </div>
 
         <div class="form-row">
