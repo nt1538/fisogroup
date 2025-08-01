@@ -26,6 +26,7 @@
           <th>Planned Premium</th>
           <th>Target/Base Premium</th>
           <th>Split Percentage</th>
+          <th>Split ID</th>
           <th>Commission Percentage</th>
           <th>Commission Amount</th>
           <th>Commission Type</th>
