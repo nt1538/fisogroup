@@ -13,12 +13,24 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Agent Name</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Commission Amount</th>
-          <th>Policy Number</th>
+          <th>Payee Name</th>
+          <th>Level</th>
           <th>Application Date</th>
+          <th>Type</th>
+          <th>Carrier</th>
+          <th>Product Name</th>
+          <th>Policy Number</th>
+          <th>Insured Name</th>
+          <th>Writing Agent</th>
+          <th>Face Amount</th>
+          <th>Planned Premium</th>
+          <th>Target/Base Premium</th>
+          <th>Split Percentage</th>
+          <th>Commission Percentage</th>
+          <th>Commission Amount</th>
+          <th>Commission Type</th>
+          <th>Explanation</th>
+          <th>Policy Effective Date</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -26,11 +38,24 @@
         <tr v-for="order in orders" :key="order.id">
           <td>{{ order.user_id }}</td>
           <td>{{ order.user_name }}</td>
-          <td>{{ order.table_type }}</td>
-          <td>{{ order.application_status }}</td>
-          <td>{{ order.commission_amount }}</td>
-          <td>{{ order.policy_number }}</td>
+          <td>{{ order.hierarchy_level }}</td>
           <td>{{ formatDate(order.application_date) }}</td>
+          <td>{{ order.table_type }}</td>
+          <td>{{ order.carrier_name }}</td>
+          <td>{{ order.product_name }}</td>
+          <td>{{ order.policy_number }}</td>
+          <td>{{ order.insured_name }}</td>
+          <td>{{ order.writing_agent }}</td>
+          <td>{{ order.face_amount }}</td>
+          <td>{{ order.initial_premium }}</td>
+          <td>{{ order.target_premium }}</td>
+          <td>{{ order.split_percent }}</td>
+          <td>{{ order.split_with_id }}</td>
+          <td>{{ order.commission_percent }}</td>
+          <td>${{ order.commission_amount }}</td>
+          <td>{{ order.order_type }}</td>
+          <td>{{ order.explanation }}</td>
+          <td>{{ formatDate(order.policy_effective_date) }}</td>
           <td>
             <router-link :to="`/admin/adminOrderEditComm/${order.table_type}/${order.id}`">Edit</router-link>
           </td>
