@@ -59,7 +59,7 @@ onMounted(() => {
   const saved = JSON.parse(localStorage.getItem('sidebarOpenSections') || '[]');
   activeSections.value = new Set(saved);
   const user = JSON.parse(localStorage.getItem('user'))
-  userName.value = user?.full_name || 'User'
+  userName.value = user?.name || 'User'
 });
 
 // 判断是否展开
