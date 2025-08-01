@@ -1,50 +1,43 @@
 <template>
-  <div class="p-4">
-    <h1 class="text-2xl font-bold mb-4">📈 Organization Chart</h1>
-    <div v-if="rootNodes.length">
+  <div class="tree-node">
+    <div class="user-card">
+      👤 {{ node.name }} ({{ node.national_producer_number }}) - {{ node.hierarchy_level }}
+    </div>
+    <div v-if="node.children.length" class="children">
       <TreeNode
-        v-for="node in rootNodes"
-        :key="node.id"
-        :node="node"
+        v-for="child in node.children"
+        :key="child.id"
+        :node="child"
       />
     </div>
-    <div v-else>Loading chart...</div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from '@/config/axios.config';
-import TreeNode from './TreeNode.vue'
-
-const orgData = ref([])
-const rootNodes = ref([])
-
-onMounted(async () => {
-  try {
-    const res = await axios.get('/admin/org-chart')
-    orgData.value = res.data
-    rootNodes.value = []
-    buildTree()
-  } catch (err) {
-    console.error('[ERROR] Failed to load org chart:', err)
-  }
+defineProps({
+  node: Object
 })
-
-function buildTree() {
-  const map = new Map()
-  orgData.value.forEach(user => {
-    user.children = []
-    map.set(user.id, user)
-  })
-
-  orgData.value.forEach(user => {
-    if (user.introducer_id) {
-      const parent = map.get(user.introducer_id)
-      if (parent) parent.children.push(user)
-    } else {
-      rootNodes.value.push(user) // 顶层员工
-    }
-  })
-}
 </script>
+
+<style scoped>
+.tree-node {
+  margin-bottom: 12px;
+  padding-left: 16px;
+  border-left: 1px dashed #bbb;
+}
+
+.user-card {
+  background: #fff;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.05);
+  font-size: 15px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.children {
+  margin-left: 12px;
+}
+</style>
