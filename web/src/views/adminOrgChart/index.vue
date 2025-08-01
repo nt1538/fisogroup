@@ -22,8 +22,9 @@ const rootNodes = ref([])
 
 onMounted(async () => {
   const res = await axios.get('/admin/org-chart')
+  console.log('[DEBUG] Org Chart Response:', res.data) // add this
   orgData.value = res.data
-  rootNodes.value = []  // reset in case of re-entry
+  rootNodes.value = []  // reset
   buildTree()
 })
 
