@@ -1,7 +1,7 @@
 <template>
   <div class="tree-node">
     <div class="user-card">
-      👤 {{ node.name }} ({{ node.national_producer_number }}) - {{ node.hierarchy_level }}
+      👤 {{ node.name }} ({{ node.id }}) - {{ node.hierarchy_level }}
     </div>
     <div v-if="node.children.length" class="children">
       <TreeNode
