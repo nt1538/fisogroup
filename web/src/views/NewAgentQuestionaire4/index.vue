@@ -99,7 +99,6 @@ function submitForm() {
   background-color: #f4f4f4;
   min-height: 100vh;
   margin-left: 280px;
-  overflow-y: scroll;
 }
 
 h1 {
@@ -125,13 +124,13 @@ p {
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  overflow-y: scroll;
 }
 
 .question-block {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-y: scroll;
 }
 
 .question-label {
