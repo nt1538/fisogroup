@@ -95,7 +95,9 @@ function submitForm() {
 <style scoped>
 .dashboard {
   display: flex;
+  padding: 40px 40px 100px;
   height: 100vh; /* ✅ 固定整页高度 */
+  overflow-y: scroll;
 }
 .form-container {
   flex-grow: 1;
