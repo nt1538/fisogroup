@@ -23,7 +23,6 @@ const rootNodes = ref([])
 onMounted(async () => {
   try {
     const res = await axios.get('/admin/org-chart')
-    console.log('[DEBUG] Org Chart Response:', res.data)
     orgData.value = res.data
     rootNodes.value = []
     buildTree()

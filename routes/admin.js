@@ -389,7 +389,7 @@ router.get('/employees', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-router.get('/summary', async (req, res) => {
+router.get('/summary', verifyToken, verifyAdmin, async (req, res) => {
   try {
     // 1. 用户总数
     const { rows: users } = await pool.query(`SELECT COUNT(*) FROM users`);
