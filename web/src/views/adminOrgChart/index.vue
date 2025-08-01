@@ -14,18 +14,22 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import axios from '@/config/axios.config';
 import TreeNode from './TreeNode.vue'
 
 const orgData = ref([])
 const rootNodes = ref([])
 
 onMounted(async () => {
-  const res = await axios.get('/admin/org-chart')
-  console.log('[DEBUG] Org Chart Response:', res.data) // add this
-  orgData.value = res.data
-  rootNodes.value = []  // reset
-  buildTree()
+  try {
+    const res = await axios.get('/admin/org-chart')
+    console.log('[DEBUG] Org Chart Response:', res.data)
+    orgData.value = res.data
+    rootNodes.value = []
+    buildTree()
+  } catch (err) {
+    console.error('[ERROR] Failed to load org chart:', err)
+  }
 })
 
 function buildTree() {
