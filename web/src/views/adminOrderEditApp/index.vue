@@ -102,7 +102,10 @@ onMounted(async () => {
         key === 'commission_distribution_date' ||
         key === 'policy_effective_date'
       ) {
-        editableFields.value[key] = formatDateInput(order.value[key]);
+        // 如果为空，赋予今天作为默认值
+        editableFields.value[key] = order.value[key]
+          ? formatDateInput(order.value[key])
+          : formatDateInput(new Date());
       } else {
         editableFields.value[key] = order.value[key];
       }
@@ -112,6 +115,7 @@ onMounted(async () => {
   // Overwrite order.value with formatted fields so v-model works correctly
   order.value = { ...order.value, ...editableFields.value };
 });
+
 
 async function saveOrder() {
   await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);

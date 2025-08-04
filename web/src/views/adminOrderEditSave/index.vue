@@ -8,9 +8,23 @@
         class="form-group"
       >
         <label :for="key">{{ key }}</label>
-        <input :id="key" :value="item" readonly />
-      </div>
+  
+        <!-- Editable date field -->
+        <input
+          v-if="key === 'policy_effective_date'"
+          type="date"
+          v-model="order[key]"
+          :id="key"
+        />
 
+        <!-- Read-only for all other fields -->
+        <input
+          v-else
+          :id="key"
+          :value="item"
+        readonly
+        />
+      </div>
       <div class="form-group">
         <label for="comment">Admin Comment</label>
         <textarea v-model="order.comment" id="comment" rows="5" />
@@ -44,7 +58,14 @@ const filteredOrderFields = computed(() => {
 onMounted(async () => {
   try {
     const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
-    order.value = res.data;
+    const data = res.data;
+
+    // Format the date properly
+    if (data.policy_effective_date) {
+      data.policy_effective_date = formatDateInput(data.policy_effective_date);
+    }
+
+    order.value = data;
   } catch (error) {
     console.error('Failed to fetch order:', error);
     alert('Failed to load order details');
@@ -63,9 +84,13 @@ async function saveOrder() {
   }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  return dateStr.split('T')[0] // 简单粗暴适配 ISO 字符串
+function formatDateInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 </script>
