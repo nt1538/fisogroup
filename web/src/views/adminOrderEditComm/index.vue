@@ -8,7 +8,22 @@
         class="form-group"
       >
         <label :for="key">{{ key }}</label>
-        <input :id="key" :value="item" readonly />
+  
+        <!-- Editable date field -->
+        <input
+          v-if="key === 'policy_effective_date'"
+          type="date"
+          v-model="order[key]"
+          :id="key"
+        />
+
+        <!-- Read-only for all other fields -->
+        <input
+          v-else
+          :id="key"
+          :value="item"
+        readonly
+        />
       </div>
 
       <div class="form-group">
@@ -44,7 +59,14 @@ const filteredOrderFields = computed(() => {
 onMounted(async () => {
   try {
     const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
-    order.value = res.data;
+    const data = res.data;
+
+    // Format the date properly
+    if (data.policy_effective_date) {
+      data.policy_effective_date = formatDateInput(data.policy_effective_date);
+    }
+
+    order.value = data;
   } catch (error) {
     console.error('Failed to fetch order:', error);
     alert('Failed to load order details');
@@ -55,13 +77,26 @@ async function saveOrder() {
   try {
     await axios.put(`/admin/orders/${tableType}/${orderId}`, {
       comment: order.value.comment,
+      policy_effective_date: order.value.policy_effective_date,
     });
-    alert('Comment saved successfully');
+    alert('Saved successfully');
   } catch (error) {
-    console.error('Failed to save Comment:', error);
-    alert('Failed to save Comment');
+    console.error('Failed to save:', error);
+    alert('Failed to save');
   }
 }
+
+
+function formatDateInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+
 </script>
 
 <style scoped>

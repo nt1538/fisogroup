@@ -94,9 +94,23 @@ const editableFields = ref({
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
+
   for (const key in editableFields.value) {
-    if (key in order.value) editableFields.value[key] = order.value[key];
+    if (key in order.value) {
+      if (
+        key === 'application_date' ||
+        key === 'commission_distribution_date' ||
+        key === 'policy_effective_date'
+      ) {
+        editableFields.value[key] = formatDateInput(order.value[key]);
+      } else {
+        editableFields.value[key] = order.value[key];
+      }
+    }
   }
+
+  // Overwrite order.value with formatted fields so v-model works correctly
+  order.value = { ...order.value, ...editableFields.value };
 });
 
 async function saveOrder() {
@@ -118,6 +132,16 @@ async function deleteOrder() {
     alert('Failed to delete the order');
   }
 }
+
+function formatDateInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 </script>
 
 <style scoped>

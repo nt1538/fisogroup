@@ -62,6 +62,12 @@ async function saveOrder() {
     alert('Failed to save Comment');
   }
 }
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  return dateStr.split('T')[0] // 简单粗暴适配 ISO 字符串
+}
+
 </script>
 
 <style scoped>
