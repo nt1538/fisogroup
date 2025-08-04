@@ -179,14 +179,15 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
         // 当前用户保留部分
         const userPart = {
           ...updatedOrder,
-          commission_from_carrier: (updatedOrder.commission_from_carrier * remainingPercent / 100),
+          target_premium: (updatedOrder.target_premium * remainingPercent / 100),
         };
 
         // 拆分给 split_user_id 的部分（注意移除 id）
         const { id: _, ...splitPart } = {
           ...updatedOrder,
           user_id: split_with_id,
-          commission_from_carrier: (updatedOrder.commission_from_carrier * split_percent / 100),
+          target_premium: (updatedOrder.target_premium * split_percent / 100),
+          split_percent: remainingPercent, // 保证拆分后总和为 100%
         };
 
         // 插入拆分订单
@@ -205,12 +206,12 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
         // 更新当前用户订单为其部分
         const updateUserQuery = `
         UPDATE ${type}
-          SET commission_from_carrier = $1
+          SET target_premium = $1
           WHERE id = $2
           RETURNING *;
         `;
         const updatedUserRes = await client.query(updateUserQuery, [
-          userPart.commission_from_carrier,
+          userPart.target_premium,
           updatedOrder.id,
       ]);
         const updatedUserOrder = updatedUserRes.rows[0];
