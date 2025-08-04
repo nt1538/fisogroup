@@ -100,8 +100,14 @@ async function loadOrders() {
 }
 
 function formatDate(dateStr) {
-  return new Date(dateStr).toISOString().split('T')[0]
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
+
 
 onMounted(() => {
   loadOrders();
