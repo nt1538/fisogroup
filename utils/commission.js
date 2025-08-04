@@ -113,7 +113,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
       $1,$2,$3,$4,$5,$6,$7,$8,
       $9,$10,$11,$12,$13,$14,$15,$16,
       $17,$18,$19,
-      $20,$21
+      $20,$21,$22,$23
     )
   `, [
     user.id, user.name, user.national_producer_number, user.hierarchy_level,
