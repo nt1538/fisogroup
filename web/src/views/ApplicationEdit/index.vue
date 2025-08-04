@@ -118,11 +118,7 @@ async function updateOrder() {
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return dateStr.split('T')[0] // 简单粗暴适配 ISO 字符串
 }
 
 </script>
