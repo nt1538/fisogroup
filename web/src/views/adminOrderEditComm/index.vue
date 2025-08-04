@@ -44,21 +44,21 @@ const tableType = route.params.table_type;
 const order = ref(null);
 
 const editableFields = ref({
-  product_name_carrier: '',
-  national_producer_number: '',
+  product_name: '',
+  carrier_name: '',
   application_date: '',
+  commission_distribution_date: '',
+  policy_effective_date: '',
   policy_number: '',
   face_amount: 0,
   target_premium: 0,
   initial_premium: 0,
   commission_from_carrier: 0,
-  commission_percent: 0,
-  commission_amount: 0,
   application_status: '',
   mra_status: '',
-  hierarchy_level: '',
-  commission_type: '',
-  policy_effective_date: '',
+  split_with_id: '',
+  split_percent: 0,
+  explanation: '',
 });
 
 onMounted(async () => {

@@ -1,37 +1,31 @@
 <template>
   <AdminLayout>
-    <h2>Edit Saved Order #{{ orderId }}</h2>
-    <div v-if="order" class="form-container">
-      <div
-        v-for="(item, key) in filteredOrderFields"
-        :key="key"
-        class="form-group"
-      >
-        <label :for="key">{{ key }}</label>
-  
-        <!-- Editable date field -->
-        <input
-          v-if="key === 'policy_effective_date'"
-          type="date"
-          v-model="order[key]"
-          :id="key"
-        />
+    <h2>Edit Commission Order #{{ orderId }}</h2>
+    <div v-if="order">
+      <div class="form-group" v-for="(value, key) in editableFields" :key="key">
+        <label :for="key">
+          {{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+        </label>
 
-        <!-- Read-only for all other fields -->
-        <input
-          v-else
-          :id="key"
-          :value="item"
-        readonly
-        />
+        <!-- Only allow editing for policy_effective_date -->
+        <template v-if="key === 'policy_effective_date'">
+          <input type="date" v-model="order[key]" :id="key" />
+        </template>
+
+        <!-- Other fields readonly -->
+        <template v-else>
+          <input type="text" :value="order[key]" :id="key" readonly />
+        </template>
       </div>
+
+      <!-- Admin Comment -->
       <div class="form-group">
-        <label for="comment">Admin Comment</label>
-        <textarea v-model="order.comment" id="comment" rows="5" />
+        <label for="comment">Comment</label>
+        <textarea v-model="order.comment" id="comment" rows="4" />
       </div>
 
       <div class="button-row">
-        <button @click="saveOrder">💾 Save Comment</button>
+        <button @click="saveOrder">Save</button>
       </div>
     </div>
     <div v-else>Loading...</div>
@@ -39,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
@@ -49,38 +43,59 @@ const orderId = route.params.id;
 const tableType = route.params.table_type;
 const order = ref(null);
 
-const filteredOrderFields = computed(() => {
-  if (!order.value) return {};
-  return Object.fromEntries(
-    Object.entries(order.value).filter(([key]) => key !== 'comment')
-  );
+const editableFields = ref({
+  product_name: '',
+  carrier_name: '',
+  application_date: '',
+  commission_distribution_date: '',
+  policy_effective_date: '',
+  policy_number: '',
+  face_amount: 0,
+  target_premium: 0,
+  initial_premium: 0,
+  commission_from_carrier: 0,
+  application_status: '',
+  mra_status: '',
+  split_with_id: '',
+  split_percent: 0,
+  explanation: '',
 });
+
 onMounted(async () => {
-  try {
-    const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
-    const data = res.data;
+  const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
+  order.value = res.data;
 
-    // Format the date properly
-    if (data.policy_effective_date) {
-      data.policy_effective_date = formatDateInput(data.policy_effective_date);
+  for (const key in editableFields.value) {
+    if (key in order.value) {
+      if (key === 'policy_effective_date') {
+        editableFields.value[key] = order.value[key]
+          ? formatDateInput(order.value[key])
+          : '';
+      } else if (
+        key === 'application_date'
+      ) {
+        editableFields.value[key] = order.value[key]
+          ? formatDateInput(order.value[key])
+          : '';
+      } else {
+        editableFields.value[key] = order.value[key];
+      }
     }
-
-    order.value = data;
-  } catch (error) {
-    console.error('Failed to fetch order:', error);
-    alert('Failed to load order details');
   }
+
+  order.value = { ...order.value, ...editableFields.value };
 });
 
 async function saveOrder() {
   try {
     await axios.put(`/admin/orders/${tableType}/${orderId}`, {
+      policy_effective_date: order.value.policy_effective_date,
       comment: order.value.comment,
     });
-    alert('Comment saved successfully');
+    alert('Saved successfully');
   } catch (error) {
-    console.error('Failed to save Comment:', error);
-    alert('Failed to save Comment');
+    console.error('Failed to save:', error);
+    alert('Failed to save');
   }
 }
 
@@ -92,15 +107,9 @@ function formatDateInput(value) {
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
-
 </script>
 
 <style scoped>
-.form-container {
-  display: flex;
-  flex-direction: column;
-  max-width: 600px;
-}
 .form-group {
   margin-bottom: 15px;
   display: flex;
@@ -111,14 +120,17 @@ label {
   margin-bottom: 5px;
   text-transform: capitalize;
 }
-input[readonly] {
-  background-color: #f0f0f0;
+input,
+select,
+textarea {
   padding: 8px;
   border: 1px solid #ccc;
 }
+input[readonly] {
+  background-color: #f3f3f3;
+  color: #555;
+}
 textarea {
-  padding: 10px;
-  border: 1px solid #ccc;
   resize: vertical;
 }
 .button-row {
