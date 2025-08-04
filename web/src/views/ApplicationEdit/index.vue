@@ -30,7 +30,9 @@
 
         <div class="form-row">
           <label>Application Date:</label>
-          <input type="date" v-model="formatDate" required />
+          <input type="date" :value="formatDate(form.application_date)"
+            @input="e => form.application_date = e.target.value"
+          />
         </div>
 
         <div class="form-row">
