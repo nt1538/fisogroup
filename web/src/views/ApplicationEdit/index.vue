@@ -31,7 +31,7 @@
         <div class="form-row">
           <label>Application Date:</label>
           <input type="date" :value="formatDate(form.application_date)"
-            @input="e => form.application_date = e.target.value"
+            @input="e => form.application_date = e.target.value" required
           />
         </div>
 
@@ -59,17 +59,17 @@
 
         <div class="form-row">
           <label>Split ID</label>
-          <input v-model="form.split_with_id" type="text" required />
+          <input v-model="form.split_with_id" type="text" />
         </div>
 
         <div class="form-row">
           <label>Split Percentage</label>
-          <input v-model.number="form.split_percent" type="number" required />
+          <input v-model.number="form.split_percent" type="number" />
         </div>
 
         <div class="form-row">
           <label>Explanation</label>
-          <input v-model="form.explanation" type="text" required />
+          <input v-model="form.explanation" type="text" />
         </div>
 
         <button type="submit">Save Changes</button>
