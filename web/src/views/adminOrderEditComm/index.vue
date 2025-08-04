@@ -1,38 +1,31 @@
 <template>
   <AdminLayout>
     <h2>Edit Commission Order #{{ orderId }}</h2>
-    <div v-if="order" class="form-container">
-      <div
-        v-for="(item, key) in filteredOrderFields"
-        :key="key"
-        class="form-group"
-      >
-        <label :for="key">{{ key }}</label>
-  
-        <!-- Editable date field -->
-        <input
-          v-if="key === 'policy_effective_date'"
-          type="date"
-          v-model="order[key]"
-          :id="key"
-        />
+    <div v-if="order">
+      <div class="form-group" v-for="(value, key) in editableFields" :key="key">
+        <label :for="key">
+          {{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+        </label>
 
-        <!-- Read-only for all other fields -->
-        <input
-          v-else
-          :id="key"
-          :value="item"
-        readonly
-        />
+        <!-- Only allow editing for policy_effective_date -->
+        <template v-if="key === 'policy_effective_date'">
+          <input type="date" v-model="order[key]" :id="key" />
+        </template>
+
+        <!-- Other fields readonly -->
+        <template v-else>
+          <input type="text" :value="order[key]" :id="key" readonly />
+        </template>
       </div>
 
+      <!-- Admin Comment -->
       <div class="form-group">
-        <label for="comment">Admin Comment</label>
-        <textarea v-model="order.comment" id="comment" rows="5" />
+        <label for="comment">Comment</label>
+        <textarea v-model="order.comment" id="comment" rows="4" />
       </div>
 
       <div class="button-row">
-        <button @click="saveOrder">💾 Save Comment</button>
+        <button @click="saveOrder">Save</button>
       </div>
     </div>
     <div v-else>Loading...</div>
@@ -40,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
@@ -50,25 +43,37 @@ const orderId = route.params.id;
 const tableType = route.params.table_type;
 const order = ref(null);
 
-const filteredOrderFields = computed(() => {
-  if (!order.value) return {};
-  return Object.fromEntries(
-    Object.entries(order.value).filter(([key]) => key !== 'comment' && key !== 'policy_effective_date')
-  );
+const editableFields = ref({
+  product_name_carrier: '',
+  national_producer_number: '',
+  application_date: '',
+  policy_number: '',
+  face_amount: 0,
+  target_premium: 0,
+  initial_premium: 0,
+  commission_from_carrier: 0,
+  commission_percent: 0,
+  commission_amount: 0,
+  application_status: '',
+  mra_status: '',
+  hierarchy_level: '',
+  commission_type: '',
+  policy_effective_date: '',
 });
+
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
 
   for (const key in editableFields.value) {
     if (key in order.value) {
-      if (key === 'commission_distribution_date') {
-        // 只给 commission_distribution_date 设置默认今天
+      if (key === 'policy_effective_date') {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
-          : formatDateInput(new Date());
-      } else if (key === 'application_date' || key === 'policy_effective_date') {
-        // 若为 null 或空，保持空字符串（不显示）
+          : '';
+      } else if (
+        key === 'application_date'
+      ) {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
           : '';
@@ -84,8 +89,8 @@ onMounted(async () => {
 async function saveOrder() {
   try {
     await axios.put(`/admin/orders/${tableType}/${orderId}`, {
-      comment: order.value.comment,
       policy_effective_date: order.value.policy_effective_date,
+      comment: order.value.comment,
     });
     alert('Saved successfully');
   } catch (error) {
@@ -93,7 +98,6 @@ async function saveOrder() {
     alert('Failed to save');
   }
 }
-
 
 function formatDateInput(value) {
   if (!value) return '';
@@ -103,16 +107,9 @@ function formatDateInput(value) {
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
-
-
 </script>
 
 <style scoped>
-.form-container {
-  display: flex;
-  flex-direction: column;
-  max-width: 600px;
-}
 .form-group {
   margin-bottom: 15px;
   display: flex;
@@ -123,14 +120,17 @@ label {
   margin-bottom: 5px;
   text-transform: capitalize;
 }
-input[readonly] {
-  background-color: #f0f0f0;
+input,
+select,
+textarea {
   padding: 8px;
   border: 1px solid #ccc;
 }
+input[readonly] {
+  background-color: #f3f3f3;
+  color: #555;
+}
 textarea {
-  padding: 10px;
-  border: 1px solid #ccc;
   resize: vertical;
 }
 .button-row {
@@ -145,4 +145,3 @@ button {
   border: none;
   cursor: pointer;
 }
-</style>

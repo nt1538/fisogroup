@@ -28,7 +28,7 @@
           <input type="number" v-model="order[key]" :id="key" required/>
         </template>
         <template v-else-if="key === 'explanation'">
-          <input type="text" v-model="order[key]" :id="key" required/>
+          <input type="text" v-model="order[key]" :id="key" />
         </template>
         <template v-else-if="key === 'split_with_id'">
           <input type="text" v-model="order[key]" :id="key" required/>
