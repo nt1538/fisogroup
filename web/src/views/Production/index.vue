@@ -105,8 +105,8 @@
     }
   }
 
-  function formatDate(date) {
-    return new Date(date).toLocaleDateString();
+  function formatDate(dateStr) {
+    return new Date(dateStr).toISOString().split('T')[0]
   }
   
   onMounted(() => fetchData());

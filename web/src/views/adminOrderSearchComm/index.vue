@@ -100,7 +100,7 @@ async function loadOrders() {
 }
 
 function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString();
+  return new Date(dateStr).toISOString().split('T')[0]
 }
 
 onMounted(() => {
