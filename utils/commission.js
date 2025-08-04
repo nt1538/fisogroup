@@ -67,7 +67,7 @@ async function getHierarchy(userId) {
 }
 
 async function checkSplitPoints(order, chart, hierarchy) {
-  const baseAmount = parseFloat(order.commission_from_carrier || 0);
+  const baseAmount = parseFloat(order.target_premium || 0);
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
   const self = userRes.rows[0];
   const allUsers = [...hierarchy, self];
@@ -131,7 +131,7 @@ async function handleCommissions(order, userId, table_type) {
   if (!user) return;
 
   const chart = await getCommissionChart();
-  const baseAmount = parseFloat(order.commission_from_carrier || 0);
+  const baseAmount = parseFloat(order.target_premium || 0);
   const profitBefore = parseFloat(user.profit || 0);
   const hierarchy = await getHierarchy(userId);
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
@@ -188,17 +188,17 @@ async function handleCommissions(order, userId, table_type) {
   }
 
   // Insert merged commissions
-  await insertCommissionOrder(order, user, 'Personal Commission', Math.round(totalPersonalCommission / order.commission_from_carrier * 10000) / 100, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
+  await insertCommissionOrder(order, user, 'Personal Commission', Math.round(totalPersonalCommission / order.target_premium * 10000) / 100, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
   for (let [uid, amt] of levelDiffMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Level Difference', amt / order.commission_from_carrier * 100, amt, 'Merged Level Difference', order.id, commissionTable);
+      await insertCommissionOrder(order, res.rows[0], 'Level Difference', amt / order.target_premium * 100, amt, 'Merged Level Difference', order.id, commissionTable);
     }
   }
   for (let [uid, amt] of genOverrideMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Generation Override', amt / order.commission_from_carrier* 100, amt, 'Merged Generation Override', order.id, commissionTable);
+      await insertCommissionOrder(order, res.rows[0], 'Generation Override', amt / order.target_premium * 100, amt, 'Merged Generation Override', order.id, commissionTable);
     }
   }
   await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
