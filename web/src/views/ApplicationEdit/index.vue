@@ -30,7 +30,7 @@
 
         <div class="form-row">
           <label>Application Date:</label>
-          <input type="date" v-model="form.application_date" required />
+          <input type="date" v-model="formatDate" required />
         </div>
 
         <div class="form-row">
@@ -115,6 +115,16 @@ async function updateOrder() {
     alert("❌ Failed to update order.");
   }
 }
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 </script>
 
 <style scoped>
