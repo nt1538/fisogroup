@@ -53,24 +53,32 @@ const order = ref(null);
 const filteredOrderFields = computed(() => {
   if (!order.value) return {};
   return Object.fromEntries(
-    Object.entries(order.value).filter(([key]) => key !== 'comment')
+    Object.entries(order.value).filter(([key]) => key !== 'comment' && key !== 'policy_effective_date')
   );
 });
 onMounted(async () => {
-  try {
-    const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
-    const data = res.data;
+  const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
+  order.value = res.data;
 
-    // Format the date properly
-    if (data.policy_effective_date) {
-      data.policy_effective_date = formatDateInput(data.policy_effective_date);
+  for (const key in editableFields.value) {
+    if (key in order.value) {
+      if (key === 'commission_distribution_date') {
+        // 只给 commission_distribution_date 设置默认今天
+        editableFields.value[key] = order.value[key]
+          ? formatDateInput(order.value[key])
+          : formatDateInput(new Date());
+      } else if (key === 'application_date' || key === 'policy_effective_date') {
+        // 若为 null 或空，保持空字符串（不显示）
+        editableFields.value[key] = order.value[key]
+          ? formatDateInput(order.value[key])
+          : '';
+      } else {
+        editableFields.value[key] = order.value[key];
+      }
     }
-
-    order.value = data;
-  } catch (error) {
-    console.error('Failed to fetch order:', error);
-    alert('Failed to load order details');
   }
+
+  order.value = { ...order.value, ...editableFields.value };
 });
 
 async function saveOrder() {

@@ -16,10 +16,10 @@
           <input type="text" v-model="order[key]" :id="key" required/>
         </template>
         <template v-else-if="key === 'application_date'">
-          <input type="date" v-model="order[key]" :id="key" />
+          <input type="date" v-model="order[key]" :id="key" required/>
         </template>
         <template v-else-if="key === 'commission_distribution_date'">
-          <input type="date" v-model="order[key]" :id="key" />
+          <input type="date" v-model="order[key]" :id="key" required/>
         </template>
         <template v-else-if="key === 'policy_effective_date'">
           <input type="date" v-model="order[key]" :id="key" />
