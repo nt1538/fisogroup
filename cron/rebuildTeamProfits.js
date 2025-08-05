@@ -1,6 +1,6 @@
 // cron/rebuildTeamProfits.js
 
-const db = require('../config/db'); // 你的数据库连接文件
+const db = require('../db'); // 你的数据库连接文件
 
 async function rebuildTeamProfits() {
   try {
