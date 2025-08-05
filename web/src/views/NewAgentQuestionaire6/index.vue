@@ -1,90 +1,187 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto bg-white rounded shadow-md">
-    <h2 class="text-2xl font-bold mb-6">Letter of Explanation</h2>
+  <div class="dashboard">
+    <Sidebar />
+    <div class="form-container">
+      <h1>History</h1>
 
-    <div v-for="(entry, index) in actions" :key="index" class="mb-8 border-b pb-4">
-      <h3 class="text-lg font-semibold mb-2">Entry {{ index + 1 }}</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block font-medium mb-1">Date of Action:</label>
-          <input type="date" v-model="entry.date" class="input" />
+      <form @submit.prevent="submitForm" class="form-grid">
+        <h2>Employment History (Last 5 Years)</h2>
+        <div
+          v-for="(job, index) in employmentHistory"
+          :key="'job' + index"
+          class="block-section"
+        >
+          <h3>Employment #{{ index + 1 }}</h3>
+          <div class="input-group">
+            <label>From:</label>
+            <input type="date" v-model="job.from" />
+            <label>To:</label>
+            <input type="date" v-model="job.to" />
+          </div>
+          <div class="input-group">
+            <label>Company:</label>
+            <input type="text" v-model="job.company" />
+            <label>Position:</label>
+            <input type="text" v-model="job.position" />
+          </div>
+          <div class="input-group">
+            <label>Location:</label>
+            <input type="text" v-model="job.location" />
+          </div>
         </div>
-        <div>
-          <label class="block font-medium mb-1">Action:</label>
-          <input type="text" v-model="entry.action" class="input" />
+
+        <h2>Address History (Last 5 Years)</h2>
+        <div
+          v-for="(addr, index) in addressHistory"
+          :key="'addr' + index"
+          class="block-section"
+        >
+          <h3>Address #{{ index + 1 }}</h3>
+          <div class="input-group">
+            <label>From:</label>
+            <input type="date" v-model="addr.from" />
+            <label>To:</label>
+            <input type="date" v-model="addr.to" />
+          </div>
+          <div class="input-group">
+            <label>Street Address (Line 1):</label>
+            <input type="text" v-model="addr.line1" />
+          </div>
+          <div class="input-group">
+            <label>City:</label>
+            <input type="text" v-model="addr.city" />
+            <label>State & Zip:</label>
+            <input type="text" v-model="addr.stateZip" />
+          </div>
         </div>
-        <div class="md:col-span-2">
-          <label class="block font-medium mb-1">Reason:</label>
-          <input type="text" v-model="entry.reason" class="input" />
+
+        <div class="form-actions">
+          <button type="submit">Submit</button>
+          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
         </div>
-        <div class="md:col-span-2">
-          <label class="block font-medium mb-1">Explanation:</label>
-          <textarea v-model="entry.explanation" rows="3" class="input"></textarea>
-        </div>
-      </div>
+      </form>
     </div>
-
-    <button @click="addEntry" class="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-      + Add Another Entry
-    </button>
-
-    <div class="mb-4">
-      <label class="block font-medium mb-1">Signature:</label>
-      <input type="text" v-model="signature" class="input" />
-    </div>
-    <div class="mb-6">
-      <label class="block font-medium mb-1">Date:</label>
-      <input type="date" v-model="signedDate" class="input" />
-    </div>
-
-    <p class="text-sm text-gray-700 mb-6">
-      I attest that the information I have provided is true to the best of my knowledge.
-      I acknowledge that if any information changes, I will notify my agency office within 5 days of such change.
-      Further, I understand that my agency may contact me when I need to answer carrier specific questions.
-    </p>
-
-    <button @click="submitForm" class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-      Submit
-    </button>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import Sidebar from '@/components/Sidebar.vue'
 
-const actions = reactive([
-  { date: '', action: '', reason: '', explanation: '' },
-  { date: '', action: '', reason: '', explanation: '' },
-  { date: '', action: '', reason: '', explanation: '' },
+const router = useRouter()
+
+const employmentHistory = ref([
+  { from: '', to: '', company: '', position: '', location: '' },
+  { from: '', to: '', company: '', position: '', location: '' },
+  { from: '', to: '', company: '', position: '', location: '' }
 ])
 
-const signature = ref('')
-const signedDate = ref('')
-
-function addEntry() {
-  actions.push({ date: '', action: '', reason: '', explanation: '' })
-}
+const addressHistory = ref([
+  { from: '', to: '', line1: '', city: '', stateZip: '' },
+  { from: '', to: '', line1: '', city: '', stateZip: '' },
+  { from: '', to: '', line1: '', city: '', stateZip: '' },
+  { from: '', to: '', line1: '', city: '', stateZip: '' },
+  { from: '', to: '', line1: '', city: '', stateZip: '' }
+])
 
 function submitForm() {
-  console.log('Form submitted with:', {
-    actions,
-    signature: signature.value,
-    signedDate: signedDate.value
-  })
-  // send to backend via axios or API handler here
+  localStorage.setItem('employmentHistory', JSON.stringify(employmentHistory.value))
+  localStorage.setItem('addressHistory', JSON.stringify(addressHistory.value))
+  alert('History saved successfully.')
+  router.push('/employee/form7')
+}
+
+function skipToNextPage() {
+  router.push('/employee/form7')
 }
 </script>
 
 <style scoped>
-.input {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  outline: none;
-  transition: border-color 0.2s;
+.dashboard {
+  display: flex;
+  padding: 40px 40px 100px;
+  height: 100vh;
+  overflow-y: scroll;
 }
-.input:focus {
-  border-color: #3b82f6;
+.form-container {
+  flex-grow: 1;
+  padding: 40px 40px 100px;
+  background-color: #f4f4f4;
+  min-height: 100vh;
+  margin-left: 280px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+h2 {
+  font-size: 20px;
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 20px;
+  color: #333;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.block-section {
+  padding: 15px 0;
+  border-top: 1px solid #ddd;
+}
+
+.input-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+input[type='text'],
+input[type='date'] {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  flex: 1;
+  min-width: 200px;
+}
+
+.form-actions {
+  margin-top: 30px;
+}
+
+button {
+  background-color: #0055a4;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+button:hover {
+  background-color: #003f82;
 }
 </style>
+

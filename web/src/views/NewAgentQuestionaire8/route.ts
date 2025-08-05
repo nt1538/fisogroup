@@ -1,8 +1,8 @@
 export default {
   tabs: [
     {
-      name: 'Collection Form 6',
-      path: '/employee/form6',
+      name: 'Collection Form 8',
+      path: '/employee/form8',
       component: () => import('./index.vue')
     }
   ]
