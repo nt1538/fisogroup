@@ -1,61 +1,59 @@
-const pool = require('../db');
-const { getHierarchy, reconcileLevel } = require('../utils/commission');
+// cron/rebuildTeamProfits.js
+
+const db = require('../config/db'); // 你的数据库连接文件
 
 async function rebuildTeamProfits() {
-  console.log('🛠 正在重新计算所有用户的 team_profit（滚动 12 个月内）...');
+  try {
+    console.log('🛠 正在重新计算所有用户的 team_profit（滚动 12 个月内）...');
 
-  const commissionChart = (await pool.query('SELECT * FROM commission_chart')).rows;
-
-  // Step 1: 初始化所有用户的 team_profit = 0
-  await pool.query('UPDATE users SET team_profit = 0');
-
-  // Step 2: 获取所有订单（12个月内）
-  const [lifeOrders, annuityOrders] = await Promise.all([
-    pool.query(`
-      SELECT id, user_id, target_premium, commission_distribution_date
+    // 拉取 rolling 12 months 内的 life 订单
+    const { rows: lifeOrders } = await db.query(`
+      SELECT user_id, target_premium
       FROM saved_life_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
-    `),
-    pool.query(`
-      SELECT id, user_id, target_premium, commission_distribution_date
+    `);
+
+    // 拉取 rolling 12 months 内的 annuity 订单
+    const { rows: annuityOrders } = await db.query(`
+      SELECT user_id, flex_premium
       FROM saved_annuity_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
-    `),
-  ]);
+    `);
 
-  const validOrders = [...lifeOrders.rows, ...annuityOrders.rows];
+    // 合并订单并统一为 target_premium 单位
+    const allOrders = [
+      ...lifeOrders.map(o => ({
+        user_id: o.user_id,
+        target_premium: parseFloat(o.target_premium || 0),
+      })),
+      ...annuityOrders.map(o => ({
+        user_id: o.user_id,
+        target_premium: parseFloat(o.flex_premium || 0) * 0.06,
+      })),
+    ];
 
-  const teamProfitMap = new Map(); // user_id -> team_profit
+    // 初始化 user -> team_profit 累加器
+    const profitMap = new Map();
 
-  // Step 3: 累加 target_premium 给每个用户及其 introducers
-  for (const order of validOrders) {
-    const userId = order.user_id;
-    const targetPremium = parseFloat(order.target_premium || 0);
-    if (targetPremium <= 0) continue;
-
-    const hierarchy = await getHierarchy(userId); // 包含写单人
-
-    for (const member of hierarchy) {
-      const oldProfit = teamProfitMap.get(member.id) || 0;
-      teamProfitMap.set(member.id, oldProfit + targetPremium);
+    for (const order of allOrders) {
+      if (!order.user_id) continue;
+      if (!profitMap.has(order.user_id)) profitMap.set(order.user_id, 0);
+      profitMap.set(order.user_id, profitMap.get(order.user_id) + order.target_premium);
     }
+
+    // 批量写入到 users 表
+    for (const [userId, profit] of profitMap.entries()) {
+      await db.query(
+        `UPDATE users SET team_profit = $1 WHERE id = $2`,
+        [profit.toFixed(2), userId]
+      );
+      console.log(`🔄 更新用户 ${userId} 的 team_profit = ${profit.toFixed(2)}`);
+    }
+
+    console.log(`✅ 重算完成，共更新 ${profitMap.size} 位用户的 team_profit`);
+  } catch (err) {
+    console.error('❌ Error rebuilding team profits:', err);
   }
-
-  // Step 4: 更新数据库中的 users 表
-  for (const [userId, teamProfit] of teamProfitMap.entries()) {
-    const res = await pool.query(`SELECT hierarchy_level FROM users WHERE id = $1`, [userId]);
-    const currentLevel = res.rows[0].hierarchy_level;
-    const newLevel = reconcileLevel(teamProfit, currentLevel, commissionChart);
-
-    await pool.query(`
-      UPDATE users SET team_profit = $1, hierarchy_level = $2 WHERE id = $3
-    `, [teamProfit, newLevel, userId]);
-  }
-
-  console.log('✅ 所有用户的团队业绩和等级已成功刷新（按滚动12个月）。');
 }
 
-rebuildTeamProfits().catch(err => {
-  console.error('❌ Error rebuilding team profits:', err);
-  process.exit(1);
-});
+module.exports = rebuildTeamProfits;
