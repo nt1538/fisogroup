@@ -106,41 +106,70 @@ async function checkSplitPoints(order, chart, hierarchy) {
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId, tableName) {
   const isAnnuity = tableName.includes('annuity');
 
-  const insertQuery = `
-    INSERT INTO ${tableName} (
-      user_id, full_name, national_producer_number, hierarchy_level,
-      commission_percent, commission_amount, carrier_name, product_name,
-      application_date, commission_distribution_date, policy_effective_date, policy_number,
-      insured_name, writing_agent,
-      ${isAnnuity ? 'flex_premium,' : 'face_amount, target_premium,'}
-      initial_premium,
-      commission_from_carrier, application_status, mra_status,
-      order_type, parent_order_id, explanation,
-      split_percent, split_with_id
-    ) VALUES (
-      $1, $2, $3, $4,
-      $5, $6, $7, $8,
-      $9, $10, $11, $12,
-      $13, $14,
-      ${isAnnuity ? '$15,' : '$15, $16,'}
-      ${isAnnuity ? '$16' : '$17'},
-      $18, $19, $20,
-      $21, $22, $23,
-      $24, $25
-    );
-  `;
+  let insertQuery;
+  let values;
 
-  const values = [
-    user.id, user.name, user.national_producer_number, user.hierarchy_level,
-    percent, amount, order.carrier_name, order.product_name,
-    order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
-    order.insured_name, order.writing_agent,
-    ...(isAnnuity ? [order.flex_premium] : [order.face_amount, order.target_premium]),
-    order.initial_premium,
-    order.commission_from_carrier, order.application_status, order.mra_status,
-    type, parentId, explanation,
-    order.split_percent, order.split_with_id
-  ];
+  if (isAnnuity) {
+    insertQuery = `
+      INSERT INTO ${tableName} (
+        user_id, full_name, national_producer_number, hierarchy_level,
+        commission_percent, commission_amount, carrier_name, product_name,
+        application_date, commission_distribution_date, policy_effective_date, policy_number,
+        insured_name, writing_agent, flex_premium,
+        initial_premium, commission_from_carrier, application_status, mra_status,
+        order_type, parent_order_id, explanation,
+        split_percent, split_with_id
+      ) VALUES (
+        $1, $2, $3, $4,
+        $5, $6, $7, $8,
+        $9, $10, $11, $12,
+        $13, $14, $15,
+        $16, $17, $18, $19,
+        $20, $21, $22,
+        $23, $24
+      );
+    `;
+
+    values = [
+      user.id, user.name, user.national_producer_number, user.hierarchy_level,
+      percent, amount, order.carrier_name, order.product_name,
+      order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
+      order.insured_name, order.writing_agent, order.flex_premium,
+      order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
+      type, parentId, explanation,
+      order.split_percent, order.split_with_id
+    ];
+  } else {
+    insertQuery = `
+      INSERT INTO ${tableName} (
+        user_id, full_name, national_producer_number, hierarchy_level,
+        commission_percent, commission_amount, carrier_name, product_name,
+        application_date, commission_distribution_date, policy_effective_date, policy_number,
+        insured_name, writing_agent, face_amount, target_premium,
+        initial_premium, commission_from_carrier, application_status, mra_status,
+        order_type, parent_order_id, explanation,
+        split_percent, split_with_id
+      ) VALUES (
+        $1, $2, $3, $4,
+        $5, $6, $7, $8,
+        $9, $10, $11, $12,
+        $13, $14, $15, $16,
+        $17, $18, $19, $20,
+        $21, $22, $23,
+        $24, $25
+      );
+    `;
+
+    values = [
+      user.id, user.name, user.national_producer_number, user.hierarchy_level,
+      percent, amount, order.carrier_name, order.product_name,
+      order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
+      order.insured_name, order.writing_agent, order.face_amount, order.target_premium,
+      order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
+      type, parentId, explanation,
+      order.split_percent, order.split_with_id
+    ];
+  }
 
   await db.query(insertQuery, values);
 
@@ -150,7 +179,6 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
     [amount, user.id]
   );
 }
-
 
 
 async function handleCommissions(order, userId, table_type) {
