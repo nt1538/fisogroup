@@ -36,7 +36,7 @@
           <td>{{ order.user_name }}</td>
           <td>{{ order.hierarchy_level }}</td>
           <td>{{ formatDate(order.application_date) }}</td>
-          <td>{{ order.table_type }}</td>
+          <td>{{ order.table_type.replace('application_', '') }}</td>
           <td>{{ order.carrier_name }}</td>
           <td>{{ order.product_name }}</td>
           <td>{{ order.policy_number }}</td>
