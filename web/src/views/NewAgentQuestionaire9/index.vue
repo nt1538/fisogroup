@@ -1,17 +1,26 @@
 <template>
-  <div class="p-6 max-w-2xl mx-auto">
-    <h1 class="text-xl font-bold mb-4">Electronic Fund Transfers (EFT)</h1>
-    <form @submit.prevent="submitForm">
-      <div v-for="(field, key) in form" :key="key" class="mb-4">
-        <label class="block font-semibold mb-1">{{ key }}</label>
-        <input
-          v-model="form[key]"
-          type="text"
-          class="w-full border border-gray-300 p-2 rounded"
-          :placeholder="key"
-        />
+  <div class="form-container">
+    <h1 class="form-title">Electronic Fund Transfers (EFT)</h1>
+    <form @submit.prevent="submitForm" class="space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="(value, key) in form" :key="key">
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ key }}</label>
+          <input
+            v-model="form[key]"
+            type="text"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+            :placeholder="key"
+          />
+        </div>
       </div>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+      <div class="text-center pt-6">
+        <button
+          type="submit"
+          class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md shadow-sm transition"
+        >
+          Submit
+        </button>
+      </div>
     </form>
   </div>
 </template>
@@ -53,3 +62,13 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.form-container {
+  @apply p-6 max-w-4xl mx-auto bg-white shadow-md rounded-md;
+}
+
+.form-title {
+  @apply text-2xl font-bold text-gray-800 mb-6 text-center;
+}
+</style>

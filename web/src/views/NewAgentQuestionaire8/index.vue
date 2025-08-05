@@ -2,49 +2,33 @@
   <div class="dashboard">
     <Sidebar />
     <div class="form-container">
-      <h1>Non-Solicitation Agreement</h1>
-
+      <h1>Electronic Fund Transfers (EFT)</h1>
       <p>
-        This Agreement is made and effective on <input type="date" v-model="agreementDate" /> <br />
-        <br />
-        BETWEEN: <strong>FISO GROUP LLC.</strong> (the “Agency”), a company organized and existing under the laws of the State of <strong>ILLINOIS</strong>,<br />
-        AND: <input v-model="agentName" type="text" placeholder="Agent Full Name" /> (the “Agent”), an individual<br />
-        who is a licensed insurance agent under the laws of the State of <input v-model="agentState" type="text" placeholder="e.g. New York" />, with<br />
-        residency located at <input v-model="agentAddress" type="text" placeholder="Agent Full Address" />.
+        Please fill out the following information to authorize electronic fund transfers for your commissions and reimbursements.
       </p>
 
-      <h2>Agreement Terms</h2>
-      <ol>
-        <li>
-          <strong>No Business Solicitation:</strong> The Agent shall not engage in any business solicitation
-          (e.g. recruiting, commission...etc) with other agents or their clients of FISO.
-        </li>
-        <li>
-          <strong>No Recording:</strong> The Agent shall not conduct any form of video or audio recording during the training, meeting, conference, and seminar, etc., which is held by FISO.
-        </li>
-      </ol>
-
-      <p>
-        In the event that the Agent fails to abide by the above regulations, the Agent would be asked to
-        leave the event immediately, and the Agency reserves the right to terminate any affiliation with
-        the Agent.
-      </p>
-
-      <h3>Agreement Confirmation</h3>
-      <div class="signature-block">
-        <div>
-          <label>Agent Signature:</label>
-          <input v-model="agentSignatureName" type="text" placeholder="Agent Signature Name" />
-        </div>
-        <div>
-          <label>FISO GROUP LLC Signature:</label>
-          <input type="text" disabled value="FISO GROUP LLC (Authorized)" />
+      <div class="form-grid">
+        <div class="form-field" v-for="(value, key) in form" :key="key">
+          <label>{{ key }}:</label>
+          <input
+            v-model="form[key]"
+            type="text"
+            :placeholder="key"
+          />
         </div>
       </div>
 
+      <p>
+        By signing below I hereby authorize the Company to initiate credit entries and, if necessary,
+        adjustments for credit entries in error to the checking and/or savings account indicated on this form.
+        This authority is to remain in full effect until the Company has received written notification
+        from me of its termination. I understand that this authorization is subject to the terms of any
+        agent or representative contract, commission agreement, or loan agreement that I may have
+        now, or in the future, with the Company.
+      </p>
+
       <div class="form-actions">
         <button @click="submitForm">Submit</button>
-        <button @click="skip" style="margin-left: 10px;">Skip</button>
       </div>
     </div>
   </div>
@@ -57,28 +41,37 @@ import Sidebar from '@/components/Sidebar.vue'
 
 const router = useRouter()
 
-const agreementDate = ref(new Date().toISOString().substring(0, 10))
-const agentName = ref(localStorage.getItem('full_name') || '')
-const agentState = ref('')
-const agentAddress = ref('')
-const agentSignatureName = ref(agentName.value)
+const form = ref({
+  "Account Owner Name": '',
+  "Transit/ABA #": '',
+  "Account #": '',
+  "Financial Institution Name": '',
+  "Branch Address": '',
+  "City": '',
+  "State": '',
+  "Zip": '',
+  "Account Type": '',
+  "Phone": '',
+  "Signature": '',
+  "Date": new Date().toISOString().substring(0, 10),
+})
 
 function submitForm() {
-  const form = {
-    agreementDate: agreementDate.value,
-    agentName: agentName.value,
-    agentState: agentState.value,
-    agentAddress: agentAddress.value,
-    agentSignature: agentSignatureName.value,
-  }
-  localStorage.setItem('non_solicitation_agreement', JSON.stringify(form))
-  alert('Agreement saved successfully.')
-  router.push('/employee/form9') // go to next page
+  fetch('/api/submit-eft', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(form.value),
+  })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message || 'Form submitted successfully.')
+      router.push('/employee/form11') // go to next page if needed
+    })
+    .catch(() => {
+      alert('Failed to submit EFT form.')
+    })
 }
 
-function skip() {
-  router.push('/employee/form9')
-}
 </script>
 
 <style scoped>
@@ -98,10 +91,9 @@ h1 {
   font-weight: bold;
   margin-bottom: 20px;
 }
-p,
-li {
+p {
   font-size: 15px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   line-height: 1.6;
 }
 input {
@@ -111,10 +103,16 @@ input {
   border-radius: 4px;
   border: 1px solid #ccc;
 }
-.signature-block {
-  display: flex;
-  gap: 40px;
-  margin-top: 20px;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+label {
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
 }
 .form-actions {
   margin-top: 30px;
