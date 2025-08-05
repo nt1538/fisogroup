@@ -252,21 +252,54 @@ if (table_type === 'annuity') {
   }
 
   // 插入合并后的佣金记录
-  await insertCommissionOrder(order, user, 'Personal Commission', Math.round(totalPersonalCommission / order.target_premium * 10000) / 100, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
-  
-  for (let [uid, amt] of levelDiffMap) {
-    const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
-    if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Level Difference', amt / order.target_premium * 100, amt, 'Merged Level Difference', order.id, commissionTable);
-    }
-  }
+const isAnnuity = commissionTable.includes('annuity');
+const premiumBase = isAnnuity
+  ? (order.flex_premium || 0) * 0.06
+  : (order.target_premium || 1); // 避免除以 0
 
-  for (let [uid, amt] of genOverrideMap) {
-    const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
-    if (res.rows.length) {
-      await insertCommissionOrder(order, res.rows[0], 'Generation Override', amt / order.target_premium * 100, amt, 'Merged Generation Override', order.id, commissionTable);
-    }
+await insertCommissionOrder(
+  order,
+  user,
+  'Personal Commission',
+  Math.round(totalPersonalCommission / premiumBase * 10000) / 100,
+  totalPersonalCommission,
+  'Merged Personal Commission',
+  order.id,
+  commissionTable
+);
+
+for (let [uid, amt] of levelDiffMap) {
+  const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+  if (res.rows.length) {
+    await insertCommissionOrder(
+      order,
+      res.rows[0],
+      'Level Difference',
+      Math.round(amt / premiumBase * 10000) / 100,
+      amt,
+      'Merged Level Difference',
+      order.id,
+      commissionTable
+    );
   }
+}
+
+for (let [uid, amt] of genOverrideMap) {
+  const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+  if (res.rows.length) {
+    await insertCommissionOrder(
+      order,
+      res.rows[0],
+      'Generation Override',
+      Math.round(amt / premiumBase * 10000) / 100,
+      amt,
+      'Merged Generation Override',
+      order.id,
+      commissionTable
+    );
+  }
+}
+
 
   await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
   await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
