@@ -67,7 +67,10 @@ async function getHierarchy(userId) {
 }
 
 async function checkSplitPoints(order, chart, hierarchy) {
-  const baseAmount = parseFloat(order.target_premium || 0);
+  const baseAmount = order.flex_premium
+  ? parseFloat(order.flex_premium) * 0.06
+  : parseFloat(order.target_premium || 0);
+
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
   const self = userRes.rows[0];
   const allUsers = [...hierarchy, self];
@@ -103,41 +106,51 @@ async function checkSplitPoints(order, chart, hierarchy) {
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId, tableName) {
   const isAnnuity = tableName.includes('annuity');
 
-  await db.query(`
+  const insertQuery = `
     INSERT INTO ${tableName} (
       user_id, full_name, national_producer_number, hierarchy_level,
       commission_percent, commission_amount, carrier_name, product_name,
       application_date, commission_distribution_date, policy_effective_date, policy_number,
       insured_name, writing_agent,
-      ${isAnnuity ? '' : 'face_amount,'}
-      target_premium, initial_premium,
+      ${isAnnuity ? 'flex_premium,' : 'face_amount, target_premium,'}
+      initial_premium,
       commission_from_carrier, application_status, mra_status,
       order_type, parent_order_id, explanation,
       split_percent, split_with_id
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,
-      $9,$10,$11,$12,
-      $13,$14,
-      ${isAnnuity ? '' : '$15,'}
-      ${isAnnuity ? '$15,$16' : '$16,$17'},
-      $18,$19,$20,
-      $21,$22,$23,
-      $24,$25
-    )
-  `, [
+      $1, $2, $3, $4,
+      $5, $6, $7, $8,
+      $9, $10, $11, $12,
+      $13, $14,
+      ${isAnnuity ? '$15,' : '$15, $16,'}
+      ${isAnnuity ? '$16' : '$17'},
+      $18, $19, $20,
+      $21, $22, $23,
+      $24, $25
+    );
+  `;
+
+  const values = [
     user.id, user.name, user.national_producer_number, user.hierarchy_level,
     percent, amount, order.carrier_name, order.product_name,
     order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
     order.insured_name, order.writing_agent,
-    ...(isAnnuity ? [] : [order.face_amount]),
-    order.target_premium, order.initial_premium,
+    ...(isAnnuity ? [order.flex_premium] : [order.face_amount, order.target_premium]),
+    order.initial_premium,
     order.commission_from_carrier, order.application_status, order.mra_status,
     type, parentId, explanation,
     order.split_percent, order.split_with_id
-  ]);
+  ];
 
-  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
+  await db.query(insertQuery, values);
+
+  // 更新用户总收入
+  await db.query(
+    'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
+    [amount, user.id]
+  );
 }
+
 
 
 async function handleCommissions(order, userId, table_type) {
@@ -147,10 +160,13 @@ async function handleCommissions(order, userId, table_type) {
 
   const chart = await getCommissionChart();
   
-  if (table_type === 'annuity' && !order.target_premium) {
-    order.target_premium = parseFloat(order.flex_premium || 0) * 0.06;
-  }
-  const baseAmount = parseFloat(order.target_premium || 0);
+let baseAmount;
+if (table_type === 'annuity') {
+  baseAmount = parseFloat(order.flex_premium || 0) * 0.06;
+} else {
+  baseAmount = parseFloat(order.target_premium || 0);
+}
+
   
   const profitBefore = parseFloat(user.profit || 0);
   const hierarchy = await getHierarchy(userId);
