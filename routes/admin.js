@@ -106,8 +106,10 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
   const {
     application_status, policy_number, commission_percent, initial_premium,
-    face_amount, target_premium, commission_from_carrier, carrier_name, product_name, application_date, 
-    commission_distribution_date, policy_effective_date, mra_status, split_percent, split_with_id, Explanation
+    face_amount, target_premium, flex_premium, commission_from_carrier,
+    carrier_name, product_name, application_date, 
+    commission_distribution_date, policy_effective_date, mra_status,
+    split_percent, split_with_id, Explanation, comment
   } = req.body;
 
   const allowedTables = [
@@ -120,10 +122,14 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Invalid table type' });
   }
 
+  const isLife = type.includes('life');
+  const isSaved = type.startsWith('saved_');
+  const baseType = isLife ? 'life' : 'annuity';
+
   try {
     const client = await pool.connect();
 
-    // 获取原始订单
+    // 查询原始订单
     const originalRes = await client.query(`SELECT * FROM ${type} WHERE id = $1`, [id]);
     const original = originalRes.rows[0];
     if (!original) {
@@ -131,68 +137,78 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // 只允许修改 comment 字段（适用于 saved 表）
-    if (type.startsWith('saved_')) {
+    // ========== 仅允许修改 comment ==========
+    if (isSaved) {
       await client.query(`UPDATE ${type} SET comment = $1 WHERE id = $2`, [comment, id]);
       client.release();
       return res.json({ ...original, comment });
     }
 
-    // 更新字段
-    const updateQuery = `
-      UPDATE ${type}
-      SET application_status = $1,
-          policy_number = $2,
-          commission_percent = $3,
-          initial_premium = $4,
-          face_amount = $5,
-          target_premium = $6,
-          commission_from_carrier = $7,
-          carrier_name = $8,
-          product_name = $9,
-          application_date = $10,
-          commission_distribution_date = $11,
-          policy_effective_date = $12,
-          mra_status = $13,
-          split_percent = $14,
-          split_with_id = $15,
-          explanation = $16
-      WHERE id = $17
-      RETURNING *;
-    `;
-    const values = [
-      application_status, policy_number, commission_percent,
-      initial_premium, face_amount, target_premium, commission_from_carrier, carrier_name,
-      product_name, application_date, commission_distribution_date, policy_effective_date, mra_status, split_percent, split_with_id, Explanation, id
+    // ========== 构造更新字段 ==========
+    let fields = [
+      'application_status', 'policy_number', 'commission_percent', 'initial_premium',
+      'commission_from_carrier', 'carrier_name', 'product_name', 'application_date',
+      'commission_distribution_date', 'policy_effective_date', 'mra_status',
+      'split_percent', 'split_with_id', 'explanation'
     ];
 
-    const result = await client.query(updateQuery, values);
+    if (isLife) {
+      fields.push('face_amount', 'target_premium');
+    } else {
+      fields.push('flex_premium');
+    }
+
+    // 构建更新语句
+    const updateFields = [];
+    const updateValues = [];
+    let i = 1;
+
+    for (const field of fields) {
+      if (req.body[field] !== undefined) {
+        updateFields.push(`${field} = $${i++}`);
+        updateValues.push(req.body[field]);
+      }
+    }
+
+    // 对 annuity，自动计算 target_premium = flex_premium * 0.06
+    if (!isLife && flex_premium !== undefined) {
+      updateFields.push(`${'target_premium'} = $${i++}`);
+      updateValues.push(parseFloat(flex_premium) * 0.06);
+    }
+
+    // 最后加上 id
+    updateFields.push(`id = $${i}`);
+    updateValues.push(id);
+
+    const updateQuery = `
+      UPDATE ${type}
+      SET ${updateFields.slice(0, -1).join(', ')}
+      WHERE ${updateFields[updateFields.length - 1]}
+      RETURNING *;
+    `;
+
+    const result = await client.query(updateQuery, updateValues);
     const updatedOrder = result.rows[0];
 
-    // ====== 状态转移逻辑 ======
+    // ========== 状态转移处理 ==========
     const userId = updatedOrder.user_id;
-    const isLife = type.includes('life');
-    const baseType = isLife ? 'life' : 'annuity';
 
     if (application_status === 'completed' && type.startsWith('application_')) {
       if (split_with_id && split_percent < 100) {
         const remainingPercent = 100 - split_percent;
 
-        // 当前用户保留部分
         const userPart = {
           ...updatedOrder,
-          target_premium: (updatedOrder.target_premium * remainingPercent / 100),
+          target_premium: updatedOrder.target_premium * remainingPercent / 100,
         };
 
-        // 拆分给 split_user_id 的部分（注意移除 id）
         const { id: _, ...splitPart } = {
           ...updatedOrder,
           user_id: split_with_id,
-          target_premium: (updatedOrder.target_premium * split_percent / 100),
-          split_percent: remainingPercent, // 保证拆分后总和为 100%
+          target_premium: updatedOrder.target_premium * split_percent / 100,
+          split_percent: remainingPercent
         };
 
-        // 插入拆分订单
         const keys = Object.keys(splitPart);
         const values = Object.values(splitPart);
         const placeholders = keys.map((_, i) => `$${i + 1}`);
@@ -200,38 +216,31 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
         const insertQuery = `
           INSERT INTO application_${baseType} (${keys.join(',')})
           VALUES (${placeholders.join(',')})
-        RETURNING *;
+          RETURNING *;
         `;
         const insertRes = await client.query(insertQuery, values);
         const insertedSplitOrder = insertRes.rows[0];
 
-        // 更新当前用户订单为其部分
+        // 更新当前订单
         const updateUserQuery = `
-        UPDATE ${type}
+          UPDATE ${type}
           SET target_premium = $1
           WHERE id = $2
           RETURNING *;
         `;
         const updatedUserRes = await client.query(updateUserQuery, [
           userPart.target_premium,
-          updatedOrder.id,
-      ]);
+          updatedOrder.id
+        ]);
         const updatedUserOrder = updatedUserRes.rows[0];
 
-        // 分别处理两人的佣金
         await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
         await handleCommissions(insertedSplitOrder, insertedSplitOrder.user_id, baseType);
-
       } else {
-        // 没有分成情况，直接处理佣金
         await handleCommissions(updatedOrder, userId, baseType);
       }
 
-    } else if (
-      ['cancelled', 'rejected'].includes(application_status)
-      && !type.startsWith('saved_')
-    ) {
-      // 移动到 saved 表
+    } else if (['cancelled', 'rejected'].includes(application_status)) {
       const insertSavedQuery = `
         INSERT INTO saved_${baseType}_orders (${Object.keys(updatedOrder).join(',')})
         VALUES (${Object.keys(updatedOrder).map((_, i) => `$${i + 1}`).join(',')})

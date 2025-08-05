@@ -101,37 +101,57 @@ async function checkSplitPoints(order, chart, hierarchy) {
 
 
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId, tableName) {
+  const isAnnuity = tableName.includes('annuity');
+
   await db.query(`
     INSERT INTO ${tableName} (
       user_id, full_name, national_producer_number, hierarchy_level,
       commission_percent, commission_amount, carrier_name, product_name,
-      application_date, commission_distribution_date, policy_effective_date, policy_number, insured_name, writing_agent, face_amount, target_premium,
-      initial_premium, commission_from_carrier, application_status, mra_status,
+      application_date, commission_distribution_date, policy_effective_date, policy_number,
+      insured_name, writing_agent,
+      ${isAnnuity ? '' : 'face_amount,'}
+      target_premium, initial_premium,
+      commission_from_carrier, application_status, mra_status,
       order_type, parent_order_id, explanation,
       split_percent, split_with_id
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,
-      $9,$10,$11,$12,$13,$14,$15,$16,
-      $17,$18,$19,
-      $20,$21,$22,$23,$24,$25
+      $9,$10,$11,$12,
+      $13,$14,
+      ${isAnnuity ? '' : '$15,'}
+      ${isAnnuity ? '$15,$16' : '$16,$17'},
+      $18,$19,$20,
+      $21,$22,$23,
+      $24,$25
     )
   `, [
     user.id, user.name, user.national_producer_number, user.hierarchy_level,
     percent, amount, order.carrier_name, order.product_name,
-    order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number, order.insured_name, order.writing_agent, order.face_amount, order.target_premium,
-    order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
+    order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
+    order.insured_name, order.writing_agent,
+    ...(isAnnuity ? [] : [order.face_amount]),
+    order.target_premium, order.initial_premium,
+    order.commission_from_carrier, order.application_status, order.mra_status,
     type, parentId, explanation,
     order.split_percent, order.split_with_id
   ]);
+
   await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amount, user.id]);
 }
+
+
 async function handleCommissions(order, userId, table_type) {
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
   const user = userRes.rows[0];
   if (!user) return;
 
   const chart = await getCommissionChart();
+  
+  if (table_type === 'annuity' && !order.target_premium) {
+    order.target_premium = parseFloat(order.flex_premium || 0) * 0.06;
+  }
   const baseAmount = parseFloat(order.target_premium || 0);
+  
   const profitBefore = parseFloat(user.profit || 0);
   const hierarchy = await getHierarchy(userId);
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
@@ -140,7 +160,7 @@ async function handleCommissions(order, userId, table_type) {
   let totalPersonalCommission = 0;
   const levelDiffMap = new Map();
   const genOverrideMap = new Map();
-  
+
   const commissionTable = table_type === 'annuity' ? 'commission_annuity' : 'commission_life';
   const savedTable = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
   const originalTable = table_type === 'annuity' ? 'application_annuity' : 'application_life';
@@ -187,20 +207,23 @@ async function handleCommissions(order, userId, table_type) {
     await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [segAmount, userId]);
   }
 
-  // Insert merged commissions
+  // 插入合并后的佣金记录
   await insertCommissionOrder(order, user, 'Personal Commission', Math.round(totalPersonalCommission / order.target_premium * 10000) / 100, totalPersonalCommission, 'Merged Personal Commission', order.id, commissionTable);
+  
   for (let [uid, amt] of levelDiffMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
       await insertCommissionOrder(order, res.rows[0], 'Level Difference', amt / order.target_premium * 100, amt, 'Merged Level Difference', order.id, commissionTable);
     }
   }
+
   for (let [uid, amt] of genOverrideMap) {
     const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
     if (res.rows.length) {
       await insertCommissionOrder(order, res.rows[0], 'Generation Override', amt / order.target_premium * 100, amt, 'Merged Generation Override', order.id, commissionTable);
     }
   }
+
   await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
   await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
   await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
