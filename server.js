@@ -7,6 +7,7 @@ const userRoutes = require('./routes/users');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const { verifyToken } = require('./middleware/auth');
+require('./cron/cron-jobs');
 
 dotenv.config();
 const app = express();
