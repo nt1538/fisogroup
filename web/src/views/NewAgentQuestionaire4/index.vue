@@ -81,7 +81,7 @@ const answers = ref(Array(questions.value.length).fill(''))
 
 function skipToNextPage() {
   // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('legalQuestions', JSON.stringify(form.value))
+  localStorage.setItem('legalQuestions', JSON.stringify(answers.value))
   router.push('/employee/form5')
 }
 
