@@ -146,47 +146,44 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 
     // ========== 构造更新字段 ==========
     let fields = [
-      'application_status', 'policy_number', 'commission_percent', 'initial_premium',
-      'commission_from_carrier', 'carrier_name', 'product_name', 'application_date',
-      'commission_distribution_date', 'policy_effective_date', 'mra_status',
-      'split_percent', 'split_with_id', 'explanation'
-    ];
+  'application_status', 'policy_number', 'commission_percent', 'initial_premium',
+  'commission_from_carrier', 'carrier_name', 'product_name', 'application_date',
+  'commission_distribution_date', 'policy_effective_date', 'mra_status',
+  'split_percent', 'split_with_id', 'explanation'
+];
 
-    if (isLife) {
-      fields.push('face_amount', 'target_premium');
-    } else {
-      fields.push('flex_premium');
-    }
+if (isLife) {
+  fields.push('face_amount', 'target_premium'); // life: 有 target_premium
+} else {
+  fields.push('flex_premium'); // annuity: 只有 flex_premium
+}
 
-    // 构建更新语句
-    const updateFields = [];
-    const updateValues = [];
-    let i = 1;
+const updateFields = [];
+const updateValues = [];
+let i = 1;
 
-    for (const field of fields) {
-      if (req.body[field] !== undefined) {
-        updateFields.push(`${field} = $${i++}`);
-        updateValues.push(req.body[field]);
-      }
-    }
+for (const field of fields) {
+  if (req.body[field] !== undefined) {
+    updateFields.push(`${field} = $${i++}`);
+    updateValues.push(req.body[field]);
+  }
+}
 
-    // 对 annuity，自动计算 target_premium = flex_premium * 0.06
-    if (!isLife && flex_premium !== undefined) {
-      updateFields.push(`${'target_premium'} = $${i++}`);
-      updateValues.push(parseFloat(flex_premium) * 0.06);
-    }
+// ❌ 删除这段：不要向数据库写入 target_premium
+// if (!isLife && flex_premium !== undefined) {
+//   updateFields.push(`target_premium = $${i++}`);
+//   updateValues.push(parseFloat(flex_premium) * 0.06);
+// }
 
-    // 最后加上 id
-    updateFields.push(`id = $${i}`);
-    updateValues.push(id);
+updateFields.push(`id = $${i}`);
+updateValues.push(id);
 
-    const updateQuery = `
-      UPDATE ${type}
-      SET ${updateFields.slice(0, -1).join(', ')}
-      WHERE ${updateFields[updateFields.length - 1]}
-      RETURNING *;
-    `;
-
+const updateQuery = `
+  UPDATE ${type}
+  SET ${updateFields.slice(0, -1).join(', ')}
+  WHERE ${updateFields[updateFields.length - 1]}
+  RETURNING *;
+`;
     const result = await client.query(updateQuery, updateValues);
     const updatedOrder = result.rows[0];
 
