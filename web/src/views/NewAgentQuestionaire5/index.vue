@@ -2,47 +2,48 @@
   <div class="dashboard">
     <Sidebar />
     <div class="form-container">
-      <h1>Legal Questions for Contracting and Appointment Requests</h1>
+      <h1>Letter of Explanation</h1>
       <p>
-        Please answer the following questions. If you answer <strong>YES</strong> to any question, be sure to provide a
-        full, detailed Letter of Explanation including specific dates.
+        Please provide detailed explanations for any <strong>Yes</strong> answers in the previous form.
+        You can enter multiple actions with full details below.
       </p>
 
       <form @submit.prevent="submitForm" class="form-grid">
         <div
-          v-for="(question, index) in questions"
+          v-for="(entry, index) in explanations"
           :key="index"
           class="question-block"
         >
-          <label class="question-label">
-            {{ index + 1 }}. {{ question.text }}
-          </label>
-
-          <div class="radio-group">
-            <label>
-              <input
-                type="radio"
-                :name="'q' + index"
-                value="Yes"
-                v-model="answers[index]"
-              />
-              Yes
-            </label>
-            <label>
-              <input
-                type="radio"
-                :name="'q' + index"
-                value="No"
-                v-model="answers[index]"
-              />
-              No
-            </label>
+          <label class="question-label">Entry {{ index + 1 }}</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="question-label">Date of Action:</label>
+              <input type="date" v-model="entry.date" class="input" />
+            </div>
+            <div>
+              <label class="question-label">Action:</label>
+              <input type="text" v-model="entry.action" class="input" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="question-label">Reason:</label>
+              <input type="text" v-model="entry.reason" class="input" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="question-label">Explanation:</label>
+              <textarea v-model="entry.explanation" rows="3" class="input"></textarea>
+            </div>
           </div>
         </div>
 
+        <button type="button" @click="addEntry" style="margin-bottom: 20px">
+          + Add Another Entry
+        </button>
+
         <div class="form-actions">
           <button type="submit">Submit</button>
-          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
+          <button type="button" @click="goToNextPage" style="margin-left: 10px">
+            Next Page
+          </button>
         </div>
       </form>
     </div>
@@ -50,45 +51,31 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import Sidebar from '@/components/Sidebar.vue'
 
 const router = useRouter()
 
-const questions = ref([
-  { text: 'Have you ever been charged or convicted of or plead guilty or no contest to any Felony, Misdemeanor, federal/state insurance and/or securities or investments regulations and statutes? Have you ever been on probation?' },
-  { text: 'Have you ever been or are you currently being investigated, have any pending indictments, lawsuits, or have you ever been in lawsuit with insurance company?' },
-  { text: 'Have you ever been alleged to have engaged in any fraud?' },
-  { text: 'Have you ever been found to have engaged in any fraud?' },
-  { text: 'Has any insurance or financial services company, or broker-dealer terminated your contract or appointment or permitted you to resign for reason other than lack of sales?' },
-  { text: 'Have you ever had an appointment with any insurance company terminated for cause or been denied an appointment?' },
-  { text: 'Does any insurer, insured, or other person claim any commission chargeback or other indebtedness from you as a result of any insurance transactions or business?' },
-  { text: 'Has any lawsuit or claim ever been made against your surety company, or errors and omissions insurer, arising out of your sales or practices, or, have you been refused surety bonding or E&O coverage?' },
-  { text: 'Have you ever had an insurance or securities license denied, suspended, cancelled or revoked?' },
-  { text: 'Has any state or federal regulatory body found you to have been a cause of an investment OR insurance-related business having its authorization to do business denied, suspended, revoked, or restricted?' },
-  { text: 'Has any state or federal regulatory agency revoked or suspended your license as an attorney, accountant, or federal contractor?' },
-  { text: 'Has any state or federal regulatory agency found you to have made a false statement or omission or been dishonest, unfair, or unethical?' },
-  { text: 'Have you ever had any interruptions in licensing?' },
-  { text: 'Has any state, federal or self-regulatory agency filed a complaint against you, fined, sanctioned, censured, penalized or otherwise disciplined you for a violation of their regulations or state or federal statutes? Have you ever been the subject of a consumer initiated complaint?' },
-  { text: 'Have you personally or any insurance or securities brokerage firm with whom you have been associated filed a bankruptcy petition or declared bankruptcy?' },
-  { text: 'Have you ever had any judgments, garnishments, or liens against you?' },
-  { text: 'Are you connected in any way with a bank, savings & loan association, or other lending or financial institution?' },
-  { text: 'Have you ever used any other names or aliases?' },
-  { text: 'Do you have any unresolved matters pending with the Internal Revenue Service or other taxing authority?' },
+const explanations = reactive([
+  { date: '', action: '', reason: '', explanation: '' },
+  { date: '', action: '', reason: '', explanation: '' },
+  { date: '', action: '', reason: '', explanation: '' },
 ])
 
-const answers = ref(Array(questions.value.length).fill(''))
-
-function skipToNextPage() {
-  // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('newAgentPage4', JSON.stringify(form.value))
-  router.push('/employee/form5')
+function addEntry() {
+  explanations.push({ date: '', action: '', reason: '', explanation: '' })
 }
 
 function submitForm() {
-  localStorage.setItem('legalQuestions', JSON.stringify(answers.value))
-  alert('Answers saved successfully.')
-  // router.push('/employee/form6')
+  localStorage.setItem('newAgentPage5', JSON.stringify(explanations))
+  alert('Letter(s) of Explanation saved.')
+  router.push('/employee/form6')
+}
+
+function goToNextPage() {
+  localStorage.setItem('newAgentPage5', JSON.stringify(explanations))
+  router.push('/employee/form6')
 }
 </script>
 
@@ -96,7 +83,7 @@ function submitForm() {
 .dashboard {
   display: flex;
   padding: 40px 40px 100px;
-  height: 100vh; /* ✅ 固定整页高度 */
+  height: 100vh;
   overflow-y: scroll;
 }
 .form-container {
@@ -136,32 +123,29 @@ p {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 20px;
 }
 
 .question-label {
   font-weight: 600;
   font-size: 15px;
+  margin-bottom: 4px;
 }
 
-.radio-group {
-  display: flex;
-  gap: 20px;
+.input {
+  width: 100%;
+  padding: 10px;
   font-size: 14px;
-}
-
-.radio-group label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-input[type='radio'] {
-  accent-color: #0055a4;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
 .form-actions {
   margin-top: 20px;
 }
+
 button {
   background-color: #0055a4;
   color: white;
