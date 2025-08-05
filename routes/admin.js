@@ -107,7 +107,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const {
     application_status, policy_number, commission_percent, initial_premium,
     face_amount, target_premium, commission_from_carrier, carrier_name, product_name, application_date, 
-    mra_status, split_percent, split_with_id, Explanation
+    commission_distribution_date, policy_effective_date, mra_status, split_percent, split_with_id, Explanation
   } = req.body;
 
   const allowedTables = [
@@ -151,17 +151,19 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           carrier_name = $8,
           product_name = $9,
           application_date = $10,
-          mra_status = $11,
-          split_percent = $12,
-          split_with_id = $13,
-          explanation = $14
-      WHERE id = $15
+          commission_distribution_date = $11,
+          policy_effective_date = $12,
+          mra_status = $13,
+          split_percent = $14,
+          split_with_id = $15,
+          explanation = $16
+      WHERE id = $17
       RETURNING *;
     `;
     const values = [
       application_status, policy_number, commission_percent,
       initial_premium, face_amount, target_premium, commission_from_carrier, carrier_name,
-      product_name, application_date, mra_status, split_percent, split_with_id, Explanation, id
+      product_name, application_date, commission_distribution_date, policy_effective_date, mra_status, split_percent, split_with_id, Explanation, id
     ];
 
     const result = await client.query(updateQuery, values);
