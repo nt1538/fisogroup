@@ -13,7 +13,7 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Payee Name</th>
+          <th>Writing Agent</th>
           <th>Level</th>
           <th>Application Date</th>
           <th>Type</th>
