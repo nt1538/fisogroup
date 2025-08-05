@@ -81,14 +81,14 @@ const answers = ref(Array(questions.value.length).fill(''))
 
 function skipToNextPage() {
   // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('newAgentPage4', JSON.stringify(form.value))
+  localStorage.setItem('legalQuestions', JSON.stringify(form.value))
   router.push('/employee/form5')
 }
 
 function submitForm() {
   localStorage.setItem('legalQuestions', JSON.stringify(answers.value))
   alert('Answers saved successfully.')
-  // router.push('/employee/form6')
+  router.push('/employee/form5')
 }
 </script>
 
