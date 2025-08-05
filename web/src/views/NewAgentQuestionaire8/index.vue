@@ -73,11 +73,11 @@ function submitForm() {
   }
   localStorage.setItem('non_solicitation_agreement', JSON.stringify(form))
   alert('Agreement saved successfully.')
-  router.push('/employee/form10') // go to next page
+  router.push('/employee/form9') // go to next page
 }
 
 function skip() {
-  router.push('/employee/form10')
+  router.push('/employee/form9')
 }
 </script>
 
