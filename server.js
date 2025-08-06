@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
+const submitAgentRoutes = require('./routes/submitAgent');
 const { verifyToken } = require('./middleware/auth');
 require('./cron/cron-jobs');
 
@@ -20,6 +21,8 @@ app.use('/api', authRoutes);
 app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/orders', verifyToken, orderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', submitAgentRoutes);
+
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
