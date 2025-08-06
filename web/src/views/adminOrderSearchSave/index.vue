@@ -24,7 +24,7 @@
           <th>Face Amount</th>
           <th>Planned Premium</th>
           <th>Target/Base Premium</th>
-          <th>Split Percentage</th>
+          <th>Split Percentage (Another Agent)</th>
           <th>Split ID</th>
           <th>Status</th>
           <th>Action</th>
