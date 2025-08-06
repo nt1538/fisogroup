@@ -194,6 +194,11 @@ const updateQuery = `
       if(isLife) {
         if (split_with_id && split_percent < 100) {
           const remainingPercent = 100 - split_percent;
+          const splitUserRes = await client.query(
+            `SELECT name FROM users WHERE id = $1`,
+            [split_with_id]
+          );
+          const splitWritingAgent = splitUserRes.rows[0]?.name || 'Unknown';
 
           const userPart = {
             ...updatedOrder,
@@ -204,7 +209,8 @@ const updateQuery = `
             ...updatedOrder,
             user_id: split_with_id,
             target_premium: updatedOrder.target_premium * split_percent / 100,
-            split_percent: remainingPercent
+            split_percent: remainingPercent,
+            writing_agent: splitWritingAgent
           };
 
           const keys = Object.keys(splitPart);
@@ -241,6 +247,11 @@ const updateQuery = `
       else {
         if (split_with_id && split_percent < 100) {
           const remainingPercent = 100 - split_percent;
+          const splitUserRes = await client.query(
+            `SELECT name FROM users WHERE id = $1`,
+            [split_with_id]
+          );
+          const splitWritingAgent = splitUserRes.rows[0]?.name || 'Unknown';
 
           const userPart = {
             ...updatedOrder,
@@ -251,7 +262,8 @@ const updateQuery = `
             ...updatedOrder,
             user_id: split_with_id,
             flex_premium: updatedOrder.flex_premium * split_percent / 100,
-            split_percent: remainingPercent
+            split_percent: remainingPercent,
+            writing_agent: splitWritingAgent
           };
 
           const keys = Object.keys(splitPart);

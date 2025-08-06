@@ -44,7 +44,7 @@
           <td>{{ order.face_amount }}</td>
           <td>{{ order.initial_premium }}</td>
           <td>{{ order.table_type === 'application_annuity' ? order.flex_premium : order.target_premium }}</td>
-          <td>{{ 100 - order.split_percent }}%</td>
+          <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ order.application_status }}</td>
           <td>
