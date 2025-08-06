@@ -66,7 +66,7 @@
         </div>
 
         <div class="form-row" v-if="isSplit">
-          <label>Split Percent (you):</label>
+          <label>Split Percent to Others:</label>
           <input type="number" v-model.number="form.split_percent" min="1" max="99" />
         </div>
 
