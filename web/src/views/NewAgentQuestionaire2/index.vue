@@ -11,12 +11,12 @@
       <form @submit.prevent="submitForm" class="form-grid">
         <label>
           EIN
-          <input type="text" v-model="form.ein" placeholder="XX-XXXXXXX" required />
+          <input type="text" v-model="form.ein" placeholder="XX-XXXXXXX"/>
         </label>
 
         <label>
           Business Name
-          <input type="text" v-model="form.businessName" required />
+          <input type="text" v-model="form.businessName"/>
         </label>
 
         <label>
@@ -26,17 +26,17 @@
 
         <label>
           Your Title
-          <input type="text" v-model="form.title" required />
+          <input type="text" v-model="form.title" />
         </label>
 
         <label>
           Phone
-          <input type="tel" v-model="form.phone" placeholder="123-456-7890" required />
+          <input type="tel" v-model="form.phone" placeholder="123-456-7890" />
         </label>
 
         <label>
           Principal Name
-          <input type="text" v-model="form.principalName" required />
+          <input type="text" v-model="form.principalName" />
         </label>
 
         <label>
@@ -46,12 +46,12 @@
 
         <label>
           Principal Email
-          <input type="email" v-model="form.principalEmail" required />
+          <input type="email" v-model="form.principalEmail" />
         </label>
 
         <label>
           Company Type
-          <select v-model="form.companyType" required>
+          <select v-model="form.companyType" >
             <option disabled value="">Select</option>
             <option>Corporation</option>
             <option>Partnership</option>
@@ -62,32 +62,32 @@
 
         <label>
           Company Address (No PO Boxes)
-          <textarea v-model="form.companyAddress" required></textarea>
+          <textarea v-model="form.companyAddress" ></textarea>
         </label>
 
         <label>
           Start Date
-          <input type="date" v-model="form.startDate" required />
+          <input type="date" v-model="form.startDate" />
         </label>
 
         <label>
           City
-          <input type="text" v-model="form.city" required />
+          <input type="text" v-model="form.city" />
         </label>
 
         <label>
           State
-          <input type="text" v-model="form.state" required />
+          <input type="text" v-model="form.state" />
         </label>
 
         <label>
           Zip Code
-          <input type="text" v-model="form.zip" required />
+          <input type="text" v-model="form.zip" />
         </label>
 
         <div class="form-actions">
           <button type="submit">Next Page</button>
-          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
+          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip</button>
         </div>
       </form>
 
@@ -126,14 +126,6 @@ const form = ref({
   city: '',
   state: '',
   zip: ''
-})
-
-// 可以在 onMounted 中回显前一页数据
-onMounted(() => {
-  const saved = localStorage.getItem('newAgentPage2')
-  if (saved) {
-    form.value = JSON.parse(saved)
-  }
 })
 
 function submitForm() {

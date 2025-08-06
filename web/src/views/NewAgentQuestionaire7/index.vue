@@ -86,7 +86,7 @@ function submitSignature() {
     return
   }
   const dataUrl = signaturePad.toDataURL()
-  localStorage.setItem('signature', dataUrl)
+  localStorage.setItem('newAgentPage8', dataUrl)
   alert('Signature saved.')
   router.push('/employee/form8') // or final submission page
 }

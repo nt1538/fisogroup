@@ -86,8 +86,8 @@ const addressHistory = ref([
 ])
 
 function submitForm() {
-  localStorage.setItem('employmentHistory', JSON.stringify(employmentHistory.value))
-  localStorage.setItem('addressHistory', JSON.stringify(addressHistory.value))
+  localStorage.setItem('newAgentPage6', JSON.stringify(employmentHistory.value))
+  localStorage.setItem('newAgentPage7', JSON.stringify(addressHistory.value))
   alert('History saved successfully.')
   router.push('/employee/form7')
 }

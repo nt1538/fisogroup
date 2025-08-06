@@ -5,12 +5,15 @@
       <h1>Non-Solicitation Agreement</h1>
 
       <p>
-        This Agreement is made and effective on <input type="date" v-model="agreementDate" /> <br />
-        <br />
-        BETWEEN: <strong>FISO GROUP LLC.</strong> (the “Agency”), a company organized and existing under the laws of the State of <strong>ILLINOIS</strong>,<br />
-        AND: <input v-model="agentName" type="text" placeholder="Agent Full Name" /> (the “Agent”), an individual<br />
-        who is a licensed insurance agent under the laws of the State of <input v-model="agentState" type="text" placeholder="e.g. New York" />, with<br />
-        residency located at <input v-model="agentAddress" type="text" placeholder="Agent Full Address" />.
+        This Agreement is made and effective on
+        <input type="date" v-model="agreementDate" /> <br /><br />
+        BETWEEN: <strong>FISO GROUP LLC.</strong> (the “Agency”), a company organized and existing under the laws of the State of
+        <strong>ILLINOIS</strong>,<br />
+        AND:
+        <input v-model="agentName" type="text" placeholder="Agent Full Name" />
+        (the “Agent”), an individual who is a licensed insurance agent under the laws of the State of
+        <input v-model="agentState" type="text" placeholder="e.g. New York" />, with residency located at
+        <input v-model="agentAddress" type="text" placeholder="Agent Full Address" />.
       </p>
 
       <h2>Agreement Terms</h2>
@@ -31,14 +34,27 @@
       </p>
 
       <h3>Agreement Confirmation</h3>
+
       <div class="signature-block">
         <div>
-          <label>Agent Signature:</label>
+          <label>Agent Signature Name:</label>
           <input v-model="agentSignatureName" type="text" placeholder="Agent Signature Name" />
         </div>
         <div>
           <label>FISO GROUP LLC Signature:</label>
           <input type="text" disabled value="FISO GROUP LLC (Authorized)" />
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <label style="font-weight: bold;">Draw Your Signature:</label>
+        <vue-signature-pad
+          ref="signaturePad"
+          :options="{ minWidth: 1, maxWidth: 2.5, penColor: 'black' }"
+          style="border: 1px solid #ccc; width: 100%; height: 200px;"
+        />
+        <div style="margin-top: 10px;">
+          <button type="button" @click="clearSignature" style="background-color: #aaa; margin-right: 10px;">Clear Signature</button>
         </div>
       </div>
 
@@ -54,6 +70,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
+import VueSignaturePad from 'vue-signature-pad'
 
 const router = useRouter()
 
@@ -62,22 +79,34 @@ const agentName = ref(localStorage.getItem('full_name') || '')
 const agentState = ref('')
 const agentAddress = ref('')
 const agentSignatureName = ref(agentName.value)
+const signaturePad = ref(null)
+
+function clearSignature() {
+  signaturePad.value.clear()
+}
 
 function submitForm() {
+  if (signaturePad.value.isEmpty()) {
+    alert('Please provide your drawn signature.')
+    return
+  }
+
   const form = {
     agreementDate: agreementDate.value,
     agentName: agentName.value,
     agentState: agentState.value,
     agentAddress: agentAddress.value,
     agentSignature: agentSignatureName.value,
+    agentDrawnSignature: signaturePad.value.saveSignature() // base64 image
   }
-  localStorage.setItem('non_solicitation_agreement', JSON.stringify(form))
+
+  localStorage.setItem('newAgentPage9', JSON.stringify(form))
   alert('Agreement saved successfully.')
-  router.push('/employee/form9') // go to next page
+  router.push('/employee/form10')
 }
 
 function skip() {
-  router.push('/employee/form9')
+  router.push('/employee/form10')
 }
 </script>
 

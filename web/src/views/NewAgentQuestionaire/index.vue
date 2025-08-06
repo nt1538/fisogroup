@@ -12,12 +12,12 @@ carriers and FISO to direct deposit your commissions. </p>
       <form @submit.prevent="submitForm" class="form-grid">
 
         <label>
-          Last Name (as shown on Driver’s License)
+          Last Name (as shown on Driver's License)
           <input type="text" v-model="form.last_name" required />
         </label>
 
         <label>
-          First Name (as shown on Driver’s License)
+          First Name (as shown on Driver's License)
           <input type="text" v-model="form.first_name" required />
         </label>
 
@@ -52,17 +52,17 @@ carriers and FISO to direct deposit your commissions. </p>
         </label>
 
         <label>
-          Driver’s License State
+          Driver's License State
           <input type="text" v-model="form.dl_state" required />
         </label>
 
         <label>
-          Driver’s License Number
+          Driver's License Number
           <input type="text" v-model="form.dl_number" required />
         </label>
 
         <label>
-          Driver’s License Expiration Date
+          Driver's License Expiration Date
           <input type="date" v-model="form.dl_expiration" required />
         </label>
 
@@ -145,20 +145,26 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const form = ref({
-  ein: '',
-  businessName: '',
-  website: '',
-  title: '',
+  last_name: '',
+  first_name: '',
+  ssn: '',
+  dob: '',
+  gender: '',
+  email: '',
   phone: '',
-  principalName: '',
-  principalTitle: '',
-  principalEmail: '',
-  companyType: '',
-  companyAddress: '',
-  startDate: '',
-  city: '',
-  state: '',
-  zip: '',
+  dl_state: '',
+  dl_number: '',
+  dl_expiration: '',
+  resident_address: '',
+  business_address: '',
+  mailing_address: '',
+  finra_registered: '',
+  broker_dealer: '',
+  crd_number: '',
+  honors: '',
+  aml_date: '',
+  dba: '',
+  assign_to: ''
 })
 
 function submitForm() {

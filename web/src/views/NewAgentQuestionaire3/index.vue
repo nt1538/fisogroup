@@ -59,7 +59,7 @@
         <div class="form-actions">
           <button type="button" @click="addCase">Add New Case</button>
           <button type="submit">Submit</button>
-          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
+          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip</button>
         </div>
       </form>
     </div>
@@ -102,13 +102,13 @@ function removeCase(index) {
 
 function skipToNextPage() {
   // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('appointmentCases', JSON.stringify(cases.value))
+  localStorage.setItem('newAgentPage3', JSON.stringify(cases.value))
   router.push('/employee/form4')
 }
 
 function submitForm() {
   // 保存数据到 localStorage，或后端
-  localStorage.setItem('appointmentCases', JSON.stringify(cases.value))
+  localStorage.setItem('newAgentPage3', JSON.stringify(cases.value))
   alert('Saved successfully.')
   router.push('/employee/form4')
   // router.push('/employee/form5') // 如有下一页
