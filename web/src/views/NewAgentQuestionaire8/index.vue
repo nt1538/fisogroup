@@ -46,15 +46,11 @@
         </div>
       </div>
 
-      <div style="margin-top: 20px;">
-        <label style="font-weight: bold;">Draw Your Signature:</label>
-        <vue-signature-pad
-          ref="signaturePad"
-          :options="{ minWidth: 1, maxWidth: 2.5, penColor: 'black' }"
-          style="border: 1px solid #ccc; width: 100%; height: 200px;"
-        />
-        <div style="margin-top: 10px;">
-          <button type="button" @click="clearSignature" style="background-color: #aaa; margin-right: 10px;">Clear Signature</button>
+      <div class="signature-section">
+        <h2>Please sign in the box below</h2>
+        <canvas ref="signatureCanvas" class="signature-pad"></canvas>
+        <div class="buttons">
+          <button @click="clearSignature">Clear</button>
         </div>
       </div>
 
@@ -67,27 +63,45 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import SignaturePad from 'signature_pad'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
-import VueSignaturePad from 'vue-signature-pad'
 
 const router = useRouter()
+const signatureCanvas = ref(null)
+let signaturePad
 
+// Fields
 const agreementDate = ref(new Date().toISOString().substring(0, 10))
 const agentName = ref(localStorage.getItem('full_name') || '')
 const agentState = ref('')
 const agentAddress = ref('')
 const agentSignatureName = ref(agentName.value)
-const signaturePad = ref(null)
+
+onMounted(() => {
+  const canvas = signatureCanvas.value
+  resizeCanvas(canvas)
+  signaturePad = new SignaturePad(canvas, {
+    penColor: 'black',
+    backgroundColor: 'white',
+  })
+})
+
+function resizeCanvas(canvas) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1)
+  canvas.width = canvas.offsetWidth * ratio
+  canvas.height = canvas.offsetHeight * ratio
+  canvas.getContext('2d').scale(ratio, ratio)
+}
 
 function clearSignature() {
-  signaturePad.value.clear()
+  signaturePad.clear()
 }
 
 function submitForm() {
-  if (signaturePad.value.isEmpty()) {
-    alert('Please provide your drawn signature.')
+  if (signaturePad.isEmpty()) {
+    alert('Please provide a drawn signature.')
     return
   }
 
@@ -97,12 +111,12 @@ function submitForm() {
     agentState: agentState.value,
     agentAddress: agentAddress.value,
     agentSignature: agentSignatureName.value,
-    agentDrawnSignature: signaturePad.value.saveSignature() // base64 image
+    agentDrawnSignature: signaturePad.toDataURL()
   }
 
   localStorage.setItem('newAgentPage9', JSON.stringify(form))
   alert('Agreement saved successfully.')
-  router.push('/employee/form10')
+  router.push('/employee/form10') // go to next page
 }
 
 function skip() {
@@ -144,6 +158,20 @@ input {
   display: flex;
   gap: 40px;
   margin-top: 20px;
+}
+.signature-section {
+  margin-top: 30px;
+}
+.signature-pad {
+  width: 100%;
+  height: 200px;
+  border: 2px solid #000;
+  border-radius: 6px;
+  background-color: white;
+  touch-action: none;
+}
+.buttons {
+  margin-top: 10px;
 }
 .form-actions {
   margin-top: 30px;

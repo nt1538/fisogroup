@@ -8,63 +8,20 @@
       </p>
 
       <div class="form-grid">
-        <div class="form-field">
-          <label>Account Owner Name:</label>
-          <input v-model="form['Account Owner Name']" type="text" placeholder="Account Owner Name" />
-        </div>
-
-        <div class="form-field">
-          <label>Transit/ABA #:</label>
-          <input v-model="form['Transit/ABA #']" type="text" placeholder="Transit/ABA #" />
-        </div>
-
-        <div class="form-field">
-          <label>Account #:</label>
-          <input v-model="form['Account #']" type="text" placeholder="Account #" />
-        </div>
-
-        <div class="form-field">
-          <label>Financial Institution Name:</label>
-          <input v-model="form['Financial Institution Name']" type="text" placeholder="Institution Name" />
-        </div>
-
-        <div class="form-field">
-          <label>Branch Address:</label>
-          <input v-model="form['Branch Address']" type="text" placeholder="Branch Address" />
-        </div>
-
-        <div class="form-field">
-          <label>City:</label>
-          <input v-model="form['City']" type="text" placeholder="City" />
-        </div>
-
-        <div class="form-field">
-          <label>State:</label>
-          <input v-model="form['State']" type="text" placeholder="State" />
-        </div>
-
-        <div class="form-field">
-          <label>Zip:</label>
-          <input v-model="form['Zip']" type="text" placeholder="Zip" />
-        </div>
-
-        <div class="form-field">
-          <label>Account Type:</label>
-          <select v-model="form['Account Type']">
+        <div class="form-field" v-for="(value, key) in fieldOrder" :key="key">
+          <label>{{ key }}:</label>
+          <input
+            v-if="key !== 'Account Type' && key !== 'Date'"
+            v-model="form[key]"
+            type="text"
+            :placeholder="key"
+          />
+          <select v-if="key === 'Account Type'" v-model="form[key]">
             <option disabled value="">Select Type</option>
             <option>Checking</option>
             <option>Savings</option>
           </select>
-        </div>
-
-        <div class="form-field">
-          <label>Phone:</label>
-          <input v-model="form['Phone']" type="tel" placeholder="123-456-7890" />
-        </div>
-
-        <div class="form-field">
-          <label>Date:</label>
-          <input v-model="form['Date']" type="date" />
+          <input v-if="key === 'Date'" type="date" v-model="form[key]" />
         </div>
       </div>
 
@@ -77,15 +34,11 @@
         now, or in the future, with the Company.
       </p>
 
-      <div style="margin-top: 20px;">
+      <div class="signature-section">
         <label style="font-weight: bold;">Signature:</label>
-        <vue-signature-pad
-          ref="signaturePad"
-          :options="{ minWidth: 1, maxWidth: 2.5, penColor: 'black' }"
-          style="border: 1px solid #ccc; width: 100%; height: 200px;"
-        />
-        <div style="margin-top: 10px;">
-          <button type="button" @click="clearSignature" style="background-color: #aaa; margin-right: 10px;">Clear Signature</button>
+        <canvas ref="signatureCanvas" class="signature-pad"></canvas>
+        <div class="buttons">
+          <button type="button" @click="clearSignature" style="background-color: #aaa; margin-top: 10px;">Clear Signature</button>
         </div>
       </div>
 
@@ -97,45 +50,76 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import SignaturePad from 'signature_pad'
 import Sidebar from '@/components/Sidebar.vue'
-import VueSignaturePad from 'vue-signature-pad'
 
 const router = useRouter()
-const signaturePad = ref(null)
+const signatureCanvas = ref(null)
+let signaturePad
+
+const fieldOrder = [
+  'Account Owner Name',
+  'Transit/ABA #',
+  'Account #',
+  'Financial Institution Name',
+  'Branch Address',
+  'City',
+  'State',
+  'Zip',
+  'Account Type',
+  'Phone',
+  'Date'
+]
 
 const form = ref({
-  "Account Owner Name": '',
-  "Transit/ABA #": '',
-  "Account #": '',
-  "Financial Institution Name": '',
-  "Branch Address": '',
-  "City": '',
-  "State": '',
-  "Zip": '',
-  "Account Type": '',
-  "Phone": '',
-  "Date": new Date().toISOString().substring(0, 10)
+  'Account Owner Name': '',
+  'Transit/ABA #': '',
+  'Account #': '',
+  'Financial Institution Name': '',
+  'Branch Address': '',
+  'City': '',
+  'State': '',
+  'Zip': '',
+  'Account Type': '',
+  'Phone': '',
+  'Date': new Date().toISOString().substring(0, 10),
+  'Signature': ''
 })
 
+onMounted(() => {
+  const canvas = signatureCanvas.value
+  resizeCanvas(canvas)
+  signaturePad = new SignaturePad(canvas, {
+    penColor: 'black',
+    backgroundColor: 'white'
+  })
+})
+
+function resizeCanvas(canvas) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1)
+  canvas.width = canvas.offsetWidth * ratio
+  canvas.height = canvas.offsetHeight * ratio
+  canvas.getContext('2d').scale(ratio, ratio)
+}
+
 function clearSignature() {
-  signaturePad.value.clear()
+  signaturePad.clear()
 }
 
 async function submitForm() {
-  if (signaturePad.value.isEmpty()) {
+  if (signaturePad.isEmpty()) {
     alert('Please provide your signature.')
     return
   }
 
-  // Convert signature to base64 and store
-  form.value["Signature"] = signaturePad.value.saveSignature()
+  form.value.Signature = signaturePad.toDataURL()
 
-  // Save current form
+  // Save current page
   localStorage.setItem('newAgentPage10', JSON.stringify(form.value))
 
-  // Collect all 10 pages of data
+  // Collect all pages' data
   const allPagesData = {}
   for (let i = 1; i <= 10; i++) {
     const pageData = localStorage.getItem(`newAgentPage${i}`)
@@ -151,7 +135,7 @@ async function submitForm() {
     body: JSON.stringify(allPagesData)
   })
 
-  // Clear storage
+  // Clean up local storage
   for (let i = 1; i <= 10; i++) {
     localStorage.removeItem(`newAgentPage${i}`)
   }
@@ -197,24 +181,4 @@ select {
   gap: 20px;
   margin-bottom: 20px;
 }
-label {
-  font-weight: 500;
-  display: block;
-  margin-bottom: 4px;
-}
-.form-actions {
-  margin-top: 30px;
-}
-button {
-  padding: 10px 20px;
-  background-color: #0055a4;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-button:hover {
-  background-color: #003f82;
-}
-</style>
+l
