@@ -219,7 +219,7 @@ if (table_type === 'annuity') {
     let currentId = userId;
     let generation = 0;
     const employeePercent = percent;
-    const allowedLevels = ['Agency1', 'Agency2', 'Agency3', 'Vice President'];
+    const allowedLevels = ['Agency 1', 'Agency 2', 'Agency 3', 'Vice President'];
     while (true) {
       const res = await db.query('SELECT * FROM users WHERE id = $1', [currentId]);
       const currUser = res.rows[0];
