@@ -191,50 +191,99 @@ const updateQuery = `
     const userId = updatedOrder.user_id;
 
     if (application_status === 'completed' && type.startsWith('application_')) {
-      if (split_with_id && split_percent < 100) {
-        const remainingPercent = 100 - split_percent;
+      if(isLife) {
+        if (split_with_id && split_percent < 100) {
+          const remainingPercent = 100 - split_percent;
 
-        const userPart = {
-          ...updatedOrder,
-          target_premium: updatedOrder.target_premium * remainingPercent / 100,
-        };
+          const userPart = {
+            ...updatedOrder,
+            target_premium: updatedOrder.target_premium * remainingPercent / 100,
+          };
 
-        const { id: _, ...splitPart } = {
-          ...updatedOrder,
-          user_id: split_with_id,
-          target_premium: updatedOrder.target_premium * split_percent / 100,
-          split_percent: remainingPercent
-        };
+          const { id: _, ...splitPart } = {
+            ...updatedOrder,
+            user_id: split_with_id,
+            target_premium: updatedOrder.target_premium * split_percent / 100,
+            split_percent: remainingPercent
+          };
 
-        const keys = Object.keys(splitPart);
-        const values = Object.values(splitPart);
-        const placeholders = keys.map((_, i) => `$${i + 1}`);
+          const keys = Object.keys(splitPart);
+          const values = Object.values(splitPart);
+          const placeholders = keys.map((_, i) => `$${i + 1}`);
 
-        const insertQuery = `
-          INSERT INTO application_${baseType} (${keys.join(',')})
-          VALUES (${placeholders.join(',')})
-          RETURNING *;
-        `;
-        const insertRes = await client.query(insertQuery, values);
-        const insertedSplitOrder = insertRes.rows[0];
+          const insertQuery = `
+            INSERT INTO application_${baseType} (${keys.join(',')})
+            VALUES (${placeholders.join(',')})
+            RETURNING *;
+          `;
+          const insertRes = await client.query(insertQuery, values);
+          const insertedSplitOrder = insertRes.rows[0];
 
-        // 更新当前订单
-        const updateUserQuery = `
-          UPDATE ${type}
-          SET target_premium = $1
-          WHERE id = $2
-          RETURNING *;
-        `;
-        const updatedUserRes = await client.query(updateUserQuery, [
-          userPart.target_premium,
-          updatedOrder.id
-        ]);
-        const updatedUserOrder = updatedUserRes.rows[0];
+          // 更新当前订单
+          const updateUserQuery = `
+            UPDATE ${type}
+            SET target_premium = $1
+            WHERE id = $2
+            RETURNING *;
+          `;
+          const updatedUserRes = await client.query(updateUserQuery, [
+            userPart.target_premium,
+            updatedOrder.id
+          ]);
+          const updatedUserOrder = updatedUserRes.rows[0];
 
-        await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
-        await handleCommissions(insertedSplitOrder, insertedSplitOrder.user_id, baseType);
-      } else {
-        await handleCommissions(updatedOrder, userId, baseType);
+          await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
+          await handleCommissions(insertedSplitOrder, insertedSplitOrder.user_id, baseType);
+        } else {
+          await handleCommissions(updatedOrder, userId, baseType);
+        }
+      }
+      else {
+        if (split_with_id && split_percent < 100) {
+          const remainingPercent = 100 - split_percent;
+
+          const userPart = {
+            ...updatedOrder,
+            flex_premium: updatedOrder.flex_premium * remainingPercent / 100,
+          };
+
+          const { id: _, ...splitPart } = {
+            ...updatedOrder,
+            user_id: split_with_id,
+            flex_premium: updatedOrder.flex_premium * split_percent / 100,
+            split_percent: remainingPercent
+          };
+
+          const keys = Object.keys(splitPart);
+          const values = Object.values(splitPart);
+          const placeholders = keys.map((_, i) => `$${i + 1}`);
+
+          const insertQuery = `
+            INSERT INTO application_${baseType} (${keys.join(',')})
+            VALUES (${placeholders.join(',')})
+            RETURNING *;
+          `;
+          const insertRes = await client.query(insertQuery, values);
+          const insertedSplitOrder = insertRes.rows[0];
+
+          // 更新当前订单
+          const updateUserQuery = `
+            UPDATE ${type}
+            SET target_premium = $1
+            WHERE id = $2
+            RETURNING *;
+          `;
+          const updatedUserRes = await client.query(updateUserQuery, [
+            userPart.flex_premium,
+            updatedOrder.id
+          ]);
+          const updatedUserOrder = updatedUserRes.rows[0];
+
+          await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
+          await handleCommissions(insertedSplitOrder, insertedSplitOrder.user_id, baseType);
+        } else {
+          await handleCommissions(updatedOrder, userId, baseType);
+        }
       }
 
     } else if (['cancelled', 'rejected'].includes(application_status)) {
