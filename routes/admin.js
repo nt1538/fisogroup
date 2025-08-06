@@ -269,7 +269,7 @@ const updateQuery = `
           // 更新当前订单
           const updateUserQuery = `
             UPDATE ${type}
-            SET target_premium = $1
+            SET flex_premium = $1
             WHERE id = $2
             RETURNING *;
           `;
