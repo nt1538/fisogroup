@@ -53,7 +53,7 @@
           <td>{{ order.split_percent }}</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ order.commission_percent }}</td>
-          <td>${{ order.commission_amount }}</td>
+          <td>${{ parseFloat(order.commission_amount).toFixed(2) }}</td>
           <td>{{ order.order_type }}</td>
           <td>{{ order.explanation }}</td>
           <td>{{ formatDate(order.policy_effective_date) }}</td>
