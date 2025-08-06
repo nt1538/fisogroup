@@ -25,7 +25,7 @@
           <th>Face Amount</th>
           <th>Planned Premium</th>
           <th>Target/Base Premium</th>
-          <th>Split Percentage (Another Agent)</th>
+          <th>Split Percentage</th>
           <th>Split ID</th>
           <th>Commission Percentage</th>
           <th>Commission Amount</th>
@@ -50,9 +50,9 @@
           <td>{{ order.face_amount }}</td>
           <td>{{ order.initial_premium }}</td>
           <td>{{ order.table_type === 'commission_annuity' ? order.flex_premium : order.target_premium }}</td>
-          <td>{{ order.split_percent }}</td>
+          <td>{{ 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
-          <td>{{ order.commission_percent }}</td>
+          <td>{{ order.commission_percent }}%</td>
           <td>${{ parseFloat(order.commission_amount).toFixed(2) }}</td>
           <td>{{ order.order_type }}</td>
           <td>{{ order.explanation }}</td>
