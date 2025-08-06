@@ -49,7 +49,7 @@
           <td>{{ order.writing_agent }}</td>
           <td>{{ order.face_amount }}</td>
           <td>{{ order.initial_premium }}</td>
-          <td>{{ order.order_type === 'commission_annuity' ? order.flex_premium : order.target_premium }}</td>
+          <td>{{ order.table_type === 'commission_annuity' ? order.flex_premium : order.target_premium }}</td>
           <td>{{ order.split_percent }}</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ order.commission_percent }}</td>
