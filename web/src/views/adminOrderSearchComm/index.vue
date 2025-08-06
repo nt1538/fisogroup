@@ -142,4 +142,19 @@ thead th {
   background-color: #f8f8f8;
   z-index: 2;
 }
+th.sticky-col, td.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: #fff;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+th.sticky-col-2, td.sticky-col-2 {
+  position: sticky;
+  left: 120px; /* Adjust based on actual column width */
+  z-index: 2;
+  background-color: #fff;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
 </style>
