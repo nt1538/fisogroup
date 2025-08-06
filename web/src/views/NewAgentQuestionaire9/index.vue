@@ -181,4 +181,35 @@ select {
   gap: 20px;
   margin-bottom: 20px;
 }
-l
+label {
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+}
+.signature-section {
+  margin-top: 30px;
+}
+.signature-pad {
+  width: 100%;
+  height: 200px;
+  border: 2px solid #000;
+  border-radius: 6px;
+  background-color: white;
+  touch-action: none;
+}
+.form-actions {
+  margin-top: 30px;
+}
+button {
+  padding: 10px 20px;
+  background-color: #0055a4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+button:hover {
+  background-color: #003f82;
+}
+</style>
