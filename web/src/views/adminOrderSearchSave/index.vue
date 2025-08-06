@@ -126,4 +126,10 @@ th, td {
   padding: 10px;
   border: 1px solid #ddd;
 }
+thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f8f8;
+  z-index: 2;
+}
 </style>
