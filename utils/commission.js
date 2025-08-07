@@ -56,7 +56,7 @@ async function getHierarchy(userId) {
   const hierarchy = [];
   let currentId = userId;
   while (true) {
-    const res = await db.query('SELECT id, introducer_id, profit, hierarchy_level, name, national_producer_number FROM users WHERE id = $1', [currentId]);
+    const res = await db.query('SELECT id, introducer_id, hierarchy_level, name, national_producer_number FROM users WHERE id = $1', [currentId]);
     if (!res.rows.length) break;
     const u = res.rows[0];
     hierarchy.push(u);
@@ -173,11 +173,6 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
 
   await db.query(insertQuery, values);
 
-  // 更新用户总收入
-  await db.query(
-    'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
-    [amount, user.id]
-  );
 }
 
 
@@ -195,8 +190,7 @@ if (table_type === 'annuity') {
   baseAmount = parseFloat(order.target_premium || 0);
 }
 
-  
-  const profitBefore = parseFloat(user.profit || 0);
+
   const hierarchy = await getHierarchy(userId);
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
   const segments = splitPoints ? [0, ...splitPoints, baseAmount] : [0, baseAmount];
@@ -210,9 +204,11 @@ if (table_type === 'annuity') {
   const originalTable = table_type === 'annuity' ? 'application_annuity' : 'application_life';
 
   for (let i = 0; i < segments.length - 1; i++) {
+    const userRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const user = userRes.rows[0];
+    const profitBefore = parseFloat(user.team_profit || 0);
     const segAmount = segments[i + 1] - segments[i];
-    const segProfit = profitBefore + segments[i];
-    const level = reconcileLevel(segProfit, user.hierarchy_level, chart);
+    const level = reconcileLevel(profitBefore, user.hierarchy_level, chart);
     const percent = getLevelPercentByTitle(level, chart);
     totalPersonalCommission += segAmount * (percent / 100);
 
@@ -248,7 +244,7 @@ if (table_type === 'annuity') {
       generation++;
     }
     await updateTeamProfit(userId, segAmount);
-    await db.query('UPDATE users SET profit = profit + $1 WHERE id = $2', [segAmount, userId]);
+    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [segAmount, userId]);
   }
 
   // 插入合并后的佣金记录

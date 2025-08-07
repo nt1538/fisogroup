@@ -349,11 +349,9 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
     if (order.application_status === 'completed' && order.order_type === 'Personal Commission') {
       await client.query(`
         UPDATE users
-        SET profit = GREATEST(profit - $1, 0),
-            commission = GREATEST(commission - $2, 0),
-            total_earnings = GREATEST(total_earnings - $2, 0)
-        WHERE id = $3
-      `, [baseAmount, personalCommission, userId]);
+            total_earnings = GREATEST(total_earnings - $1, 0)
+        WHERE id = $2
+      `, [personalCommission, userId]);
 
       const hierarchy = await getHierarchy(userId);
       const allUserIds = hierarchy.map(u => u.id).concat(userId);
@@ -395,17 +393,17 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
 // 👤 编辑员工信息
 router.put('/employees/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-  const {name, email, state, phone, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level} = req.body;
+  const {name, email, state, phone, introducer_id, total_earnings, team_profit, national_producer_number, hierarchy_level} = req.body;
 
   try {
     const query = `
       UPDATE users
-      SET name = $1, email = $2, phone = $3, state = $4, introducer_id = $5, level_percent = $6, total_earnings = $7, commission = $8, profit = $9, team_profit = $10,
-      national_producer_number = $11, hierarchy_level = $12
-      WHERE id = $13
+      SET name = $1, email = $2, phone = $3, state = $4, introducer_id = $5,  total_earnings = $6, team_profit = $7,
+      national_producer_number = $8, hierarchy_level = $9
+      WHERE id = $10
       RETURNING *;
     `;
-    const values = [name, email, phone, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, national_producer_number, hierarchy_level, id];
+    const values = [name, email, phone, state, introducer_id, total_earnings, team_profit, national_producer_number, hierarchy_level, id];
 
     const result = await pool.query(query, values);
     if (result.rowCount === 0) {
@@ -424,7 +422,7 @@ router.get('/employees/:id', verifyToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, email, phone, state, introducer_id, level_percent, total_earnings, commission, profit, team_profit, hierarchy_level, national_producer_number
+      `SELECT id, name, email, phone, state, introducer_id, total_earnings, team_profit, hierarchy_level, national_producer_number
        FROM users
        WHERE id = $1`,
       [userId]
