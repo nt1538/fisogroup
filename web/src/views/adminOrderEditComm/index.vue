@@ -1,31 +1,26 @@
 <template>
   <AdminLayout>
     <h2>Edit Commission Order #{{ orderId }}</h2>
-    <div v-if="order">
-      <div class="form-group" v-for="(value, key) in editableFields" :key="key">
-        <label :for="key">
-          {{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
-        </label>
+      <div v-if="order">
+        <div
+          class="form-group"
+          v-for="(value, key) in editableFields"
+          :key="shouldShowField(key)"
+        >
+        <label :for="key">{{ formatLabel(key) }}</label>
 
-        <!-- Only allow editing for policy_effective_date -->
         <template v-if="key === 'policy_effective_date'">
           <input type="date" v-model="order[key]" :id="key" />
         </template>
 
-        <!-- Other fields readonly -->
         <template v-else>
           <input type="text" :value="order[key]" :id="key" readonly />
         </template>
       </div>
 
-      <!-- Admin Comment -->
       <div class="form-group">
         <label for="comment">Comment</label>
         <textarea v-model="order.comment" id="comment" rows="4" />
-      </div>
-
-      <div class="button-row">
-        <button @click="saveOrder">Save</button>
       </div>
     </div>
     <div v-else>Loading...</div>
@@ -61,9 +56,6 @@ const editableFields = ref({
   split_percent: 0,
   explanation: '',
 });
-
-// ✅ Add this to compute the type of order
-const orderType = computed(() => order.value?.order_type || '');
 
 // ✅ Add this helper to control field visibility in template
 function shouldShowField(key) {
