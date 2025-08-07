@@ -28,23 +28,8 @@
       </div>
 
       <div class="form-group">
-        <label>Level Percentage</label>
-        <input v-model="user.level_percent" type="number" />
-      </div>
-
-      <div class="form-group">
         <label>Total Earnings</label>
         <input v-model="user.total_earnings" type="number" />
-      </div>
-
-      <div class="form-group">
-        <label>Commission</label>
-        <input v-model="user.commission" type="number" />
-      </div>
-
-      <div class="form-group">
-        <label>Profit</label>
-        <input v-model="user.profit" type="number" />
       </div>
 
       <div class="form-group">
