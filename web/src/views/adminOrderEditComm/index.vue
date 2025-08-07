@@ -5,7 +5,8 @@
         <div
           class="form-group"
           v-for="(value, key) in editableFields"
-          :key="shouldShowField(key)"
+          :key="key"
+          v-if="shouldShowField(key)"
         >
         <label :for="key">{{ formatLabel(key) }}</label>
 
