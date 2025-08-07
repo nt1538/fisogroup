@@ -12,18 +12,6 @@
           <input type="date" v-model="order[key]" :id="key" />
         </template>
 
-        <template v-else-if="key === 'face_amount' && tableType === 'commission_life'">
-          <label for="face_amount">Face Amount</label>
-          <input type="number" v-model="editableFields.face_amount" id="face_amount" />
-        </template>
-        <template v-else-if="key === 'target_premium' && tableType === 'commission_life'">
-          <label for="target_premium">Target Premium</label>
-          <input type="number" v-model="editableFields.target_premium" id="target_premium" />
-        </template>
-        <template v-else-if="key === 'flex_premium' && tableType === 'commission_annuity'">
-          <label for="flex_premium">Flex Premium</label>
-          <input type="number" v-model="editableFields.flex_premium" id="flex_premium" />
-        </template>
         <!-- Other fields readonly -->
         <template v-else>
           <input type="text" :value="order[key]" :id="key" readonly />
@@ -45,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
@@ -62,9 +50,9 @@ const editableFields = ref({
   commission_distribution_date: '',
   policy_effective_date: '',
   policy_number: '',
-  face_amount: 0,
-  target_premium: 0,
-  flex_premium: 0,
+  face_amount: 0,            // only for life
+  target_premium: 0,         // only for life
+  flex_premium: 0,           // only for annuity
   initial_premium: 0,
   commission_from_carrier: 0,
   application_status: '',
@@ -74,19 +62,31 @@ const editableFields = ref({
   explanation: '',
 });
 
+// ✅ Add this to compute the type of order
+const orderType = computed(() => order.value?.order_type || '');
+
+// ✅ Add this helper to control field visibility in template
+function shouldShowField(key) {
+  if (orderType.value === 'life') {
+    return key !== 'flex_premium';
+  } else if (orderType.value === 'annuity') {
+    return key !== 'face_amount' && key !== 'target_premium';
+  }
+  return true;
+}
+
+// Optional: Format field name for label
+function formatLabel(key) {
+  return key.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
 
   for (const key in editableFields.value) {
     if (key in order.value) {
-      if (key === 'policy_effective_date') {
-        editableFields.value[key] = order.value[key]
-          ? formatDateInput(order.value[key])
-          : '';
-      } else if (
-        key === 'application_date'
-      ) {
+      if (key === 'policy_effective_date' || key === 'application_date') {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
           : '';
