@@ -67,9 +67,9 @@ const orderType = computed(() => order.value?.order_type || '');
 
 // ✅ Add this helper to control field visibility in template
 function shouldShowField(key) {
-  if (orderType.value === 'life') {
+  if (tableType === 'commission_life') {
     return key !== 'flex_premium';
-  } else if (orderType.value === 'annuity') {
+  } else if (orderType.value === 'commission_annuity') {
     return key !== 'face_amount' && key !== 'target_premium';
   }
   return true;
