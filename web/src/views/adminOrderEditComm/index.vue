@@ -86,7 +86,7 @@ onMounted(async () => {
 
   for (const key in editableFields.value) {
     if (key in order.value) {
-      if (key === 'policy_effective_date' || key === 'application_date') {
+      if (key === 'policy_effective_date' || key === 'application_date' || key === 'commission_distribution_date') {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
           : '';
