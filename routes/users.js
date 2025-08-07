@@ -27,13 +27,13 @@ router.get('/me/:id', verifyToken, async (req, res) => {
     const ytdQueryLife = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
        FROM commission_life
-       WHERE user_id = $1 AND commission-distribution_date >= date_trunc('year', CURRENT_DATE)`,
+       WHERE user_id = $1 AND commission_distribution_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
     );
     const ytdQueryAnnuity = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
        FROM commission_annuity
-       WHERE user_id = $1 AND commission-distribution_date >= date_trunc('year', CURRENT_DATE)`,
+       WHERE user_id = $1 AND commission_distribution_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
     );
     const ytdEarnings = ytdQueryLife.rows[0].total + ytdQueryAnnuity.rows[0].total;
@@ -42,13 +42,13 @@ router.get('/me/:id', verifyToken, async (req, res) => {
     const rollingQueryLife = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
        FROM commission_life
-       WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
+       WHERE user_id = $1 AND commission_distribution_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
     const rollingQueryAnnuity = await client.query(
       `SELECT COALESCE(SUM(commission_amount), 0) AS total
        FROM commission_annuity
-       WHERE user_id = $1 AND application_date >= CURRENT_DATE - INTERVAL '12 months'`,
+       WHERE user_id = $1 AND commission_distribution_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
     const rollingEarnings = rollingQueryLife.rows[0].total + rollingQueryAnnuity.rows[0].total;
@@ -56,13 +56,13 @@ router.get('/me/:id', verifyToken, async (req, res) => {
     // 最近 4 个季度的佣金汇总（按季度分组）
     const termQueryLife = await client.query(
   `SELECT 
-    MIN(application_date) AS period_start,
-    MAX(application_date) AS period_end,
+    MIN(commission_distribution_date) AS period_start,
+    MAX(commission_distribution_date) AS period_end,
     SUM(commission_amount) AS total
   FROM (
     SELECT *,
       width_bucket(
-        EXTRACT(EPOCH FROM application_date),
+        EXTRACT(EPOCH FROM commission_distribution_date),
         EXTRACT(EPOCH FROM CURRENT_DATE - INTERVAL '12 months'),
         EXTRACT(EPOCH FROM CURRENT_DATE),
         4
@@ -76,13 +76,13 @@ router.get('/me/:id', verifyToken, async (req, res) => {
 );
     const termQueryAnnuity = await client.query(
   `SELECT 
-    MIN(application_date) AS period_start,
-    MAX(application_date) AS period_end,
+    MIN(commission_distribution_date) AS period_start,
+    MAX(commission_distribution_date) AS period_end,
     SUM(commission_amount) AS total
   FROM (
     SELECT *,
       width_bucket(
-        EXTRACT(EPOCH FROM application_date),
+        EXTRACT(EPOCH FROM commission_distribution_date),
         EXTRACT(EPOCH FROM CURRENT_DATE - INTERVAL '12 months'),
         EXTRACT(EPOCH FROM CURRENT_DATE),
         4
