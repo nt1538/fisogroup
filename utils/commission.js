@@ -244,7 +244,6 @@ if (table_type === 'annuity') {
       generation++;
     }
     await updateTeamProfit(userId, segAmount);
-    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [segAmount, userId]);
   }
 
   // 插入合并后的佣金记录
@@ -263,9 +262,11 @@ await insertCommissionOrder(
   order.id,
   commissionTable
 );
+await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [totalPersonalCommission, user.id]);
 
 for (let [uid, amt] of levelDiffMap) {
   const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
   if (res.rows.length) {
     await insertCommissionOrder(
       order,
@@ -280,8 +281,10 @@ for (let [uid, amt] of levelDiffMap) {
   }
 }
 
+
 for (let [uid, amt] of genOverrideMap) {
   const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
   if (res.rows.length) {
     await insertCommissionOrder(
       order,
