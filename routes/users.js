@@ -59,50 +59,67 @@ router.get('/me/:id', verifyToken, async (req, res) => {
 
     const rollingEarnings = rollingLife + rollingAnnuity;
 
-    // 最近 4 个季度的佣金汇总（按季度分组）
-    const termQueryLife = await client.query(
-  `SELECT 
-    MIN(commission_distribution_date) AS period_start,
-    MAX(commission_distribution_date) AS period_end,
-    SUM(commission_amount) AS total
-  FROM (
-    SELECT *,
-      width_bucket(
-        EXTRACT(EPOCH FROM commission_distribution_date),
-        EXTRACT(EPOCH FROM CURRENT_DATE - INTERVAL '12 months'),
-        EXTRACT(EPOCH FROM CURRENT_DATE),
-        4
-      ) AS term
-    FROM commission_life
-    WHERE user_id = $1
-  ) AS bucketed
-  GROUP BY term
-  ORDER BY term`,
-  [userId]
-);
-    const termQueryAnnuity = await client.query(
-  `SELECT 
-    MIN(commission_distribution_date) AS period_start,
-    MAX(commission_distribution_date) AS period_end,
-    SUM(commission_amount) AS total
-  FROM (
-    SELECT *,
-      width_bucket(
-        EXTRACT(EPOCH FROM commission_distribution_date),
-        EXTRACT(EPOCH FROM CURRENT_DATE - INTERVAL '12 months'),
-        EXTRACT(EPOCH FROM CURRENT_DATE),
-        4
-      ) AS term
-    FROM commission_annuity
-    WHERE user_id = $1
-  ) AS bucketed
-  GROUP BY term
-  ORDER BY term`,
-  [userId]
-);
+    const sql = `
+    WITH params AS (
+      SELECT 
+        date_trunc('day', CURRENT_DATE - INTERVAL '12 months') AS start_dt,
+        date_trunc('day', CURRENT_DATE) AS end_dt
+    ),
+    series AS (
+      -- 4 equal buckets across the last 12 months
+      SELECT
+        1 AS term, start_dt AS period_start, start_dt + (end_dt - start_dt) * 0.25 AS period_end FROM params
+      UNION ALL SELECT
+        2, start_dt + (end_dt - start_dt) * 0.25, start_dt + (end_dt - start_dt) * 0.50 FROM params
+      UNION ALL SELECT
+        3, start_dt + (end_dt - start_dt) * 0.50, start_dt + (end_dt - start_dt) * 0.75 FROM params
+      UNION ALL SELECT
+        4, start_dt + (end_dt - start_dt) * 0.75, end_dt FROM params
+    ),
+    all_commissions AS (
+      SELECT commission_distribution_date, commission_amount
+      FROM commission_life
+      WHERE user_id = $1
+        AND commission_distribution_date >= (SELECT start_dt FROM params)
+        AND commission_distribution_date <  (SELECT end_dt   FROM params)
+      UNION ALL
+      SELECT commission_distribution_date, commission_amount
+      FROM commission_annuity
+      WHERE user_id = $1
+        AND commission_distribution_date >= (SELECT start_dt FROM params)
+        AND commission_distribution_date <  (SELECT end_dt   FROM params)
+    ),
+    bucketed AS (
+      SELECT 
+        s.term,
+        s.period_start,
+        s.period_end,
+        SUM(CASE 
+              WHEN a.commission_distribution_date >= s.period_start
+              AND a.commission_distribution_date <  s.period_end
+              THEN a.commission_amount::numeric
+              ELSE 0
+            END) AS total
+      FROM series s
+      LEFT JOIN all_commissions a
+        ON a.commission_distribution_date >= s.period_start
+      AND a.commission_distribution_date <  s.period_end
+      GROUP BY s.term, s.period_start, s.period_end
+    )
+    SELECT term, period_start, period_end, COALESCE(total, 0) AS total
+    FROM bucketed
+    ORDER BY term;
+    `;
 
-    const termEarnings = termQueryLife.rows + termQueryAnnuity.rows;
+    const { rows } = await client.query(sql, [userId]);
 
+    // Convert NUMERIC to Number (pg returns strings for NUMERIC)
+    const termEarnings = rows.map(r => ({
+      term: r.term,
+      period_start: r.period_start,
+      period_end: r.period_end,
+      total: Number(r.total) || 0
+    }));
     client.release();
 
     res.json({
