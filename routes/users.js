@@ -36,7 +36,10 @@ router.get('/me/:id', verifyToken, async (req, res) => {
        WHERE user_id = $1 AND commission_distribution_date >= date_trunc('year', CURRENT_DATE)`,
       [userId]
     );
-    const ytdEarnings = ytdQueryLife.rows[0].total + ytdQueryAnnuity.rows[0].total;
+    const lifeYtd = Number(ytdQueryLife.rows[0].total) || 0;
+    const annuityYtd = Number(ytdQueryAnnuity.rows[0].total) || 0;
+
+    const ytdEarnings = lifeYtd + annuityYtd;
 
     // 近12个月的总佣金
     const rollingQueryLife = await client.query(
@@ -51,7 +54,10 @@ router.get('/me/:id', verifyToken, async (req, res) => {
        WHERE user_id = $1 AND commission_distribution_date >= CURRENT_DATE - INTERVAL '12 months'`,
       [userId]
     );
-    const rollingEarnings = rollingQueryLife.rows[0].total + rollingQueryAnnuity.rows[0].total;
+    const rollingLife = Number(rollingQueryLife.rows[0].total) || 0;
+    const rollingAnnuity = Number(rollingQueryAnnuity.rows[0].total) || 0;
+
+    const rollingEarnings = rollingLife + rollingAnnuity;
 
     // 最近 4 个季度的佣金汇总（按季度分组）
     const termQueryLife = await client.query(
