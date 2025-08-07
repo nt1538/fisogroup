@@ -69,7 +69,7 @@ const orderType = computed(() => order.value?.order_type || '');
 function shouldShowField(key) {
   if (tableType === 'commission_life') {
     return key !== 'flex_premium';
-  } else if (orderType.value === 'commission_annuity') {
+  } else if (tableType === 'commission_annuity') {
     return key !== 'face_amount' && key !== 'target_premium';
   }
   return true;

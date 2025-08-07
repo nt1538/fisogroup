@@ -69,7 +69,7 @@ const orderType = computed(() => order.value?.order_type || '');
 function shouldShowField(key) {
   if (tableType === 'saved_life_orders') {
     return key !== 'flex_premium';
-  } else if (orderType.value === 'saved_annuity_orders') {
+  } else if (tableType === 'saved_annuity_orders') {
     return key !== 'face_amount' && key !== 'target_premium';
   }
   return true;
