@@ -32,7 +32,7 @@
             <tbody>
               <tr v-for="item in lifeOrders" :key="item.id">
                 <td>{{ item.user_id }}</td><td>{{ item.full_name }}</td>
-                <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
+                <td>{{ item.hierarchy_level }}</td><td>{{ formatPercent(item.commission_percent) }}%</td><td>${{ formatMoney(item.commission_amount) }}</td>
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.commission_distribution_date) }}</td><td>{{ item.policy_number }}</td><td>{{ item.insured_name }}</td><td>{{ item.writing_agent }}</td>
                 <td>{{ item.face_amount }}</td><td>{{ item.initial_premium }}</td><td>{{ item.target_premium }}</td>
@@ -40,6 +40,13 @@
                 <td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" style="text-align:right; font-weight:bold;">Life Total:</td>
+                <td style="font-weight:bold;">${{ lifeTotal.toFixed(2) }}</td>
+                <td colspan="13"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
   
@@ -58,67 +65,100 @@
             <tbody>
               <tr v-for="item in annuityOrders" :key="item.id">
                 <td>{{ item.user_id }}</td><td>{{ item.full_name }}</td>
-                <td>{{ item.hierarchy_level }}</td><td>{{ item.commission_percent }}%</td><td>${{ item.commission_amount }}</td>
+                <td>{{ item.hierarchy_level }}</td><td>{{ formatPercent(item.commission_percent) }}%</td><td>${{ formatMoney(item.commission_amount) }}</td>
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.commission_distribution_date) }}</td><td>{{ item.policy_number }}</td><td>{{ item.insured_name }}</td><td>{{ item.writing_agent }}</td>
                 <td>{{ item.flex_premium }}</td><td>{{ item.initial_premium }}</td>
                 <td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td><td>{{ item.order_type }}</td><td>{{ item.mra_status }}</td>
               </tr>
             </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" style="text-align:right; font-weight:bold;">Annuity Total:</td>
+                <td style="font-weight:bold;">${{ annuityTotal.toFixed(2) }}</td>
+                <td colspan="12"></td>
+              </tr>
+            </tfoot>
           </table>
+        </div>
+        <div class="section" style="text-align:right; font-size:16px; font-weight:bold;">
+          All Orders Total: ${{ grandTotal.toFixed(2) }}
         </div>
       </div>
     </div>
   </template>
   
   <script setup>
-  import { ref, onMounted } from 'vue';
-  import axios from '@/config/axios.config';
-  import Sidebar from '@/components/Sidebar.vue';
-  
-  const lifeOrders = ref([]);
-  const annuityOrders = ref([]);
+import { ref, onMounted, computed } from 'vue';
+import axios from '@/config/axios.config';
+import Sidebar from '@/components/Sidebar.vue';
 
-  const startDate = ref('');
-  const endDate = ref('');
+const lifeOrders = ref([]);
+const annuityOrders = ref([]);
 
-  async function fetchData(range = 'all') {
-    try {
-      const lifeRes = await axios.get(`/orders/life?status=completed&range=${range}`);
-      const annuityRes = await axios.get(`/orders/annuity?status=completed&range=${range}`);
-      lifeOrders.value = lifeRes.data;
-      annuityOrders.value = annuityRes.data;
-      console.log('Life Orders:', lifeRes.data);
-      console.log('Annuity Orders:', annuityRes.data);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-    }
+const startDate = ref('');
+const endDate = ref('');
+
+async function fetchData(range = 'all') {
+  try {
+    const lifeRes = await axios.get(`/orders/life?status=completed&range=${range}`);
+    const annuityRes = await axios.get(`/orders/annuity?status=completed&range=${range}`);
+    lifeOrders.value = lifeRes.data;
+    annuityOrders.value = annuityRes.data;
+  } catch (err) {
+    console.error('Error fetching orders:', err);
   }
-
-  async function fetchDataByDate() {
-    if (!startDate.value || !endDate.value) return alert('Please select both start and end dates.');
-    try {
-      const lifeRes = await axios.get(`/orders/life?status=completed&startDate=${startDate.value}&endDate=${endDate.value}`);
-      const annuityRes = await axios.get(`/orders/annuity?status=completed&startDate=${startDate.value}&endDate=${endDate.value}`);
-      lifeOrders.value = lifeRes.data;
-      annuityOrders.value = annuityRes.data;
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-    }
-  }
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
-  
-  onMounted(() => fetchData());
+async function fetchDataByDate() {
+  if (!startDate.value || !endDate.value) {
+    return alert('Please select both start and end dates.');
+  }
+  try {
+    const lifeRes = await axios.get(`/orders/life?status=completed&startDate=${startDate.value}&endDate=${endDate.value}`);
+    const annuityRes = await axios.get(`/orders/annuity?status=completed&startDate=${startDate.value}&endDate=${endDate.value}`);
+    lifeOrders.value = lifeRes.data;
+    annuityOrders.value = annuityRes.data;
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+  }
+}
 
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatMoney(value) {
+  const num = Number(value) || 0;
+  return num.toFixed(2);
+}
+
+function formatPercent(value) {
+  const num = Number(value) || 0;
+  return num.toFixed(2);
+}
+
+// ✅ Computed totals
+const lifeTotal = computed(() =>
+  Number(
+    lifeOrders.value.reduce((sum, order) => sum + (Number(order.commission_amount) || 0), 0).toFixed(2)
+  )
+);
+const annuityTotal = computed(() =>
+  Number(
+    annuityOrders.value.reduce((sum, order) => sum + (Number(order.commission_amount) || 0), 0).toFixed(2)
+  )
+);
+const grandTotal = computed(() =>
+  Number((lifeTotal.value + annuityTotal.value).toFixed(2))
+);
+
+onMounted(() => fetchData());
 </script>
   
 <style scoped>
