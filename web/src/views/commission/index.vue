@@ -26,7 +26,7 @@
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Commission Distribution Date</th><th>Policy #</th><th>Insured Name</th><th>Writing Agent</th>
                 <th>Face Amount</th><th>Paid Premium</th><th>Target Premium</th>
-                <th>Split Percentage</th><th>Split ID</th><th>Note</th><th>Commission Type</th>
+                <th>Split Percentage</th><th>Split ID</th><th>Notes</th><th>Commission Type</th>
               </tr>
             </thead>
             <tbody>
@@ -52,7 +52,7 @@
                 <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
                 <th>Product</th><th>Commission Distribution Date</th><th>Policy #</th><th>Insured Name</th><th>Writing Agent</th>
                 <th>Base Premium</th><th>Paid Premium</th>
-                <th>Split Percentage</th><th>Split ID</th><th>Commission Type</th><th>Note</th>
+                <th>Split Percentage</th><th>Split ID</th><th>Commission Type</th><th>Notes</th>
               </tr>
             </thead>
             <tbody>
