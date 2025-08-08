@@ -116,11 +116,11 @@ function submitForm() {
 
   localStorage.setItem('newAgentPage9', JSON.stringify(form))
   alert('Agreement saved successfully.')
-  router.push('/employee/form10') // go to next page
+  router.push('/employee/form9') // go to next page
 }
 
 function skip() {
-  router.push('/employee/form10')
+  router.push('/employee/form9')
 }
 </script>
 
