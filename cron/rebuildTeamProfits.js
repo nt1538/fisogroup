@@ -1,26 +1,21 @@
-// cron/rebuildTeamProfits.js
-
-const db = require('../db'); // 你的数据库连接文件
+const db = require('../db');
 
 async function rebuildTeamProfits() {
   try {
     console.log('🛠 正在重新计算所有用户的 team_profit（滚动 12 个月内）...');
 
-    // 拉取 rolling 12 months 内的 life 订单
     const { rows: lifeOrders } = await db.query(`
       SELECT user_id, target_premium
       FROM saved_life_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
     `);
 
-    // 拉取 rolling 12 months 内的 annuity 订单
     const { rows: annuityOrders } = await db.query(`
       SELECT user_id, flex_premium
       FROM saved_annuity_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
     `);
 
-    // 合并订单并统一为 target_premium 单位
     const allOrders = [
       ...lifeOrders.map(o => ({
         user_id: o.user_id,
@@ -32,16 +27,12 @@ async function rebuildTeamProfits() {
       })),
     ];
 
-    // 初始化 user -> team_profit 累加器
     const profitMap = new Map();
-
     for (const order of allOrders) {
       if (!order.user_id) continue;
-      if (!profitMap.has(order.user_id)) profitMap.set(order.user_id, 0);
-      profitMap.set(order.user_id, profitMap.get(order.user_id) + order.target_premium);
+      profitMap.set(order.user_id, (profitMap.get(order.user_id) || 0) + order.target_premium);
     }
 
-    // 批量写入到 users 表
     for (const [userId, profit] of profitMap.entries()) {
       await db.query(
         `UPDATE users SET team_profit = $1 WHERE id = $2`,
