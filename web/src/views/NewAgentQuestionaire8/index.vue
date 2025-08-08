@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import SignaturePad from 'signature_pad'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
@@ -72,12 +72,24 @@ const router = useRouter()
 const signatureCanvas = ref(null)
 let signaturePad
 
-// Fields
 const agreementDate = ref(new Date().toISOString().substring(0, 10))
 const agentName = ref(localStorage.getItem('full_name') || '')
 const agentState = ref('')
 const agentAddress = ref('')
 const agentSignatureName = ref(agentName.value)
+
+function resizeCanvas(canvas) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1)
+  const data = signaturePad?.toData()
+  canvas.width = canvas.offsetWidth * ratio
+  canvas.height = canvas.offsetHeight * ratio
+  canvas.getContext('2d').scale(ratio, ratio)
+  if (data && signaturePad) signaturePad.fromData(data)
+}
+function handleResize() {
+  if (!signatureCanvas.value) return
+  resizeCanvas(signatureCanvas.value)
+}
 
 onMounted(() => {
   const canvas = signatureCanvas.value
@@ -86,17 +98,29 @@ onMounted(() => {
     penColor: 'black',
     backgroundColor: 'white',
   })
+  window.addEventListener('resize', handleResize)
 })
-
-function resizeCanvas(canvas) {
-  const ratio = Math.max(window.devicePixelRatio || 1, 1)
-  canvas.width = canvas.offsetWidth * ratio
-  canvas.height = canvas.offsetHeight * ratio
-  canvas.getContext('2d').scale(ratio, ratio)
-}
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 function clearSignature() {
   signaturePad.clear()
+}
+
+// ↓ Compress + strip header (base64 only)
+function sigToJPEGBase64() {
+  const src = signatureCanvas.value
+  const w = Math.max(600, src.offsetWidth)
+  const h = 200
+  const tmp = document.createElement('canvas')
+  tmp.width = w
+  tmp.height = h
+  const ctx = tmp.getContext('2d')
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, w, h)
+  ctx.drawImage(src, 0, 0, w, h)
+  return tmp.toDataURL('image/jpeg', 0.7).split(',')[1]
 }
 
 function submitForm() {
@@ -105,18 +129,18 @@ function submitForm() {
     return
   }
 
-  const form = {
+  const payload = {
     agreementDate: agreementDate.value,
     agentName: agentName.value,
     agentState: agentState.value,
     agentAddress: agentAddress.value,
-    agentSignature: agentSignatureName.value,
-    agentDrawnSignature: signaturePad.toDataURL()
+    agentSignatureName: agentSignatureName.value,
+    NonSolicitationSignature: sigToJPEGBase64(), // base64 only
   }
 
-  localStorage.setItem('newAgentPage9', JSON.stringify(form))
+  localStorage.setItem('newAgentPage9', JSON.stringify(payload))
   alert('Agreement saved successfully.')
-  router.push('/employee/form9') // go to next page
+  router.push('/employee/form9') // next page
 }
 
 function skip() {
@@ -125,67 +149,16 @@ function skip() {
 </script>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  height: 100vh;
-}
-.form-container {
-  flex-grow: 1;
-  padding: 40px;
-  background-color: #f9f9f9;
-  margin-left: 280px;
-  overflow-y: auto;
-}
-h1 {
-  font-size: 26px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-p,
-li {
-  font-size: 15px;
-  margin-bottom: 10px;
-  line-height: 1.6;
-}
-input {
-  margin: 4px 0;
-  padding: 6px 10px;
-  width: 250px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-.signature-block {
-  display: flex;
-  gap: 40px;
-  margin-top: 20px;
-}
-.signature-section {
-  margin-top: 30px;
-}
-.signature-pad {
-  width: 100%;
-  height: 200px;
-  border: 2px solid #000;
-  border-radius: 6px;
-  background-color: white;
-  touch-action: none;
-}
-.buttons {
-  margin-top: 10px;
-}
-.form-actions {
-  margin-top: 30px;
-}
-button {
-  padding: 10px 20px;
-  background-color: #0055a4;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-button:hover {
-  background-color: #003f82;
-}
+.dashboard { display: flex; height: 100vh; }
+.form-container { flex-grow: 1; padding: 40px; background-color: #f9f9f9; margin-left: 280px; overflow-y: auto; }
+h1 { font-size: 26px; font-weight: bold; margin-bottom: 20px; }
+p, li { font-size: 15px; margin-bottom: 10px; line-height: 1.6; }
+input { margin: 4px 0; padding: 6px 10px; width: 250px; border-radius: 4px; border: 1px solid #ccc; }
+.signature-block { display: flex; gap: 40px; margin-top: 20px; }
+.signature-section { margin-top: 30px; }
+.signature-pad { width: 100%; height: 200px; border: 2px solid #000; border-radius: 6px; background-color: white; touch-action: none; }
+.buttons { margin-top: 10px; }
+.form-actions { margin-top: 30px; }
+button { padding: 10px 20px; background-color: #0055a4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+button:hover { background-color: #003f82; }
 </style>
