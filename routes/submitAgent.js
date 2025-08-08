@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const { sendEmail } = require('../utils/sendEmail');// <— import your working sender
+const { sendEmail } = require('../utils/sendEmail');
 
 const router = express.Router();
 
@@ -15,13 +15,30 @@ router.post('/submit-agent-data', async (req, res) => {
     const pdfPath = path.join(tmpDir, `agent_form_${Date.now()}.pdf`);
     await generatePDF(data, pdfPath);
 
+    // Double-check file exists and has size
+    const stat = fs.statSync(pdfPath);
+    console.log(`[pdf] wrote ${pdfPath} (${stat.size} bytes)`);
+    if (stat.size === 0) {
+      throw new Error('PDF generated but size is 0 bytes');
+    }
+
+    // Read as buffer and attach directly
+    const pdfBuffer = fs.readFileSync(pdfPath);
+
     await sendEmail({
       to: 'nt1538@nyu.edu',
       subject: 'New Agent Submission — Full Payload (PDF attached)',
       html: '<p>Attached is the submitted agent form PDF.</p>',
-      attachments: [{ filename: path.basename(pdfPath), path: pdfPath }]
+      attachments: [
+        {
+          filename: 'agent_form.pdf',
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
     });
 
+    // Clean up
     try { fs.unlinkSync(pdfPath); } catch (_) {}
 
     res.json({ success: true });
@@ -48,6 +65,10 @@ function generatePDF(data, outputPath) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 40 });
     const stream = fs.createWriteStream(outputPath);
+
+    stream.on('finish', () => resolve());
+    stream.on('error', reject);
+
     doc.pipe(stream);
 
     doc.fontSize(18).text('Agent Submission Summary', { underline: true });
@@ -61,7 +82,7 @@ function generatePDF(data, outputPath) {
       }
     }
 
-    // Then add images
+    // Then add images (signatures) on separate pages
     for (const [key, value] of Object.entries(data)) {
       const b64 = asBase64(value);
       if (b64) {
@@ -82,8 +103,6 @@ function generatePDF(data, outputPath) {
     }
 
     doc.end();
-    stream.on('finish', resolve);
-    stream.on('error', reject);
   });
 }
 
