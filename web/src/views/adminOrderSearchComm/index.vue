@@ -15,8 +15,8 @@
           <th>ID</th>
           <th>Payee Name</th>
           <th>Level</th>
-          <th>Application Date</th>
-          <th>Type</th>
+          <th>Commission Distribution Date</th>
+          <th>Product Type</th>
           <th>Carrier</th>
           <th>Product Name</th>
           <th>Policy Number</th>
@@ -30,6 +30,7 @@
           <th>Commission Percentage</th>
           <th>Commission Amount</th>
           <th>Commission Type</th>
+          <th>Notes</th>
           <th>Explanation</th>
           <th>Policy Effective Date</th>
           <th>Action</th>
@@ -40,7 +41,7 @@
           <td>{{ order.user_id }}</td>
           <td>{{ order.user_name }}</td>
           <td>{{ order.hierarchy_level }}</td>
-          <td>{{ formatDate(order.application_date) }}</td>
+          <td>{{ formatDate(order.commission_distribution_date) }}</td>
           <td>{{ order.table_type.replace('commission_', '') }}</td>
           <td>{{ order.carrier_name }}</td>
           <td>{{ order.product_name }}</td>
@@ -55,6 +56,7 @@
           <td>{{ parseFloat(order.commission_percent).toFixed(2) }}%</td>
           <td>${{ parseFloat(order.commission_amount).toFixed(2) }}</td>
           <td>{{ order.order_type }}</td>
+          <td>{{ order.mra_status }}</td>
           <td>{{ order.explanation }}</td>
           <td>{{ formatDate(order.policy_effective_date) }}</td>
           <td>

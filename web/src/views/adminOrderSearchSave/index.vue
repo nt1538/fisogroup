@@ -21,12 +21,13 @@
           <th>Product Name</th>
           <th>Policy Number</th>
           <th>Insured Name</th>
+          <th>Status</th>
           <th>Face Amount</th>
           <th>Planned Premium</th>
           <th>Target/Base Premium</th>
           <th>Split Percentage</th>
           <th>Split ID</th>
-          <th>Status</th>
+          <th>Notes</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -41,12 +42,13 @@
           <td>{{ order.product_name }}</td>
           <td>{{ order.policy_number }}</td>
           <td>{{ order.insured_name }}</td>
+          <td>{{ order.application_status }}</td>
           <td>{{ order.face_amount }}</td>
           <td>{{ order.initial_premium }}</td>
           <td>{{ order.table_type === 'saved_annuity_orders' ? order.flex_premium : order.target_premium }}</td>
           <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
-          <td>{{ order.application_status }}</td>
+          <td>{{ order.mra_status }}</td>
           <td>
             <router-link :to="`/admin/adminOrderEditSave/${order.table_type}/${order.id}`">Edit</router-link>
           </td>
