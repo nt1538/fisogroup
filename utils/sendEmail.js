@@ -4,20 +4,28 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   host: 'smtp.office365.com',
   port: 587,
-  secure: false,
+  secure: false, // STARTTLS
   auth: {
-    user: 'admin@fisogroup.com',
-    pass: 'Joyce2024!'
+    user: process.env.EMAIL_USER || 'admin@fisogroup.com',
+    pass: process.env.EMAIL_PASS || 'Joyce2024!'
   }
 });
 
-async function sendEmail({ to, subject, html }) {
-  await transporter.sendMail({
-    from: '"FISO Group" <admin@fisogroup.com>',
+/**
+ * Send an email via Office365 SMTP
+ * @param {Object} options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.html - HTML body
+ * @param {Array}  [options.attachments] - Nodemailer attachment objects
+ */
+async function sendEmail({ to, subject, html, attachments = [] }) {
+  return transporter.sendMail({
+    from: `"FISO Group" <${process.env.EMAIL_USER || 'admin@fisogroup.com'}>`,
     to,
     subject,
     html,
-    attachments
+    attachments // <-- now passed along
   });
 }
 
