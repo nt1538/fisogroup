@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import SignaturePad from 'signature_pad'
 import Sidebar from '@/components/Sidebar.vue'
@@ -61,6 +61,7 @@ import Sidebar from '@/components/Sidebar.vue'
 const router = useRouter()
 const signatureCanvas = ref(null)
 let signaturePad
+const isSubmitting = ref(false)
 
 const fieldOrder = [
   'Account Owner Name',
@@ -91,15 +92,6 @@ const form = ref({
   'Signature': ''
 })
 
-onMounted(() => {
-  const canvas = signatureCanvas.value
-  resizeCanvas(canvas)
-  signaturePad = new SignaturePad(canvas, {
-    penColor: 'black',
-    backgroundColor: 'white'
-  })
-})
-
 function resizeCanvas(canvas) {
   const ratio = Math.max(window.devicePixelRatio || 1, 1)
   canvas.width = canvas.offsetWidth * ratio
@@ -107,44 +99,76 @@ function resizeCanvas(canvas) {
   canvas.getContext('2d').scale(ratio, ratio)
 }
 
+function handleResize() {
+  if (!signatureCanvas.value) return
+  // preserve existing drawing when resizing
+  const data = signaturePad?.toData()
+  resizeCanvas(signatureCanvas.value)
+  if (data && signaturePad) signaturePad.fromData(data)
+}
+
+onMounted(() => {
+  const canvas = signatureCanvas.value
+  resizeCanvas(canvas)
+  signaturePad = new SignaturePad(canvas, {
+    penColor: 'black',
+    backgroundColor: 'white'
+  })
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
 function clearSignature() {
   signaturePad.clear()
 }
 
 async function submitForm() {
-  if (signaturePad.isEmpty()) {
-    alert('Please provide your signature.')
-    return
-  }
-
-  form.value.Signature = signaturePad.toDataURL()
-
-  // Save current page
-  localStorage.setItem('newAgentPage10', JSON.stringify(form.value))
-
-  // Collect all pages' data
-  const allPagesData = {}
-  for (let i = 1; i <= 10; i++) {
-    const pageData = localStorage.getItem(`newAgentPage${i}`)
-    if (pageData) {
-      Object.assign(allPagesData, JSON.parse(pageData))
+  try {
+    if (!signaturePad || signaturePad.isEmpty()) {
+      alert('Please provide your signature.')
+      return
     }
-  }
-  console.log('All pages data:', allPagesData)
-  // Send to backend
-  await fetch('/api/submit-agent-data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(allPagesData)
-  })
+    isSubmitting.value = true
 
-  // Clean up local storage
-  for (let i = 1; i <= 10; i++) {
-    localStorage.removeItem(`newAgentPage${i}`)
-  }
+    form.value.Signature = signaturePad.toDataURL('image/png')
 
-  alert('All data submitted successfully!')
-  router.push('/employee/dashboard')
+    // Save current page
+    localStorage.setItem('newAgentPage10', JSON.stringify(form.value))
+
+    // Collect all pages' data
+    const allPagesData = {}
+    for (let i = 1; i <= 10; i++) {
+      const pageData = localStorage.getItem(`newAgentPage${i}`)
+      if (pageData) Object.assign(allPagesData, JSON.parse(pageData))
+    }
+
+    const res = await fetch('/api/submit-agent-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(allPagesData)
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Submit failed (${res.status}): ${text || 'No response body'}`)
+    }
+
+    // Clean up local storage
+    for (let i = 1; i <= 10; i++) {
+      localStorage.removeItem(`newAgentPage${i}`)
+    }
+
+    alert('All data submitted successfully!')
+    router.push('/employee/dashboard')
+  } catch (err) {
+    console.error(err)
+    alert(`Error submitting form: ${err.message}`)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
