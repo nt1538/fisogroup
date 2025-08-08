@@ -22,6 +22,9 @@ app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/orders', verifyToken, orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', submitAgentRoutes);
+app.use(express.json({ limit: '15mb' })); // signatures are chunky
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+
 
 
 app.use((req, res) => {

@@ -7,47 +7,65 @@
         Please fill out the following information to authorize electronic fund transfers for your commissions and reimbursements.
       </p>
 
-      <div class="form-grid">
-        <div class="form-field" v-for="(label) in fieldOrder" :key="label">
-          <label>{{ label }}:</label>
+      <form @submit.prevent="submitForm">
+        <div class="form-grid">
+          <div class="form-field" v-for="(label, idx) in fieldOrder" :key="label">
+            <label :for="`field-${idx}`">{{ label }}:</label>
 
-          <input
-            v-if="label !== 'Account Type' && label !== 'Date'"
-            v-model="form[label]"
-            type="text"
-            :placeholder="label"
-          />
+            <input
+              v-if="label !== 'Account Type' && label !== 'Date'"
+              :id="`field-${idx}`"
+              v-model="form[label]"
+              type="text"
+              :placeholder="label"
+              autocomplete="off"
+            />
 
-          <select v-if="label === 'Account Type'" v-model="form[label]">
-            <option disabled value="">Select Type</option>
-            <option>Checking</option>
-            <option>Savings</option>
-          </select>
+            <select
+              v-if="label === 'Account Type'"
+              :id="`field-${idx}`"
+              v-model="form[label]"
+            >
+              <option disabled value="">Select Type</option>
+              <option>Checking</option>
+              <option>Savings</option>
+            </select>
 
-          <input v-if="label === 'Date'" type="date" v-model="form[label]" />
+            <input
+              v-if="label === 'Date'"
+              :id="`field-${idx}`"
+              type="date"
+              v-model="form[label]"
+            />
+          </div>
         </div>
-      </div>
 
-      <p>
-        By signing below I hereby authorize the Company to initiate credit entries and, if necessary,
-        adjustments for credit entries in error to the checking and/or savings account indicated on this form.
-        This authority is to remain in full effect until the Company has received written notification
-        from me of its termination. I understand that this authorization is subject to the terms of any
-        agent or representative contract, commission agreement, or loan agreement that I may have
-        now, or in the future, with the Company.
-      </p>
+        <p>
+          By signing below I hereby authorize the Company to initiate credit entries and, if necessary,
+          adjustments for credit entries in error to the checking and/or savings account indicated on this form.
+          This authority is to remain in full effect until the Company has received written notification
+          from me of its termination. I understand that this authorization is subject to the terms of any
+          agent or representative contract, commission agreement, or loan agreement that I may have
+          now, or in the future, with the Company.
+        </p>
 
-      <div class="signature-section">
-        <label style="font-weight: bold;">Signature:</label>
-        <canvas ref="signatureCanvas" class="signature-pad"></canvas>
-        <div class="buttons">
-          <button type="button" @click="clearSignature" style="background-color: #aaa; margin-top: 10px;">Clear Signature</button>
+        <div class="signature-section">
+          <label style="font-weight: bold;">Signature:</label>
+          <canvas ref="signatureCanvas" class="signature-pad"></canvas>
+          <div class="buttons">
+            <button type="button" @click="clearSignature" style="background-color: #aaa; margin-top: 10px;">
+              Clear Signature
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button @click="submitForm">Submit</button>
-      </div>
+        <div class="form-actions">
+          <button type="submit" :disabled="isSubmitting">
+            <span v-if="!isSubmitting">Submit</span>
+            <span v-else>Submitting…</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -89,22 +107,22 @@ const form = ref({
   'Account Type': '',
   'Phone': '',
   'Date': new Date().toISOString().substring(0, 10),
-  'Signature': ''
+  'Signature': '' // base64 only (no data URL header)
 })
 
 function resizeCanvas(canvas) {
   const ratio = Math.max(window.devicePixelRatio || 1, 1)
+  const data = signaturePad?.toData() // preserve strokes when resizing
   canvas.width = canvas.offsetWidth * ratio
   canvas.height = canvas.offsetHeight * ratio
-  canvas.getContext('2d').scale(ratio, ratio)
+  const ctx = canvas.getContext('2d')
+  ctx.scale(ratio, ratio)
+  if (data && signaturePad) signaturePad.fromData(data)
 }
 
 function handleResize() {
   if (!signatureCanvas.value) return
-  // preserve existing drawing when resizing
-  const data = signaturePad?.toData()
   resizeCanvas(signatureCanvas.value)
-  if (data && signaturePad) signaturePad.fromData(data)
 }
 
 onMounted(() => {
@@ -122,7 +140,25 @@ onBeforeUnmount(() => {
 })
 
 function clearSignature() {
-  signaturePad.clear()
+  signaturePad?.clear()
+}
+
+function collectAllPagesData() {
+  // Save current page (page10) before collecting
+  localStorage.setItem('newAgentPage10', JSON.stringify(form.value))
+
+  const allPagesData = {}
+  for (let i = 1; i <= 10; i++) {
+    const pageData = localStorage.getItem(`newAgentPage${i}`)
+    if (pageData) {
+      try {
+        Object.assign(allPagesData, JSON.parse(pageData))
+      } catch (e) {
+        console.warn(`Skipping malformed newAgentPage${i}`, e)
+      }
+    }
+  }
+  return allPagesData
 }
 
 async function submitForm() {
@@ -131,24 +167,18 @@ async function submitForm() {
       alert('Please provide your signature.')
       return
     }
+
     isSubmitting.value = true
 
-    form.value.Signature = signaturePad.toDataURL('image/png')
+    // keep only base64, not the whole data URL
+    form.value.Signature = signaturePad.toDataURL('image/png').split(',')[1]
 
-    // Save current page
-    localStorage.setItem('newAgentPage10', JSON.stringify(form.value))
-
-    // Collect all pages' data
-    const allPagesData = {}
-    for (let i = 1; i <= 10; i++) {
-      const pageData = localStorage.getItem(`newAgentPage${i}`)
-      if (pageData) Object.assign(allPagesData, JSON.parse(pageData))
-    }
+    const payload = collectAllPagesData()
 
     const res = await fetch('/api/submit-agent-data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(allPagesData)
+      body: JSON.stringify(payload)
     })
 
     if (!res.ok) {
@@ -236,7 +266,11 @@ button {
   cursor: pointer;
   font-weight: bold;
 }
-button:hover {
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+button:hover:not([disabled]) {
   background-color: #003f82;
 }
 </style>
