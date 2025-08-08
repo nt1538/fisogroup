@@ -56,4 +56,4 @@ async function rebuildTeamProfits() {
   }
 }
 
-module.exports = rebuildTeamProfits;
+module.exports = { rebuildTeamProfits };
