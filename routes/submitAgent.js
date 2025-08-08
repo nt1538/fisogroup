@@ -1,9 +1,8 @@
-// routes/agent.js
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const nodemailer = require('nodemailer');
+const sendEmail = require('../utils/sendEmail'); // <— import your working sender
 
 const router = express.Router();
 
@@ -14,9 +13,14 @@ router.post('/submit-agent-data', async (req, res) => {
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
     const pdfPath = path.join(tmpDir, `agent_form_${Date.now()}.pdf`);
-
     await generatePDF(data, pdfPath);
-    await sendEmailWithAttachment(pdfPath);
+
+    await sendEmail({
+      to: 'nt1538@nyu.edu',
+      subject: 'New Agent Submission — Full Payload (PDF attached)',
+      html: '<p>Attached is the submitted agent form PDF.</p>',
+      attachments: [{ filename: path.basename(pdfPath), path: pdfPath }]
+    });
 
     try { fs.unlinkSync(pdfPath); } catch (_) {}
 
@@ -57,7 +61,7 @@ function generatePDF(data, outputPath) {
       }
     }
 
-    // Then attach images (e.g., Signature)
+    // Then add images
     for (const [key, value] of Object.entries(data)) {
       const b64 = asBase64(value);
       if (b64) {
@@ -80,27 +84,6 @@ function generatePDF(data, outputPath) {
     doc.end();
     stream.on('finish', resolve);
     stream.on('error', reject);
-  });
-}
-
-async function sendEmailWithAttachment(filePath) {
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Use a Gmail App Password if using Gmail
-    },
-    pool: true,
-  });
-
-  await transporter.sendMail({
-    from: `"FISO Submission" <${process.env.EMAIL_USER}>`,
-    to: 'nt1538@nyu.edu',
-    subject: 'New Agent Submission — Full Payload (PDF attached)',
-    text: 'Attached is the submitted agent form PDF.',
-    attachments: [{ filename: path.basename(filePath), path: filePath }],
   });
 }
 
