@@ -130,7 +130,7 @@ async function submitForm() {
       Object.assign(allPagesData, JSON.parse(pageData))
     }
   }
-
+  console.log('All pages data:', allPagesData)
   // Send to backend
   await fetch('/api/submit-agent-data', {
     method: 'POST',
