@@ -119,65 +119,82 @@ router.post('/register', async (req, res) => {
     name,
     email,
     phone,
-    password, // SHA-256 hash from frontend
+    password, // SHA-256 hash from frontend? (we still bcrypt it here)
     introducer_id,
     state,
     national_producer_number
   } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const percent = 70;
-    const stateUpper = state?.toUpperCase();
-    const hierarchy_level = getHierarchyLevel(percent);
-
-    const id = await generateEmployeeId(stateUpper);
     if (!introducer_id) {
       return res.status(400).json({ error: 'Introducer ID is required.' });
     }
-    const introducerCheck = await pool.query('SELECT name, email FROM users WHERE id = $1', [introducer_id]);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const percent = 70;
+    const stateUpper = state?.toUpperCase() || null;
+    const hierarchy_level = getHierarchyLevel(percent);
+
+    const id = await generateEmployeeId(stateUpper);
+
+    // fetch introducer info (include id for safety)
+    const introducerCheck = await pool.query(
+      'SELECT id, name, email FROM users WHERE id = $1',
+      [introducer_id]
+    );
     if (introducerCheck.rows.length === 0) {
       return res.status(400).json({ error: 'Introducer ID does not exist.' });
     }
+    const introducer = introducerCheck.rows[0];
+
     await pool.query(
       `INSERT INTO users (id, name, email, phone, password, introducer_id, state, hierarchy_level, national_producer_number)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [ id,
+      [
+        id,
         name,
         email,
         phone,
         hashedPassword,
         introducer_id,
-        state?.toUpperCase() || null,
+        stateUpper,
         hierarchy_level,
         national_producer_number
       ]
     );
 
-    // ✅ 这一行确保 introducer 有值
-    const introducer = introducerCheck.rows[0];
     const hierarchy = await getAllSupervisors(id);
-    // Send welcome email to new user
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
+
+    // Send welcome email to the new user
+    await sendEmail({
       to: email,
       subject: 'Welcome to FISO Group!',
-      text: createWelcomeEmail(name, id, introducer.name, introducer.id)
+      html: `<pre style="font-family:inherit;white-space:pre-wrap">${createWelcomeEmail(
+        name,
+        id,
+        introducer.name,
+        introducer.id // or introducer_id
+      )}</pre>`
     });
 
+    // Notify supervisors
     for (const supervisor of hierarchy) {
-      await transporter.sendMail({
-        from: process.env.SMTP_USER,
+      if (!supervisor?.email) continue;
+      await sendEmail({
         to: supervisor.email,
         subject: 'New Team Member Joined',
-        text: createIntroducerEmail(introducer.name, name, id, phone, email, introducer.id)
+        html: `<pre style="font-family:inherit;white-space:pre-wrap">${createIntroducerEmail(
+          introducer.name,
+          name,
+          id,
+          phone,
+          email,
+          introducer.id // or introducer_id
+        )}</pre>`
       });
     }
 
     res.json({ message: 'User registered successfully and emails sent.' });
-
-
-    //res.json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Registration failed' });
