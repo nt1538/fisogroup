@@ -16,7 +16,8 @@ async function sendEmail({ to, subject, html }) {
     from: '"FISO Group" <admin@fisogroup.com>',
     to,
     subject,
-    html
+    html,
+    attachments
   });
 }
 
