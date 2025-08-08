@@ -9,7 +9,6 @@ const router = express.Router();
 
 router.post('/submit-agent-data', async (req, res) => {
   try {
-    // Ensure body is an object (not a raw string)
     const data = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const tmpDir = path.join(__dirname, '../tmp');
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
@@ -19,7 +18,6 @@ router.post('/submit-agent-data', async (req, res) => {
     await generatePDF(data, pdfPath);
     await sendEmailWithAttachment(pdfPath);
 
-    // cleanup
     try { fs.unlinkSync(pdfPath); } catch (_) {}
 
     res.json({ success: true });
@@ -30,12 +28,8 @@ router.post('/submit-agent-data', async (req, res) => {
 });
 
 function asBase64(value) {
-  // Accept base64-only OR full data URL; return pure base64 string or null
   if (typeof value !== 'string') return null;
-  if (value.startsWith('data:image')) {
-    return value.split(',')[1] || null;
-  }
-  // looks like base64-only (no data URL header)
+  if (value.startsWith('data:image')) return (value.split(',')[1] || null);
   if (/^[A-Za-z0-9+/=]+$/.test(value)) return value;
   return null;
 }
@@ -55,7 +49,7 @@ function generatePDF(data, outputPath) {
     doc.fontSize(18).text('Agent Submission Summary', { underline: true });
     doc.moveDown();
 
-    // Text first, images after (keeps layout tidy)
+    // Write non-image fields first
     for (const [key, value] of Object.entries(data)) {
       const b64 = asBase64(value);
       if (!b64) {
@@ -63,7 +57,7 @@ function generatePDF(data, outputPath) {
       }
     }
 
-    // Add images (signatures) at the end
+    // Then attach images (e.g., Signature)
     for (const [key, value] of Object.entries(data)) {
       const b64 = asBase64(value);
       if (b64) {
@@ -84,37 +78,29 @@ function generatePDF(data, outputPath) {
     }
 
     doc.end();
-
     stream.on('finish', resolve);
     stream.on('error', reject);
   });
 }
 
 async function sendEmailWithAttachment(filePath) {
-  // Use Gmail SMTP with an App Password (not your normal password)
-  // https://myaccount.google.com/apppasswords
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(process.env.SMTP_PORT || 465),
-    secure: true, // 465 = true, 587 = false + starttls
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // App Password if using Gmail
+      pass: process.env.EMAIL_PASS, // Use a Gmail App Password if using Gmail
     },
     pool: true,
   });
-
-  // Optional: verify config once at startup or before send
-  // await transporter.verify();
 
   await transporter.sendMail({
     from: `"FISO Submission" <${process.env.EMAIL_USER}>`,
     to: 'nt1538@nyu.edu',
     subject: 'New Agent Submission — Full Payload (PDF attached)',
     text: 'Attached is the submitted agent form PDF.',
-    attachments: [
-      { filename: path.basename(filePath), path: filePath }
-    ],
+    attachments: [{ filename: path.basename(filePath), path: filePath }],
   });
 }
 

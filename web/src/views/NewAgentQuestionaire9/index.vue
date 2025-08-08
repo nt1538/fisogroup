@@ -107,16 +107,15 @@ const form = ref({
   'Account Type': '',
   'Phone': '',
   'Date': new Date().toISOString().substring(0, 10),
-  'Signature': '' // base64 only (no data URL header)
+  'Signature': '' // base64 (jpeg) only
 })
 
 function resizeCanvas(canvas) {
   const ratio = Math.max(window.devicePixelRatio || 1, 1)
-  const data = signaturePad?.toData() // preserve strokes when resizing
+  const data = signaturePad?.toData()
   canvas.width = canvas.offsetWidth * ratio
   canvas.height = canvas.offsetHeight * ratio
-  const ctx = canvas.getContext('2d')
-  ctx.scale(ratio, ratio)
+  canvas.getContext('2d').scale(ratio, ratio)
   if (data && signaturePad) signaturePad.fromData(data)
 }
 
@@ -141,6 +140,26 @@ onBeforeUnmount(() => {
 
 function clearSignature() {
   signaturePad?.clear()
+}
+
+function downscaleSignatureToJPEGBase64() {
+  // Convert signature canvas to smaller JPEG to avoid 413
+  const src = signatureCanvas.value
+  const w = Math.max(600, src.offsetWidth) // stabilize width
+  const h = 200 // matches your CSS height
+
+  const tmp = document.createElement('canvas')
+  tmp.width = w
+  tmp.height = h
+
+  const ctx = tmp.getContext('2d')
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, w, h)
+  ctx.drawImage(src, 0, 0, w, h)
+
+  // Compress to jpeg (0.7 is a good tradeoff)
+  const dataUrl = tmp.toDataURL('image/jpeg', 0.7)
+  return dataUrl.split(',')[1] // base64 only
 }
 
 function collectAllPagesData() {
@@ -170,8 +189,8 @@ async function submitForm() {
 
     isSubmitting.value = true
 
-    // keep only base64, not the whole data URL
-    form.value.Signature = signaturePad.toDataURL('image/png').split(',')[1]
+    // Use compressed JPEG base64 to keep payload small
+    form.value.Signature = downscaleSignatureToJPEGBase64()
 
     const payload = collectAllPagesData()
 
