@@ -163,21 +163,17 @@ function downscaleSignatureToJPEGBase64() {
 }
 
 function collectAllPagesData() {
-  // Save current page (page10) before collecting
-  localStorage.setItem('newAgentPage10', JSON.stringify(form.value))
-
-  const allPagesData = {}
+  const pages = {};
   for (let i = 1; i <= 10; i++) {
-    const pageData = localStorage.getItem(`newAgentPage${i}`)
-    if (pageData) {
-      try {
-        Object.assign(allPagesData, JSON.parse(pageData))
-      } catch (e) {
-        console.warn(`Skipping malformed newAgentPage${i}`, e)
-      }
+    const raw = localStorage.getItem(`newAgentPage${i}`);
+    if (!raw) continue;
+    try {
+      pages[`page${i}`] = JSON.parse(raw);
+    } catch (e) {
+      console.warn(`Skipping malformed newAgentPage${i}`, e);
     }
   }
-  return allPagesData
+  return { pages }; // <— key change: wrap as { pages: { page1: {...}, ... } }
 }
 
 async function submitForm() {
