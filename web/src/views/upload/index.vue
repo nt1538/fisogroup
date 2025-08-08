@@ -48,7 +48,7 @@
         </div>
 
         <div class="form-row">
-          <label>Initial Premium:</label>
+          <label>Planned Premium:</label>
           <input v-model.number="form.initial_premium" type="number" required />
         </div>
 
