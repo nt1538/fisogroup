@@ -8,20 +8,23 @@
       </p>
 
       <div class="form-grid">
-        <div class="form-field" v-for="(value, key) in fieldOrder" :key="key">
-          <label>{{ key }}:</label>
+        <div class="form-field" v-for="(label) in fieldOrder" :key="label">
+          <label>{{ label }}:</label>
+
           <input
-            v-if="key !== 'Account Type' && key !== 'Date'"
-            v-model="form[key]"
+            v-if="label !== 'Account Type' && label !== 'Date'"
+            v-model="form[label]"
             type="text"
-            :placeholder="key"
+            :placeholder="label"
           />
-          <select v-if="key === 'Account Type'" v-model="form[key]">
+
+          <select v-if="label === 'Account Type'" v-model="form[label]">
             <option disabled value="">Select Type</option>
             <option>Checking</option>
             <option>Savings</option>
           </select>
-          <input v-if="key === 'Date'" type="date" v-model="form[key]" />
+
+          <input v-if="label === 'Date'" type="date" v-model="form[label]" />
         </div>
       </div>
 
