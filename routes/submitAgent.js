@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const sendEmail = require('../utils/sendEmail'); // <— import your working sender
+const { sendEmail } = require('../utils/sendEmail');// <— import your working sender
 
 const router = express.Router();
 
