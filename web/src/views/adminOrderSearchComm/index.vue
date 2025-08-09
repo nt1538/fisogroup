@@ -1,12 +1,26 @@
 <template>
   <AdminLayout>
     <h2>Order List</h2>
+
     <div class="filters">
       <input v-model="searchName" placeholder="Search by Employee Name" />
       <input v-model="searchPolicyNumber" placeholder="Search by Policy Number" />
       <input type="date" v-model="startDate" />
       <input type="date" v-model="endDate" />
       <button @click="loadOrders">Search</button>
+    </div>
+
+    <!-- New range filter buttons -->
+    <div class="filter-buttons">
+      <button @click="loadOrdersByRange('all')">All</button>
+      <button @click="loadOrdersByRange('ytd')">YTD</button>
+      <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
+      <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
+    </div>
+
+    <!-- Total display -->
+    <div v-if="orders.length" class="totals">
+      Total Commission Amount: ${{ totalCommission.toFixed(2) }}
     </div>
 
     <table v-if="orders.length">
@@ -23,7 +37,7 @@
           <th>Insured Name</th>
           <th>Writing Agent</th>
           <th>Face Amount</th>
-          <th>Planned Premium</th>
+          <th>Paid Premium</th>
           <th>Target/Base Premium</th>
           <th>Split Percentage</th>
           <th>Split ID</th>
@@ -50,7 +64,11 @@
           <td>{{ order.writing_agent }}</td>
           <td>{{ order.face_amount }}</td>
           <td>{{ order.initial_premium }}</td>
-          <td>{{ order.table_type === 'commission_annuity' ? order.flex_premium : order.target_premium }}</td>
+          <td>
+            {{ order.table_type === 'commission_annuity'
+              ? order.flex_premium
+              : order.target_premium }}
+          </td>
           <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ parseFloat(order.commission_percent).toFixed(2) }}%</td>
@@ -60,7 +78,9 @@
           <td>{{ order.explanation }}</td>
           <td>{{ formatDate(order.policy_effective_date) }}</td>
           <td>
-            <router-link :to="`/admin/adminOrderEditComm/${order.table_type}/${order.id}`">Edit</router-link>
+            <router-link :to="`/admin/adminOrderEditComm/${order.table_type}/${order.id}`">
+              Edit
+            </router-link>
           </td>
         </tr>
       </tbody>
@@ -71,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
@@ -79,10 +99,12 @@ const searchName = ref('');
 const searchPolicyNumber = ref('');
 const startDate = ref('');
 const endDate = ref('');
-
-// const table_type = route.params.table_type;
-// const userId = route.params.id;
 const orders = ref([]);
+
+// Load default (all) on mount
+onMounted(() => {
+  loadOrdersByRange('all');
+});
 
 async function loadOrders() {
   try {
@@ -101,15 +123,36 @@ async function loadOrders() {
   }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+// New: load by range param (ytd, rolling_3, rolling_12, all)
+async function loadOrdersByRange(range) {
+  try {
+    const res = await axios.get('/admin/orders/commission', {
+      params: {
+        user_name: searchName.value,
+        policy_number: searchPolicyNumber.value,
+        range,
+        category: 'commission'
+      }
+    });
+    orders.value = res.data;
+  } catch (err) {
+    console.error('Failed to load orders by range', err);
+  }
 }
 
+const totalCommission = computed(() =>
+  orders.value.reduce((sum, order) => sum + (Number(order.commission_amount) || 0), 0)
+);
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+</script>
 
 onMounted(() => {
   loadOrders();
