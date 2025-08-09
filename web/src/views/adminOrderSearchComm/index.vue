@@ -70,7 +70,7 @@
               ? order.flex_premium
               : order.target_premium }}
           </td>
-          <td>{{ order.product_rate * 100 }}%</td>
+          <td>{{ order.product_rate}}%</td>
           <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ parseFloat(order.commission_percent).toFixed(2) }}%</td>

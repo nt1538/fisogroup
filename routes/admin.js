@@ -371,8 +371,7 @@ router.delete('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) =>
     else if (order.application_status === 'completed') {
       await client.query(`
         UPDATE users
-        SET profit = GREATEST(profit - $1, 0),
-            total_earnings = GREATEST(total_earnings - $1, 0)
+        SET total_earnings = GREATEST(total_earnings - $1, 0)
         WHERE id = $2
       `, [baseAmount, userId]);
     }

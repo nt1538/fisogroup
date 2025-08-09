@@ -50,7 +50,7 @@ const editableFields = ref({
   target_premium: 0,         // only for life
   flex_premium: 0,           // only for annuity
   initial_premium: 0,
-  product_rate: 1.00, // Default rate
+  product_rate: 100, // Default rate
   commission_from_carrier: 0,
   application_status: '',
   mra_status: '',

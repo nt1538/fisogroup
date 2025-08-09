@@ -314,3 +314,10 @@ UPDATE saved_life_orders     SET product_rate = 1.00  WHERE product_rate IS NULL
 UPDATE commission_annuity  SET product_rate = 0.06  WHERE product_rate IS NULL;
 UPDATE application_annuity  SET product_rate = 0.06  WHERE product_rate IS NULL;
 UPDATE saved_annuity_orders  SET product_rate = 0.06  WHERE product_rate IS NULL;
+
+UPDATE commission_life     SET product_rate = 100;
+UPDATE application_life     SET product_rate = 100;
+UPDATE saved_life_orders     SET product_rate = 100;
+UPDATE commission_annuity  SET product_rate = 6;
+UPDATE application_annuity  SET product_rate = 6;
+UPDATE saved_annuity_orders  SET product_rate = 6;

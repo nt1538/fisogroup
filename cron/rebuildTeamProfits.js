@@ -21,12 +21,12 @@ async function rebuildTeamProfits() {
       ...lifeOrders.map(o => ({
         user_id: o.user_id,
         // life uses target_premium * product_rate (default 1.00)
-        credit: (parseFloat(o.target_premium || 0) * parseFloat(o.product_rate || 1)) || 0
+        credit: (parseFloat(o.target_premium || 0) * parseFloat(o.product_rate || 100) / 100) || 0
       })),
       ...annuityOrders.map(o => ({
         user_id: o.user_id,
         // annuity uses flex_premium * product_rate (default 0.06)
-        credit: (parseFloat(o.flex_premium || 0) * parseFloat(o.product_rate || 0.06)) || 0
+        credit: (parseFloat(o.flex_premium || 0) * parseFloat(o.product_rate || 6) / 100) || 0
       })),
     ];
 

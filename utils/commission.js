@@ -68,8 +68,8 @@ async function getHierarchy(userId) {
 
 async function checkSplitPoints(order, chart, hierarchy) {
   const baseAmount = order.flex_premium
-  ? parseFloat(order.flex_premium) * 0.06
-  : parseFloat(order.target_premium || 0);
+  ? parseFloat(order.flex_premium) * order.product_rate / 100
+  : parseFloat(order.target_premium) * order.product_rate / 100;
 
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
   const self = userRes.rows[0];
@@ -185,9 +185,9 @@ async function handleCommissions(order, userId, table_type) {
   
 let baseAmount;
 if (table_type === 'annuity') {
-  baseAmount = parseFloat(order.flex_premium || 0) * order.product_rate || 0.06;
+  baseAmount = parseFloat(order.flex_premium || 0) * (order.product_rate || 6) / 100;
 } else {
-  baseAmount = parseFloat(order.target_premium || 0) * order.product_rate || 1.00;
+  baseAmount = parseFloat(order.target_premium || 0) * (order.product_rate || 100) / 100;
 }
 
 
@@ -249,8 +249,8 @@ if (table_type === 'annuity') {
   // 插入合并后的佣金记录
 const isAnnuity = commissionTable.includes('annuity');
 const premiumBase = isAnnuity
-  ? (order.flex_premium || 1) * (order.product_rate || 0.06)
-  : (order.target_premium || 1) * (order.product_rate || 1); // 避免除以 0
+  ? (order.flex_premium || 1) * (order.product_rate || 6) / 100
+  : (order.target_premium || 1) * (order.product_rate || 100)/ 100; // 避免除以 0
 
 await insertCommissionOrder(
   order,
