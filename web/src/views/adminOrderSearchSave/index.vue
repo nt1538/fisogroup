@@ -1,12 +1,27 @@
 <template>
   <AdminLayout>
     <h2>Order List</h2>
+
+    <!-- Filters -->
     <div class="filters">
       <input v-model="searchName" placeholder="Search by Employee Name" />
       <input v-model="searchPolicyNumber" placeholder="Search by Policy Number" />
       <input type="date" v-model="startDate" />
       <input type="date" v-model="endDate" />
       <button @click="loadOrders">Search</button>
+    </div>
+
+    <!-- Quick range buttons -->
+    <div class="filter-buttons" style="margin:10px 0 15px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button @click="loadOrdersByRange('all')">All</button>
+      <button @click="loadOrdersByRange('ytd')">YTD</button>
+      <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
+      <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
+    </div>
+
+    <!-- Totals -->
+    <div v-if="orders.length" class="totals" style="margin:10px 0 15px; font-weight:700; text-align:right;">
+      Sum of Commission From Carrier: ${{ formatMoney(totalCarrierCommission) }}
     </div>
 
     <table v-if="orders.length">
@@ -61,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
@@ -69,10 +84,11 @@ const searchName = ref('');
 const searchPolicyNumber = ref('');
 const startDate = ref('');
 const endDate = ref('');
-
-// const table_type = route.params.table_type;
-// const userId = route.params.id;
 const orders = ref([]);
+
+onMounted(() => {
+  loadOrdersByRange('all');
+});
 
 async function loadOrders() {
   try {
@@ -91,20 +107,41 @@ async function loadOrders() {
   }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+async function loadOrdersByRange(range) {
+  try {
+    const res = await axios.get('/admin/orders/saved', {
+      params: {
+        user_name: searchName.value,
+        policy_number: searchPolicyNumber.value,
+        range,
+        category: 'saved'
+      }
+    });
+    orders.value = res.data;
+  } catch (err) {
+    console.error('Failed to load orders by range', err);
+  }
 }
 
+const totalCarrierCommission = computed(() =>
+  orders.value.reduce((sum, o) => sum + (Number(o.commission_from_carrier) || 0), 0)
+);
 
-onMounted(() => {
-  loadOrders();
-});
+function formatMoney(v) {
+  const n = Number(v) || 0;
+  return n.toFixed(2);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 </script>
+
 
 <style scoped>
 .filters {
