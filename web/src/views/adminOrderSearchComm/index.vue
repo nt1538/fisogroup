@@ -154,11 +154,6 @@ function formatDate(dateStr) {
 }
 </script>
 
-onMounted(() => {
-  loadOrders();
-});
-</script>
-
 <style scoped>
 .filters {
   margin: 15px 0;
