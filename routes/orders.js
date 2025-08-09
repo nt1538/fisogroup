@@ -8,9 +8,9 @@ function getPercentByLevel(level) {
     'Level A': 70,
     'Level B': 75,
     'Level C': 80,
-    'Agency1': 85,
-    'Agency2': 90,
-    'Agency3': 95,
+    'Agency 1': 85,
+    'Agency 2': 90,
+    'Agency 3': 95,
     'Vice President': 100,
   };
   return map[level] || 70;
@@ -48,9 +48,11 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       split_percent = 100,
       split_with_id = null,
       insured_name,
-      writing_agent = full_name
+      writing_agent = full_name,
+      product_rate: productRateRaw // <-- NEW (optional in body)
     } = req.body;
 
+    // fetch user
     const userRes = await client.query(
       `SELECT id, hierarchy_level FROM users WHERE id = $1`,
       [user_id]
@@ -60,13 +62,25 @@ async function createBaseOrder(req, res, tableName, defaultType) {
 
     const currentLevel = user.hierarchy_level || hierarchy_level;
     const commission_percent = getPercentByLevel(currentLevel);
-    const commission_amount = (initial_premium || 0) * commission_percent / 100;
+
+    // commission_amount still based on initial_premium (unchanged)
+    const commission_amount = (Number(initial_premium) || 0) * commission_percent / 100;
+
+    // ---- product_rate handling ----
+    // Defaults: life = 1.00, annuity = 0.06
+    const defaultRate = tableName === 'application_annuity' ? 0.06 : 1.0;
+    let product_rate = productRateRaw != null ? Number(productRateRaw) : defaultRate;
+
+    // sanitize: must be finite and within a sane range
+    if (!Number.isFinite(product_rate)) product_rate = defaultRate;
+    if (product_rate < 0) product_rate = 0;
 
     let insertSQL = `INSERT INTO ${tableName} (
       user_id, policy_number, order_type, commission_percent, commission_amount,
       application_status, full_name, national_producer_number, hierarchy_level,
-      carrier_name, product_name, application_date, insured_name, writing_agent, initial_premium, mra_status, split_percent, split_with_id`;
-    
+      carrier_name, product_name, application_date, insured_name, writing_agent,
+      initial_premium, mra_status, split_percent, split_with_id`;
+
     const values = [
       user_id,
       policy_number,
@@ -89,11 +103,15 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     ];
 
     if (tableName === 'application_life') {
-      insertSQL += `, face_amount, target_premium`;
-      values.push(face_amount, target_premium);
+      insertSQL += `, face_amount, target_premium, product_rate`;
+      values.push(face_amount, target_premium, product_rate);
     } else if (tableName === 'application_annuity') {
-      insertSQL += `, flex_premium`;
-      values.push(flex_premium);
+      insertSQL += `, flex_premium, product_rate`;
+      values.push(flex_premium, product_rate);
+    } else {
+      // if you have other tables and still want rate saved, add generically:
+      insertSQL += `, product_rate`;
+      values.push(product_rate);
     }
 
     insertSQL += `) VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING id`;

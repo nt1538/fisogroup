@@ -39,6 +39,7 @@
           <th>Face Amount</th>
           <th>Paid Premium</th>
           <th>Target/Base Premium</th>
+          <th>Product Rate</th>
           <th>Split Percentage</th>
           <th>Split ID</th>
           <th>Commission Percentage</th>
@@ -69,6 +70,7 @@
               ? order.flex_premium
               : order.target_premium }}
           </td>
+          <td>{{ order.product_rate.toFixed(2) }}</td>
           <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ parseFloat(order.commission_percent).toFixed(2) }}%</td>

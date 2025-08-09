@@ -106,7 +106,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { type, id } = req.params;
   const {
     application_status, policy_number, commission_percent, initial_premium,
-    face_amount, target_premium, flex_premium, commission_from_carrier,
+    face_amount, target_premium, flex_premium, product_rate, commission_from_carrier,
     carrier_name, product_name, application_date, 
     commission_distribution_date, policy_effective_date, mra_status,
     split_percent, split_with_id, Explanation, comment
@@ -147,7 +147,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
     // ========== 构造更新字段 ==========
     let fields = [
   'application_status', 'policy_number', 'commission_percent', 'initial_premium',
-  'commission_from_carrier', 'carrier_name', 'product_name', 'application_date',
+  'commission_from_carrier', 'product_rate','carrier_name', 'product_name', 'application_date',
   'commission_distribution_date', 'policy_effective_date', 'mra_status',
   'split_percent', 'split_with_id', 'explanation'
 ];

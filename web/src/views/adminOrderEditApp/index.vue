@@ -36,6 +36,9 @@
           <label for="flex_premium">Flex Premium</label>
           <input type="number" v-model="editableFields.flex_premium" id="flex_premium" />
         </template>
+        <template v-else-if="key === 'product_rate'">
+          <input type="number" v-model="order[key]" :id="key" required/>
+        </template>
         <template v-else-if="key === 'commission_from_carrier'">
           <input type="number" v-model="order[key]" :id="key" required/>
         </template>
@@ -96,6 +99,7 @@ const editableFields = ref({
   target_premium: 0,          // Life
   flex_premium: 0,            // Annuity
   initial_premium: 0,
+  product_rate: 1.00, // Default rate
   commission_from_carrier: 0,
   application_status: '',
   mra_status: '',

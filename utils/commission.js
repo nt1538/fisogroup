@@ -115,7 +115,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
         user_id, full_name, national_producer_number, hierarchy_level,
         commission_percent, commission_amount, carrier_name, product_name,
         application_date, commission_distribution_date, policy_effective_date, policy_number,
-        insured_name, writing_agent, flex_premium,
+        insured_name, writing_agent, flex_premium, product_rate,
         initial_premium, commission_from_carrier, application_status, mra_status,
         order_type, parent_order_id, explanation,
         split_percent, split_with_id
@@ -126,7 +126,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
         $13, $14, $15,
         $16, $17, $18, $19,
         $20, $21, $22,
-        $23, $24
+        $23, $24, $25
       );
     `;
 
@@ -134,7 +134,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
       user.id, user.name, user.national_producer_number, user.hierarchy_level,
       percent, amount, order.carrier_name, order.product_name,
       order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
-      order.insured_name, order.writing_agent, order.flex_premium,
+      order.insured_name, order.writing_agent, order.flex_premium, order.product_rate,
       order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
       type, parentId, explanation,
       order.split_percent, order.split_with_id
@@ -145,7 +145,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
         user_id, full_name, national_producer_number, hierarchy_level,
         commission_percent, commission_amount, carrier_name, product_name,
         application_date, commission_distribution_date, policy_effective_date, policy_number,
-        insured_name, writing_agent, face_amount, target_premium,
+        insured_name, writing_agent, face_amount, target_premium, product_rate,
         initial_premium, commission_from_carrier, application_status, mra_status,
         order_type, parent_order_id, explanation,
         split_percent, split_with_id
@@ -156,7 +156,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
         $13, $14, $15, $16,
         $17, $18, $19, $20,
         $21, $22, $23,
-        $24, $25
+        $24, $25, $26
       );
     `;
 
@@ -164,7 +164,7 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
       user.id, user.name, user.national_producer_number, user.hierarchy_level,
       percent, amount, order.carrier_name, order.product_name,
       order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
-      order.insured_name, order.writing_agent, order.face_amount, order.target_premium,
+      order.insured_name, order.writing_agent, order.face_amount, order.target_premium, order.product_rate,
       order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
       type, parentId, explanation,
       order.split_percent, order.split_with_id
@@ -185,9 +185,9 @@ async function handleCommissions(order, userId, table_type) {
   
 let baseAmount;
 if (table_type === 'annuity') {
-  baseAmount = parseFloat(order.flex_premium || 0) * 0.06;
+  baseAmount = parseFloat(order.flex_premium || 0) * order.product_rate || 0.06;
 } else {
-  baseAmount = parseFloat(order.target_premium || 0);
+  baseAmount = parseFloat(order.target_premium || 0) * order.product_rate || 1.00;
 }
 
 
@@ -249,8 +249,8 @@ if (table_type === 'annuity') {
   // 插入合并后的佣金记录
 const isAnnuity = commissionTable.includes('annuity');
 const premiumBase = isAnnuity
-  ? (order.flex_premium || 0) * 0.06
-  : (order.target_premium || 1); // 避免除以 0
+  ? (order.flex_premium || 1) * (order.product_rate || 0.06)
+  : (order.target_premium || 1) * (order.product_rate || 1); // 避免除以 0
 
 await insertCommissionOrder(
   order,
