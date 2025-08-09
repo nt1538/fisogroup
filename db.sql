@@ -291,3 +291,26 @@ ADD COLUMN writing_agent TEXT;
 ALTER TABLE saved_annuity_orders
 ADD COLUMN insured_name TEXT,
 ADD COLUMN writing_agent TEXT;
+
+-- Life: store as decimal multiplier. 1.00 = 100%
+ALTER TABLE commission_life
+  ADD COLUMN product_rate NUMERIC(6,4) NOT NULL DEFAULT 1.00;
+ALTER TABLE application_life
+  ADD COLUMN product_rate NUMERIC(6,4) NOT NULL DEFAULT 1.00;
+ALTER TABLE saved_life_orders
+  ADD COLUMN product_rate NUMERIC(6,4) NOT NULL DEFAULT 1.00;
+
+-- Annuity: 0.06 = 6%
+ALTER TABLE commission_annuity
+  ADD COLUMN product_rate NUMERIC(6,4) NOT NULL DEFAULT 0.06;
+ALTER TABLE application_annuity
+  ADD COLUMN product_rate NUMERIC(6,4) NOT NULL DEFAULT 0.06;
+ALTER TABLE saved_annuity_orders
+  ADD COLUMN product_rate NUMERIC(6,4) NOT NULL DEFAULT 0.06;
+
+UPDATE commission_life     SET product_rate = 1.00  WHERE product_rate IS NULL;
+UPDATE application_life     SET product_rate = 1.00  WHERE product_rate IS NULL;
+UPDATE saved_life_orders     SET product_rate = 1.00  WHERE product_rate IS NULL;
+UPDATE commission_annuity  SET product_rate = 0.06  WHERE product_rate IS NULL;
+UPDATE application_annuity  SET product_rate = 0.06  WHERE product_rate IS NULL;
+UPDATE saved_annuity_orders  SET product_rate = 0.06  WHERE product_rate IS NULL;

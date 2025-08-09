@@ -1,3 +1,4 @@
+// cron/rebuildTeamProfits.js
 const db = require('../db');
 
 async function rebuildTeamProfits() {
@@ -5,13 +6,13 @@ async function rebuildTeamProfits() {
     console.log('🛠 正在重新计算所有用户的 team_profit（滚动 12 个月内）...');
 
     const { rows: lifeOrders } = await db.query(`
-      SELECT user_id, target_premium
+      SELECT user_id, target_premium, COALESCE(product_rate, 1.00) AS product_rate
       FROM saved_life_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
     `);
 
     const { rows: annuityOrders } = await db.query(`
-      SELECT user_id, flex_premium
+      SELECT user_id, flex_premium, COALESCE(product_rate, 0.06) AS product_rate
       FROM saved_annuity_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
     `);
@@ -19,18 +20,20 @@ async function rebuildTeamProfits() {
     const allOrders = [
       ...lifeOrders.map(o => ({
         user_id: o.user_id,
-        target_premium: parseFloat(o.target_premium || 0),
+        // life uses target_premium * product_rate (default 1.00)
+        credit: (parseFloat(o.target_premium || 0) * parseFloat(o.product_rate || 1)) || 0
       })),
       ...annuityOrders.map(o => ({
         user_id: o.user_id,
-        target_premium: parseFloat(o.flex_premium || 0) * 0.06,
+        // annuity uses flex_premium * product_rate (default 0.06)
+        credit: (parseFloat(o.flex_premium || 0) * parseFloat(o.product_rate || 0.06)) || 0
       })),
     ];
 
     const profitMap = new Map();
-    for (const order of allOrders) {
-      if (!order.user_id) continue;
-      profitMap.set(order.user_id, (profitMap.get(order.user_id) || 0) + order.target_premium);
+    for (const o of allOrders) {
+      if (!o.user_id) continue;
+      profitMap.set(o.user_id, (profitMap.get(o.user_id) || 0) + o.credit);
     }
 
     for (const [userId, profit] of profitMap.entries()) {
