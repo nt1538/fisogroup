@@ -2,8 +2,16 @@
   <AdminLayout>
     <h2>Edit Order #{{ orderId }}</h2>
     <div v-if="order">
-      <div class="form-group" v-for="(value, key) in editableFields" :key="key">
-        <label :for="key">{{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}</label>
+      <div
+        class="form-group"
+        v-for="(value, key) in editableFields"
+        :key="key"
+        v-if="showField(key)"
+      >
+        <label :for="key">
+          {{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+        </label>
+
         <template v-if="key === 'application_status'">
           <select v-model="order[key]" :id="key">
             <option value="in_progress">In Progress</option>
@@ -12,52 +20,64 @@
             <option value="cancelled">Cancelled</option>
           </select>
         </template>
+
         <template v-else-if="key === 'policy_number'">
-          <input type="text" v-model="order[key]" :id="key" required/>
+          <input type="text" v-model="order[key]" :id="key" required />
         </template>
+
         <template v-else-if="key === 'application_date'">
-          <input type="date" v-model="order[key]" :id="key" required/>
+          <input type="date" v-model="order[key]" :id="key" required />
         </template>
+
         <template v-else-if="key === 'commission_distribution_date'">
-          <input type="date" v-model="order[key]" :id="key" required/>
+          <input type="date" v-model="order[key]" :id="key" required />
         </template>
+
         <template v-else-if="key === 'policy_effective_date'">
           <input type="date" v-model="order[key]" :id="key" />
         </template>
-        <template v-else-if="key === 'face_amount' && tableType === 'application_life'">
-          <label for="face_amount">Face Amount</label>
-          <input type="number" v-model="editableFields.face_amount" id="face_amount" />
+
+        <!-- Life-only fields -->
+        <template v-else-if="key === 'face_amount'">
+          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
         </template>
-        <template v-else-if="key === 'target_premium' && tableType === 'application_life'">
-          <label for="target_premium">Target Premium</label>
-          <input type="number" v-model="editableFields.target_premium" id="target_premium" />
+
+        <template v-else-if="key === 'target_premium'">
+          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
         </template>
-        <template v-else-if="key === 'flex_premium' && tableType === 'application_annuity'">
-          <label for="flex_premium">Flex Premium</label>
-          <input type="number" v-model="editableFields.flex_premium" id="flex_premium" />
+
+        <!-- Annuity-only field -->
+        <template v-else-if="key === 'flex_premium'">
+          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
         </template>
-        <template v-else-if="key === 'product_rate'">
-          <input type="number" v-model="order[key]" :id="key" required/>
+
+        <!-- Percent-like fields -->
+        <template v-else-if="key === 'product_rate' || key === 'split_percent' || key === 'commission_percent'">
+          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
         </template>
+
         <template v-else-if="key === 'commission_from_carrier'">
-          <input type="number" v-model="order[key]" :id="key" required/>
+          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
         </template>
+
         <template v-else-if="key === 'explanation'">
           <input type="text" v-model="order[key]" :id="key" />
         </template>
+
         <template v-else-if="key === 'split_with_id'">
-          <input type="text" v-model="order[key]" :id="key" required/>
+          <input type="text" v-model="order[key]" :id="key" />
         </template>
-        <template v-else-if="key === 'split_percent'">
-          <input type="number" v-model="order[key]" :id="key" required/>
-        </template>
+
+        <!-- Generic numeric/text fallbacks -->
         <template v-else-if="typeof value === 'number'">
-          <input type="number" v-model="order[key]" :id="key" />
+          <input type="number" v-model.number="order[key]" :id="key" />
         </template>
+
         <template v-else>
           <input type="text" v-model="order[key]" :id="key" />
         </template>
       </div>
+
       <div class="button-row">
         <button @click="saveOrder">Save</button>
         <button class="delete" @click="confirmDelete">Delete</button>
@@ -108,6 +128,18 @@ const editableFields = ref({
   explanation: '',
 });
 
+function showField(key) {
+  if (tableType === 'application_life') {
+    // hide annuity-only fields
+    if (key === 'flex_premium') return false;
+  }
+  if (tableType === 'application_annuity') {
+    // hide life-only fields
+    if (key === 'face_amount' || key === 'target_premium') return false;
+  }
+  return true;
+}
+
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
   order.value = res.data;
@@ -119,20 +151,22 @@ onMounted(async () => {
         key === 'commission_distribution_date' ||
         key === 'policy_effective_date'
       ) {
-        // 如果为空，赋予今天作为默认值
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
           : formatDateInput(new Date());
       } else {
         editableFields.value[key] = order.value[key];
       }
+    } else {
+      // defaults for missing fields
+      if (key === 'product_rate') {
+        editableFields.value[key] = tableType === 'application_annuity' ? 6 : 100;
+      }
     }
   }
 
-  // Overwrite order.value with formatted fields so v-model works correctly
   order.value = { ...order.value, ...editableFields.value };
 });
-
 
 async function saveOrder() {
   await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
