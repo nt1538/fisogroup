@@ -4,9 +4,8 @@
     <div v-if="order">
       <div
         class="form-group"
-        v-for="(value, key) in editableFields"
+        v-for="{ key, value } in filteredFields"
         :key="key"
-        v-if="showField(key)"
       >
         <label :for="key">
           {{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
@@ -25,50 +24,18 @@
           <input type="text" v-model="order[key]" :id="key" required />
         </template>
 
-        <template v-else-if="key === 'application_date'">
-          <input type="date" v-model="order[key]" :id="key" required />
-        </template>
-
-        <template v-else-if="key === 'commission_distribution_date'">
-          <input type="date" v-model="order[key]" :id="key" required />
-        </template>
-
-        <template v-else-if="key === 'policy_effective_date'">
+        <template v-else-if="key === 'application_date' || key === 'commission_distribution_date' || key === 'policy_effective_date'">
           <input type="date" v-model="order[key]" :id="key" />
         </template>
 
-        <!-- Life-only fields -->
-        <template v-else-if="key === 'face_amount'">
-          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
+        <template v-else-if="key === 'face_amount' || key === 'target_premium' || key === 'flex_premium' || key === 'product_rate' || key === 'commission_from_carrier' || key === 'split_percent'">
+          <input type="number" v-model.number="order[key]" :id="key" step="0.01" />
         </template>
 
-        <template v-else-if="key === 'target_premium'">
-          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
-        </template>
-
-        <!-- Annuity-only field -->
-        <template v-else-if="key === 'flex_premium'">
-          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
-        </template>
-
-        <!-- Percent-like fields -->
-        <template v-else-if="key === 'product_rate' || key === 'split_percent' || key === 'commission_percent'">
-          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
-        </template>
-
-        <template v-else-if="key === 'commission_from_carrier'">
-          <input type="number" v-model.number="order[key]" :id="key" min="0" step="0.01" />
-        </template>
-
-        <template v-else-if="key === 'explanation'">
+        <template v-else-if="key === 'explanation' || key === 'split_with_id'">
           <input type="text" v-model="order[key]" :id="key" />
         </template>
 
-        <template v-else-if="key === 'split_with_id'">
-          <input type="text" v-model="order[key]" :id="key" />
-        </template>
-
-        <!-- Generic numeric/text fallbacks -->
         <template v-else-if="typeof value === 'number'">
           <input type="number" v-model.number="order[key]" :id="key" />
         </template>
@@ -77,6 +44,7 @@
           <input type="text" v-model="order[key]" :id="key" />
         </template>
       </div>
+
 
       <div class="button-row">
         <button @click="saveOrder">Save</button>
@@ -96,17 +64,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import axios from '@/config/axios.config';
-import AdminLayout from '@/layout/src/AdminLayout.vue';
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from '@/config/axios.config'
+import AdminLayout from '@/layout/src/AdminLayout.vue'
 
-const route = useRoute();
-const router = useRouter();
-const orderId = route.params.id;
-const tableType = route.params.table_type;
-const order = ref(null);
-const showDeleteConfirm = ref(false);
+const route = useRoute()
+const router = useRouter()
+const orderId = route.params.id
+const tableType = route.params.table_type
+const order = ref(null)
+const showDeleteConfirm = ref(false)
 
 const editableFields = ref({
   product_name: '',
@@ -115,34 +83,37 @@ const editableFields = ref({
   commission_distribution_date: '',
   policy_effective_date: '',
   policy_number: '',
-  face_amount: 0,             // Life
-  target_premium: 0,          // Life
-  flex_premium: 0,            // Annuity
+  face_amount: 0,             // Life only
+  target_premium: 0,          // Life only
+  flex_premium: 0,            // Annuity only
   initial_premium: 0,
-  product_rate: 100, // Default rate
+  product_rate: 100, // Default
   commission_from_carrier: 0,
   application_status: '',
   mra_status: '',
   split_with_id: '',
   split_percent: 0,
   explanation: '',
-});
+})
 
-function showField(key) {
-  if (tableType === 'application_life') {
-    // hide annuity-only fields
-    if (key === 'flex_premium') return false;
-  }
-  if (tableType === 'application_annuity') {
-    // hide life-only fields
-    if (key === 'face_amount' || key === 'target_premium') return false;
-  }
-  return true;
-}
+// ✅ Pre-filter the fields for the current table type
+const filteredFields = computed(() => {
+  return Object.entries(editableFields.value)
+    .filter(([key]) => {
+      if (tableType === 'application_life') {
+        return key !== 'flex_premium'
+      }
+      if (tableType === 'application_annuity') {
+        return key !== 'face_amount' && key !== 'target_premium'
+      }
+      return true
+    })
+    .map(([key, value]) => ({ key, value }))
+})
 
 onMounted(async () => {
-  const res = await axios.get(`/admin/orders/${tableType}/${orderId}`);
-  order.value = res.data;
+  const res = await axios.get(`/admin/orders/${tableType}/${orderId}`)
+  order.value = res.data
 
   for (const key in editableFields.value) {
     if (key in order.value) {
@@ -153,50 +124,46 @@ onMounted(async () => {
       ) {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
-          : formatDateInput(new Date());
+          : formatDateInput(new Date())
       } else {
-        editableFields.value[key] = order.value[key];
+        editableFields.value[key] = order.value[key]
       }
-    } else {
-      // defaults for missing fields
-      if (key === 'product_rate') {
-        editableFields.value[key] = tableType === 'application_annuity' ? 6 : 100;
-      }
+    } else if (key === 'product_rate') {
+      editableFields.value[key] = tableType === 'application_annuity' ? 6 : 100
     }
   }
 
-  order.value = { ...order.value, ...editableFields.value };
-});
+  order.value = { ...order.value, ...editableFields.value }
+})
 
 async function saveOrder() {
-  await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value);
-  alert('Order saved successfully');
+  await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value)
+  alert('Order saved successfully')
 }
 
 function confirmDelete() {
-  showDeleteConfirm.value = true;
+  showDeleteConfirm.value = true
 }
 
 async function deleteOrder() {
   try {
-    await axios.delete(`/admin/orders/${tableType}/${orderId}`);
-    alert('Order deleted successfully');
-    router.push('/admin/adminOrderSearch'); // Redirect to search page after deletion
+    await axios.delete(`/admin/orders/${tableType}/${orderId}`)
+    alert('Order deleted successfully')
+    router.push('/admin/adminOrderSearch')
   } catch (err) {
-    console.error('Delete failed', err);
-    alert('Failed to delete the order');
+    console.error('Delete failed', err)
+    alert('Failed to delete the order')
   }
 }
 
 function formatDateInput(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  if (!value) return ''
+  const date = new Date(value)
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
 }
-
 </script>
 
 <style scoped>
