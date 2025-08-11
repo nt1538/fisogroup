@@ -81,15 +81,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '@/config/axios.config'
-import AdminLayout from '@/layout/src/AdminLayout.vue'
+import AdminLayout from '@/layout/src/AdminLayout.vue' // keep import if your bundler requires SFC presence
 
 const route = useRoute()
 const router = useRouter()
 const orderId = route.params.id
-const tableType = route.params.table_type
+const tableType = route.params.table_type // 'application_life' | 'application_annuity' | etc.
+
 const order = ref(null)
 const showDeleteConfirm = ref(false)
 
@@ -104,7 +105,7 @@ const editableFields = ref({
   target_premium: 0,          // Life only
   flex_premium: 0,            // Annuity only
   initial_premium: 0,
-  product_rate: 100, // Default
+  product_rate: 100,          // percent (life default 100, annuity default 6)
   commission_from_carrier: 0,
   application_status: '',
   mra_status: '',
@@ -113,21 +114,27 @@ const editableFields = ref({
   explanation: '',
 })
 
-// ✅ Pre-filter the fields for the current table type
+// Filter out fields that don’t apply to the current table type
 const filteredFields = computed(() => {
   return Object.entries(editableFields.value)
     .filter(([key]) => {
-      if (tableType === 'application_life') {
-        return key !== 'flex_premium'
-      }
-      if (tableType === 'application_annuity') {
-        return key !== 'face_amount' && key !== 'target_premium'
-      }
+      if (tableType === 'application_life') return key !== 'flex_premium'
+      if (tableType === 'application_annuity') return key !== 'face_amount' && key !== 'target_premium'
       return true
     })
     .map(([key, value]) => ({ key, value }))
 })
 
+// Validation state
+const requiredOnComplete = new Set([
+  'commission_distribution_date',
+  'commission_from_carrier',
+  'product_rate',
+])
+const errors = ref({})
+const isCompleting = computed(() => order.value?.application_status === 'completed')
+
+// Load order + prefill
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`)
   order.value = res.data
@@ -141,46 +148,60 @@ onMounted(async () => {
       ) {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
-          : formatDateInput(new Date())
+          : '' // leave blank unless we want to auto-fill later
       } else {
         editableFields.value[key] = order.value[key]
       }
-    } else if (key === 'product_rate') {
-      editableFields.value[key] = tableType === 'application_annuity' ? 6 : 100
+    } else {
+      // sensible defaults for missing fields
+      if (key === 'product_rate') {
+        editableFields.value[key] = tableType === 'application_annuity' ? 6 : 100
+      }
+      if (key === 'commission_from_carrier') {
+        editableFields.value[key] = 0
+      }
     }
   }
 
   order.value = { ...order.value, ...editableFields.value }
 })
 
-const requiredOnComplete = new Set([
-  'commission_distribution_date',
-  'commission_from_carrier',
-  'product_rate',
-])
+// Optional: when switching to Completed, auto-fill defaults if empty
+watch(
+  () => order.value?.application_status,
+  (status) => {
+    if (status === 'completed' && order.value) {
+      if (!order.value.commission_distribution_date) {
+        order.value.commission_distribution_date = formatDateInput(new Date())
+      }
+      if (!Number.isFinite(Number(order.value.product_rate))) {
+        order.value.product_rate = tableType === 'application_annuity' ? 6 : 100
+      }
+      if (!Number.isFinite(Number(order.value.commission_from_carrier))) {
+        order.value.commission_from_carrier = 0
+      }
+    }
+  }
+)
 
-const errors = ref({}) // { fieldKey: 'message' }
-
-const isCompleting = computed(() => order.value?.application_status === 'completed')
-
-// validate required fields before save
+// Validation before save when completing
 function validateOnComplete() {
   errors.value = {}
   if (!isCompleting.value) return true
 
-  // commission_distribution_date: must be a valid date string (yyyy-mm-dd)
+  // commission_distribution_date: valid date
   const cdd = order.value?.commission_distribution_date
   if (!cdd || isNaN(new Date(cdd).getTime())) {
     errors.value.commission_distribution_date = 'Required when completing.'
   }
 
-  // commission_from_carrier: finite number >= 0
+  // commission_from_carrier: >= 0
   const cfc = Number(order.value?.commission_from_carrier)
   if (!Number.isFinite(cfc) || cfc < 0) {
     errors.value.commission_from_carrier = 'Enter a non-negative number.'
   }
 
-  // product_rate: percent, 0–200 (adjust as needed)
+  // product_rate: 0–200
   const pr = Number(order.value?.product_rate)
   if (!Number.isFinite(pr) || pr < 0 || pr > 200) {
     errors.value.product_rate = 'Enter a percent between 0 and 200.'
@@ -195,7 +216,6 @@ async function saveOrder() {
     alert('Please fix the required fields before saving.')
     return
   }
-
   await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value)
   alert('Order saved successfully')
 }
@@ -224,6 +244,7 @@ function formatDateInput(value) {
   return `${yyyy}-${mm}-${dd}`
 }
 </script>
+
 
 <style scoped>
 .form-group {
