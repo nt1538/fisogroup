@@ -9,6 +9,10 @@
       >
         <label :for="key">
           {{ key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+          <span
+            v-if="isCompleting && requiredOnComplete.has(key)"
+            class="required-badge"
+          >*</span>
         </label>
 
         <template v-if="key === 'application_status'">
@@ -21,15 +25,26 @@
         </template>
 
         <template v-else-if="key === 'policy_number'">
-          <input type="text" v-model="order[key]" :id="key" required />
+          <input type="text" v-model="order[key]" :id="key" />
         </template>
 
         <template v-else-if="key === 'application_date' || key === 'commission_distribution_date' || key === 'policy_effective_date'">
-          <input type="date" v-model="order[key]" :id="key" />
+          <input
+            type="date"
+            v-model="order[key]"
+            :id="key"
+            :class="{ 'error-input': errors[key] }"
+          />
         </template>
 
         <template v-else-if="key === 'face_amount' || key === 'target_premium' || key === 'flex_premium' || key === 'product_rate' || key === 'commission_from_carrier' || key === 'split_percent'">
-          <input type="number" v-model.number="order[key]" :id="key" step="0.01" />
+          <input
+            type="number"
+            v-model.number="order[key]"
+            :id="key"
+            step="0.01"
+            :class="{ 'error-input': errors[key] }"
+          />
         </template>
 
         <template v-else-if="key === 'explanation' || key === 'split_with_id'">
@@ -43,6 +58,8 @@
         <template v-else>
           <input type="text" v-model="order[key]" :id="key" />
         </template>
+
+        <small v-if="errors[key]" class="error-text">{{ errors[key] }}</small>
       </div>
 
 
@@ -136,7 +153,49 @@ onMounted(async () => {
   order.value = { ...order.value, ...editableFields.value }
 })
 
+const requiredOnComplete = new Set([
+  'commission_distribution_date',
+  'commission_from_carrier',
+  'product_rate',
+])
+
+const errors = ref({}) // { fieldKey: 'message' }
+
+const isCompleting = computed(() => order.value?.application_status === 'completed')
+
+// validate required fields before save
+function validateOnComplete() {
+  errors.value = {}
+  if (!isCompleting.value) return true
+
+  // commission_distribution_date: must be a valid date string (yyyy-mm-dd)
+  const cdd = order.value?.commission_distribution_date
+  if (!cdd || isNaN(new Date(cdd).getTime())) {
+    errors.value.commission_distribution_date = 'Required when completing.'
+  }
+
+  // commission_from_carrier: finite number >= 0
+  const cfc = Number(order.value?.commission_from_carrier)
+  if (!Number.isFinite(cfc) || cfc < 0) {
+    errors.value.commission_from_carrier = 'Enter a non-negative number.'
+  }
+
+  // product_rate: percent, 0–200 (adjust as needed)
+  const pr = Number(order.value?.product_rate)
+  if (!Number.isFinite(pr) || pr < 0 || pr > 200) {
+    errors.value.product_rate = 'Enter a percent between 0 and 200.'
+  }
+
+  return Object.keys(errors.value).length === 0
+}
+
 async function saveOrder() {
+  if (!order.value) return
+  if (!validateOnComplete()) {
+    alert('Please fix the required fields before saving.')
+    return
+  }
+
   await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value)
   alert('Order saved successfully')
 }
@@ -206,4 +265,8 @@ button.delete {
   gap: 10px;
   margin-top: 10px;
 }
+
+.required-badge { color: #c0392b; margin-left: 4px; }
+.error-input { border-color: #c0392b !important; }
+.error-text { color: #c0392b; margin-top: 4px; }
 </style>
