@@ -5,8 +5,8 @@ const db = require('../db'); // your pg pool/client
 
 function buildDateWhere(range) {
   if (!range || range === 'all') return '';
-  if (range === 'ytd') return `commission_distribution_date >= date_trunc('year', NOW())`;
-  if (range === 'rolling_3') return `commission_distribution_date >= NOW() - INTERVAL '3 months'`;
+  if (range === 'ytd')        return `commission_distribution_date >= date_trunc('year', NOW())`;
+  if (range === 'rolling_3')  return `commission_distribution_date >= NOW() - INTERVAL '3 months'`;
   if (range === 'rolling_12') return `commission_distribution_date >= NOW() - INTERVAL '12 months'`;
   return '';
 }
@@ -51,77 +51,86 @@ async function getHierarchyHelpers() {
     return out;
   }
 
-  return { directNameById, topNameById, getDownlineIds, users };
+  return { directNameById, topNameById, getDownlineIds };
 }
 
 // GET /admin/reports/production?range=all|ytd|rolling_3|rolling_12&sort=...&dir=asc|desc
 router.get('/production', async (req, res) => {
   try {
     const { range = 'all', sort = '', dir = 'desc' } = req.query;
-    const sortKey = ['personal_production','personal_commission','team_production','team_commission'].includes(sort) ? sort : '';
+    const sortKey = ['personal_production', 'personal_commission', 'team_production', 'team_commission'].includes(sort) ? sort : '';
     const sortDir = (dir || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
     const where = buildDateWhere(range);
     const whereSQL = where ? `WHERE ${where}` : '';
 
-    // Personal production (range-based): own base sums
+    // 1) PERSONAL PRODUCTION (range-based) from commission tables, order_type = personal commission
+    const personalProdWhere = [
+      where,
+      `(LOWER(order_type) IN ('personal commission','personal_commission'))`
+    ].filter(Boolean).join(' AND ');
+    const personalProdWhereSQL = personalProdWhere ? `WHERE ${personalProdWhere}` : '';
+
     const { rows: lifeBase } = await db.query(`
       SELECT user_id, COALESCE(SUM(target_premium), 0)::numeric AS sum_base
-      FROM saved_life_orders
-      ${whereSQL}
+      FROM commission_life
+      ${personalProdWhereSQL}
       GROUP BY user_id
     `);
+
     const { rows: annBase } = await db.query(`
       SELECT user_id, COALESCE(SUM(flex_premium), 0)::numeric AS sum_base
-      FROM saved_annuity_orders
-      ${whereSQL}
+      FROM commission_annuity
+      ${personalProdWhereSQL}
       GROUP BY user_id
     `);
+
     const personalBaseMap = new Map(); // user_id -> base sum
     lifeBase.forEach(r => personalBaseMap.set(r.user_id, Number(r.sum_base)));
     annBase.forEach(r => personalBaseMap.set(r.user_id, (personalBaseMap.get(r.user_id) || 0) + Number(r.sum_base)));
 
-    // Commission sums per user (range-based): use commission_amount, fallback to commission_from_carrier
+    // 2) PERSONAL COMMISSION (range-based): sum of all commissions from commission tables
     const { rows: lifeComm } = await db.query(`
       SELECT user_id, COALESCE(SUM(COALESCE(commission_amount, commission_from_carrier)), 0)::numeric AS sum_comm
-      FROM saved_life_orders
+      FROM commission_life
       ${whereSQL}
       GROUP BY user_id
     `);
+
     const { rows: annComm } = await db.query(`
       SELECT user_id, COALESCE(SUM(COALESCE(commission_amount, commission_from_carrier)), 0)::numeric AS sum_comm
-      FROM saved_annuity_orders
+      FROM commission_annuity
       ${whereSQL}
       GROUP BY user_id
     `);
-    const commissionMap = new Map(); // user_id -> commission in range
-    lifeComm.forEach(r => commissionMap.set(r.user_id, Number(r.sum_comm)));
-    annComm.forEach(r => commissionMap.set(r.user_id, (commissionMap.get(r.user_id) || 0) + Number(r.sum_comm)));
 
-    // Base user info (lifetime personal_commission, rolling-12 team_production)
+    const personalCommMap = new Map(); // user_id -> commission in range
+    lifeComm.forEach(r => personalCommMap.set(r.user_id, Number(r.sum_comm)));
+    annComm.forEach(r => personalCommMap.set(r.user_id, (personalCommMap.get(r.user_id) || 0) + Number(r.sum_comm)));
+
+    // 3) BASE USER INFO (team_production stays from users.team_profit - rolling 12)
     const { rows: userRows } = await db.query(`
       SELECT
         u.id,
         u.name,
         u.hierarchy_level,
-        COALESCE(u.total_earnings, 0)::numeric AS personal_commission,
         COALESCE(u.team_profit, 0)::numeric AS team_production
       FROM users u
     `);
 
-    // Introducer helpers + downline traversal
+    // 4) Introducer helpers + downline traversal
     const { directNameById, topNameById, getDownlineIds } = await getHierarchyHelpers();
 
-    // Build team_commission (range-based) by summing commissions of all descendants (exclude self)
-    // First, cache commission per user (already in commissionMap). Then aggregate.
+    // 5) TEAM COMMISSION (range-based): sum of downline commissions (exclude own)
+    //    We already have per-user commission in personalCommMap; aggregate those for descendants.
     const data = userRows.map(u => {
-      const personal_production = Number((personalBaseMap.get(u.id) || 0).toFixed(2));
+      const personal_production  = Number((personalBaseMap.get(u.id) || 0).toFixed(2));
+      const personal_commission  = Number((personalCommMap.get(u.id) || 0).toFixed(2));
 
-      // range-based team_commission
       const downIds = getDownlineIds(u.id);
       let team_commission_sum = 0;
       for (const did of downIds) {
-        team_commission_sum += Number(commissionMap.get(did) || 0);
+        team_commission_sum += Number(personalCommMap.get(did) || 0);
       }
 
       return {
@@ -129,14 +138,15 @@ router.get('/production', async (req, res) => {
         name: u.name,
         hierarchy_level: u.hierarchy_level,
         personal_production,
-        personal_commission: Number(Number(u.personal_commission).toFixed(2)), // lifetime
-        team_production: Number(Number(u.team_production).toFixed(2)),         // rolling 12 (precomputed)
-        team_commission: Number(team_commission_sum.toFixed(2)),               // range-based
+        personal_commission,                                   // range-based from commission tables
+        team_production: Number(Number(u.team_production).toFixed(2)), // rolling 12 (precomputed)
+        team_commission: Number(team_commission_sum.toFixed(2)),       // range-based from downline commission
         direct_introducer: directNameById.get(u.id) || null,
         top_introducer: topNameById.get(u.id) || null,
       };
     });
 
+    // Optional sorting (client can also sort, but this is convenient)
     if (sortKey) {
       data.sort((a, b) => {
         const av = Number(a[sortKey]) || 0;
