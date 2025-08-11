@@ -7,7 +7,7 @@ const userRoutes = require('./routes/users');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const submitAgentRoutes = require('./routes/submitAgent');
-const adminReportRoutes = require('./routes/adminProductionReport');
+const adminReportRoutes = require('./routes/adminProductionReport'); 
 const { verifyToken } = require('./middleware/auth');
 require('./cron/cron-jobs');
 
@@ -25,7 +25,7 @@ app.use('/api', authRoutes);
 app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/orders', verifyToken, orderRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/admin', verifyToken, adminReportRoutes); // ⬅️ NEW
+app.use('/api/admin/reports', verifyToken, adminReportRoutes); // ⬅️ NEW
 app.use('/api', submitAgentRoutes);
 
 
