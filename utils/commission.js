@@ -66,13 +66,14 @@ async function getHierarchy(userId) {
   return hierarchy;
 }
 
-async function checkSplitPoints(order, chart, hierarchy, db) {
-  // 0) Compute this order's baseAmount (rate is %)
+async function checkSplitPoints(order, chart, hierarchy) {
+  // 0) order baseAmount (product_rate is %)
   const productRate = Number(order.product_rate ?? 100);
   const basePremiumRaw = order.flex_premium != null ? order.flex_premium : order.target_premium;
   const basePremium = Number(basePremiumRaw);
-  const baseAmount = (Number.isFinite(basePremium) ? basePremium : 0) *
-                     (Number.isFinite(productRate) ? productRate : 100) / 100;
+  const baseAmount =
+    (Number.isFinite(basePremium) ? basePremium : 0) *
+    (Number.isFinite(productRate) ? productRate : 100) / 100;
 
   if (baseAmount <= 0) return false;
 
@@ -86,11 +87,10 @@ async function checkSplitPoints(order, chart, hierarchy, db) {
   for (const u of [...(hierarchy || []), self]) {
     if (!u || !u.id || seen.has(u.id)) continue;
     seen.add(u.id);
-    // keep name/id; we'll attach fresh team_profit below
     allUsers.push({ id: u.id, name: u.name || u.id });
   }
 
-  // 2) FETCH FRESH team_profit for all involved users
+  // 2) fresh team_profit
   const ids = allUsers.map(u => u.id);
   const { rows: tps } = await db.query(
     `SELECT id, COALESCE(team_profit, 0)::numeric AS team_profit FROM users WHERE id = ANY($1)`,
@@ -98,7 +98,7 @@ async function checkSplitPoints(order, chart, hierarchy, db) {
   );
   const tpMap = new Map(tps.map(r => [r.id, Number(r.team_profit) || 0]));
 
-  // 3) Prepare levels (thresholds) numerically, ascending
+  // 3) thresholds ascending
   const levels = (chart || [])
     .map(r => ({ title: r.title, min_amount: Number(r.min_amount) }))
     .filter(r => Number.isFinite(r.min_amount))
@@ -110,23 +110,18 @@ async function checkSplitPoints(order, chart, hierarchy, db) {
     const before = tpMap.get(u.id) ?? 0;
     const after = before + baseAmount;
 
-    // derive "current index" purely from the numeric before (ignore title)
     let currentIndex = -1;
     for (let i = 0; i < levels.length; i++) {
-      if (before >= levels[i].min_amount) currentIndex = i;
-      else break;
+      if (before >= levels[i].min_amount) currentIndex = i; else break;
     }
 
-    // check all upcoming thresholds the user could cross with THIS order
     for (let i = currentIndex + 1; i < levels.length; i++) {
       const threshold = levels[i].min_amount;
       if (before < threshold && after >= threshold) {
         const offset = threshold - before; // exact self contribution needed
         if (offset > 0 && offset < baseAmount) {
           splitSet.add(offset);
-          console.log(
-            `[SPLIT] ${u.name} (before=${before}) crosses "${levels[i].title}" at self-offset ${offset}`
-          );
+          console.log(`[SPLIT] ${u.name} (before=${before}) crosses "${levels[i].title}" at self-offset ${offset}`);
         }
       }
     }
@@ -135,7 +130,6 @@ async function checkSplitPoints(order, chart, hierarchy, db) {
   const sorted = [...splitSet].sort((a, b) => a - b);
   return sorted.length ? sorted : false;
 }
-
 
 
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId, tableName) {
