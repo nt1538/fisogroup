@@ -1,6 +1,7 @@
 <template>
   <AdminLayout>
     <h2>Edit Order #{{ orderId }}</h2>
+
     <div v-if="order">
       <div
         class="form-group"
@@ -15,6 +16,7 @@
           >*</span>
         </label>
 
+        <!-- Status -->
         <template v-if="key === 'application_status'">
           <select v-model="order[key]" :id="key">
             <option value="in_progress">In Progress</option>
@@ -24,11 +26,13 @@
           </select>
         </template>
 
+        <!-- Policy number -->
         <template v-else-if="key === 'policy_number'">
           <input type="text" v-model="order[key]" :id="key" />
         </template>
 
-        <template v-else-if="key === 'application_date' || key === 'commission_distribution_date' || key === 'policy_effective_date'">
+        <!-- Date fields -->
+        <template v-else-if="dateFieldsSet.has(key)">
           <input
             type="date"
             v-model="order[key]"
@@ -37,7 +41,8 @@
           />
         </template>
 
-        <template v-else-if="key === 'face_amount' || key === 'target_premium' || key === 'flex_premium' || key === 'product_rate' || key === 'commission_from_carrier' || key === 'split_percent'">
+        <!-- Numeric fields -->
+        <template v-else-if="numericFieldsSet.has(key)">
           <input
             type="number"
             v-model.number="order[key]"
@@ -47,14 +52,7 @@
           />
         </template>
 
-        <template v-else-if="key === 'explanation' || key === 'split_with_id'">
-          <input type="text" v-model="order[key]" :id="key" />
-        </template>
-
-        <template v-else-if="typeof value === 'number'">
-          <input type="number" v-model.number="order[key]" :id="key" />
-        </template>
-
+        <!-- Text fields -->
         <template v-else>
           <input type="text" v-model="order[key]" :id="key" />
         </template>
@@ -62,12 +60,12 @@
         <small v-if="errors[key]" class="error-text">{{ errors[key] }}</small>
       </div>
 
-
       <div class="button-row">
         <button @click="saveOrder">Save</button>
         <button class="delete" @click="confirmDelete">Delete</button>
       </div>
     </div>
+
     <div v-else>Loading...</div>
 
     <div v-if="showDeleteConfirm" class="confirm-dialog">
@@ -84,16 +82,18 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '@/config/axios.config'
-import AdminLayout from '@/layout/src/AdminLayout.vue' // keep import if your bundler requires SFC presence
+import AdminLayout from '@/layout/src/AdminLayout.vue'
 
+/** ------- routing / state -------- */
 const route = useRoute()
 const router = useRouter()
 const orderId = route.params.id
-const tableType = route.params.table_type // 'application_life' | 'application_annuity' | etc.
+const tableType = route.params.table_type // e.g. 'application_life' | 'application_annuity' | 'commission_life' | 'commission_annuity'
 
 const order = ref(null)
 const showDeleteConfirm = ref(false)
 
+/** ------- field whitelists / typing helpers -------- */
 const editableFields = ref({
   product_name: '',
   carrier_name: '',
@@ -107,25 +107,40 @@ const editableFields = ref({
   initial_premium: 0,
   product_rate: 100,          // percent (life default 100, annuity default 6)
   commission_from_carrier: 0,
+  commission_amount: null,    // optional for commission tables
+  commission_percent: null,   // optional
   application_status: '',
   mra_status: '',
   split_with_id: '',
   split_percent: 0,
   explanation: '',
+  insured_name: '',
+  writing_agent: '',
 })
 
-// Filter out fields that don’t apply to the current table type
+// For clean template checks
+const dateFieldsSet = new Set(['application_date','commission_distribution_date','policy_effective_date'])
+const numericFieldsSet = new Set([
+  'face_amount','target_premium','flex_premium','initial_premium',
+  'product_rate','commission_from_carrier','commission_amount','commission_percent','split_percent'
+])
+
+/** ------- filtered fields (no v-if inside v-for) -------- */
 const filteredFields = computed(() => {
   return Object.entries(editableFields.value)
     .filter(([key]) => {
-      if (tableType === 'application_life') return key !== 'flex_premium'
-      if (tableType === 'application_annuity') return key !== 'face_amount' && key !== 'target_premium'
+      if (tableType === 'application_life' || tableType === 'commission_life') {
+        return key !== 'flex_premium'
+      }
+      if (tableType === 'application_annuity' || tableType === 'commission_annuity') {
+        return key !== 'face_amount' && key !== 'target_premium'
+      }
       return true
     })
     .map(([key, value]) => ({ key, value }))
 })
 
-// Validation state
+/** ------- validation when completing -------- */
 const requiredOnComplete = new Set([
   'commission_distribution_date',
   'commission_from_carrier',
@@ -134,39 +149,69 @@ const requiredOnComplete = new Set([
 const errors = ref({})
 const isCompleting = computed(() => order.value?.application_status === 'completed')
 
-// Load order + prefill
+function isEmpty(v) {
+  return v === '' || v === null || v === undefined
+}
+function validateOnComplete() {
+  errors.value = {}
+  if (!isCompleting.value) return true
+
+  const cdd = order.value?.commission_distribution_date
+  if (isEmpty(cdd) || isNaN(new Date(cdd).getTime())) {
+    errors.value.commission_distribution_date = 'Required when completing.'
+  }
+
+  const cfcRaw = order.value?.commission_from_carrier
+  if (isEmpty(cfcRaw)) {
+    errors.value.commission_from_carrier = 'Required when completing.'
+  } else {
+    const cfc = Number(cfcRaw)
+    if (!Number.isFinite(cfc) || cfc < 0) {
+      errors.value.commission_from_carrier = 'Enter a non-negative number.'
+    }
+  }
+
+  const prRaw = order.value?.product_rate
+  if (isEmpty(prRaw)) {
+    errors.value.product_rate = 'Required when completing.'
+  } else {
+    const pr = Number(prRaw)
+    if (!Number.isFinite(pr) || pr < 0 || pr > 200) {
+      errors.value.product_rate = 'Enter a percent between 0 and 200.'
+    }
+  }
+
+  return Object.keys(errors.value).length === 0
+}
+
+/** ------- load + prefill -------- */
 onMounted(async () => {
   const res = await axios.get(`/admin/orders/${tableType}/${orderId}`)
   order.value = res.data
 
+  // prefill editableFields with loaded order
   for (const key in editableFields.value) {
     if (key in order.value) {
-      if (
-        key === 'application_date' ||
-        key === 'commission_distribution_date' ||
-        key === 'policy_effective_date'
-      ) {
+      if (dateFieldsSet.has(key)) {
         editableFields.value[key] = order.value[key]
           ? formatDateInput(order.value[key])
-          : '' // leave blank unless we want to auto-fill later
+          : '' // keep empty if absent
       } else {
         editableFields.value[key] = order.value[key]
       }
     } else {
-      // sensible defaults for missing fields
+      // sensible defaults for missing keys
       if (key === 'product_rate') {
-        editableFields.value[key] = tableType === 'application_annuity' ? 6 : 100
-      }
-      if (key === 'commission_from_carrier') {
-        editableFields.value[key] = 0
+        editableFields.value[key] = tableType === 'application_annuity' || tableType === 'commission_annuity' ? 6 : 100
       }
     }
   }
 
+  // push back to order object for v-model binding
   order.value = { ...order.value, ...editableFields.value }
 })
 
-// Optional: when switching to Completed, auto-fill defaults if empty
+/** ------- minor autofill when switching to completed (do NOT auto-fill commission_from_carrier) -------- */
 watch(
   () => order.value?.application_status,
   (status) => {
@@ -174,56 +219,77 @@ watch(
       if (!order.value.commission_distribution_date) {
         order.value.commission_distribution_date = formatDateInput(new Date())
       }
+      if (isEmpty(order.value.product_rate)) {
+        order.value.product_rate = (tableType === 'application_annuity' || tableType === 'commission_annuity') ? 6 : 100
+      }
     }
   }
 )
 
-function isEmpty(val) {
-  return val === '' || val === null || val === undefined;
+/** ------- payload sanitizers -------- */
+function toNullIfEmpty(v) {
+  return v === '' || v === undefined ? null : v
+}
+function toNumberOrNull(v) {
+  if (v === '' || v === undefined || v === null) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
-function validateOnComplete() {
-  errors.value = {};
-  if (!isCompleting.value) return true;
+// Allowed fields to send
+const allowedCols = [
+  'product_name','carrier_name',
+  'application_date','commission_distribution_date','policy_effective_date',
+  'policy_number','face_amount','target_premium','flex_premium','initial_premium',
+  'product_rate','commission_from_carrier','commission_amount','commission_percent',
+  'application_status','mra_status','split_with_id','split_percent','explanation',
+  'insured_name','writing_agent'
+]
 
-  // commission_distribution_date: required valid date
-  const cdd = order.value?.commission_distribution_date;
-  if (isEmpty(cdd) || isNaN(new Date(cdd).getTime())) {
-    errors.value.commission_distribution_date = 'Required when completing.';
-  }
+function buildPayload() {
+  const src = order.value || {}
+  const payload = {}
 
-  // commission_from_carrier: required, finite, >= 0 (empty is invalid)
-  const cfcRaw = order.value?.commission_from_carrier;
-  if (isEmpty(cfcRaw)) {
-    errors.value.commission_from_carrier = 'Required when completing.';
-  } else {
-    const cfc = Number(cfcRaw);
-    if (!Number.isFinite(cfc) || cfc < 0) {
-      errors.value.commission_from_carrier = 'Enter a non-negative number.';
+  for (const col of allowedCols) {
+    if (!(col in src)) continue
+    let val = src[col]
+
+    if (dateFieldsSet.has(col)) {
+      val = toNullIfEmpty(val)
+    } else if (numericFieldsSet.has(col)) {
+      val = toNumberOrNull(val)
+    } else {
+      if (val === '') val = null
     }
+    payload[col] = val
   }
 
-  // product_rate: required, 0–200
-  const prRaw = order.value?.product_rate;
-  if (isEmpty(prRaw)) {
-    errors.value.product_rate = 'Required when completing.';
-  } else {
-    const pr = Number(prRaw);
-    if (!Number.isFinite(pr) || pr < 0 || pr > 200) {
-      errors.value.product_rate = 'Enter a percent between 0 and 200.';
-    }
+  // enforce sensible default for product_rate if null
+  if (payload.product_rate == null) {
+    payload.product_rate = (tableType === 'application_annuity' || tableType === 'commission_annuity') ? 6 : 100
   }
 
-  return Object.keys(errors.value).length === 0;
+  // ensure non-applicable fields are null
+  if (tableType === 'application_life' || tableType === 'commission_life') {
+    payload.flex_premium = null
+  }
+  if (tableType === 'application_annuity' || tableType === 'commission_annuity') {
+    payload.face_amount = null
+    payload.target_premium = null
+  }
+
+  return payload
 }
 
+/** ------- actions -------- */
 async function saveOrder() {
   if (!order.value) return
   if (!validateOnComplete()) {
     alert('Please fix the required fields before saving.')
     return
   }
-  await axios.put(`/admin/orders/${tableType}/${orderId}`, order.value)
+  const payload = buildPayload()
+  await axios.put(`/admin/orders/${tableType}/${orderId}`, payload)
   alert('Order saved successfully')
 }
 
@@ -242,16 +308,17 @@ async function deleteOrder() {
   }
 }
 
+/** ------- utils -------- */
 function formatDateInput(value) {
   if (!value) return ''
   const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
   const yyyy = date.getFullYear()
   const mm = String(date.getMonth() + 1).padStart(2, '0')
   const dd = String(date.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
 }
 </script>
-
 
 <style scoped>
 .form-group {
@@ -260,41 +327,58 @@ function formatDateInput(value) {
   flex-direction: column;
 }
 label {
-  font-weight: bold;
-  margin-bottom: 5px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
-input,
-select {
+input, select {
   padding: 8px;
   border: 1px solid #ccc;
+  border-radius: 6px;
 }
 .button-row {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
   margin-top: 20px;
 }
 button {
   padding: 10px 20px;
+  background-color: #0055a4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+button:hover {
+  background-color: #003f82;
 }
 button.delete {
   background-color: #c0392b;
-  color: white;
-  border: none;
+}
+.required-badge {
+  color: #c0392b;
+  margin-left: 4px;
+}
+.error-input {
+  border-color: #c0392b;
+  outline: none;
+}
+.error-text {
+  color: #c0392b;
+  font-size: 12px;
+  margin-top: 4px;
 }
 .confirm-dialog {
   background-color: #fff;
   border: 1px solid #aaa;
   padding: 20px;
   margin-top: 20px;
+  border-radius: 6px;
 }
 .dialog-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
-
-.required-badge { color: #c0392b; margin-left: 4px; }
-.error-input { border-color: #c0392b !important; }
-.error-text { color: #c0392b; margin-top: 4px; }
 </style>
