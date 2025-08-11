@@ -25,7 +25,7 @@ app.use('/api', authRoutes);
 app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/orders', verifyToken, orderRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/admin/reports', verifyToken, adminReportRoutes); // ⬅️ NEW
+app.use('/api/admin', verifyToken, adminReportRoutes); // ⬅️ NEW
 app.use('/api', submitAgentRoutes);
 
 
