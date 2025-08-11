@@ -66,30 +66,40 @@ async function getHierarchy(userId) {
   return hierarchy;
 }
 
-async function checkSplitPoints(order, chart, hierarchy) {
-  // 1) Base amount from the order (product_rate is a percent)
+async function checkSplitPoints(order, chart, hierarchy, db) {
+  // 0) Compute this order's baseAmount (rate is %)
   const productRate = Number(order.product_rate ?? 100);
   const basePremiumRaw = order.flex_premium != null ? order.flex_premium : order.target_premium;
   const basePremium = Number(basePremiumRaw);
-  const baseAmount = (Number.isFinite(basePremium) ? basePremium : 0) * (Number.isFinite(productRate) ? productRate : 100) / 100;
+  const baseAmount = (Number.isFinite(basePremium) ? basePremium : 0) *
+                     (Number.isFinite(productRate) ? productRate : 100) / 100;
 
   if (baseAmount <= 0) return false;
 
-  // 2) Load self & build unique user list (uplines + self)
-  const userRes = await db.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
+  // 1) Self + uplines (unique by id)
+  const userRes = await db.query('SELECT id, name FROM users WHERE id = $1', [order.user_id]);
   const self = userRes.rows[0];
   if (!self) return false;
 
   const allUsers = [];
   const seen = new Set();
   for (const u of [...(hierarchy || []), self]) {
-    if (!u || seen.has(u.id)) continue;
+    if (!u || !u.id || seen.has(u.id)) continue;
     seen.add(u.id);
-    allUsers.push(u);
+    // keep name/id; we'll attach fresh team_profit below
+    allUsers.push({ id: u.id, name: u.name || u.id });
   }
 
-  // 3) Normalize chart rows: ensure numeric min_amount and sort ascending
-  const levels = chart
+  // 2) FETCH FRESH team_profit for all involved users
+  const ids = allUsers.map(u => u.id);
+  const { rows: tps } = await db.query(
+    `SELECT id, COALESCE(team_profit, 0)::numeric AS team_profit FROM users WHERE id = ANY($1)`,
+    [ids]
+  );
+  const tpMap = new Map(tps.map(r => [r.id, Number(r.team_profit) || 0]));
+
+  // 3) Prepare levels (thresholds) numerically, ascending
+  const levels = (chart || [])
     .map(r => ({ title: r.title, min_amount: Number(r.min_amount) }))
     .filter(r => Number.isFinite(r.min_amount))
     .sort((a, b) => a.min_amount - b.min_amount);
@@ -97,25 +107,21 @@ async function checkSplitPoints(order, chart, hierarchy) {
   const splitSet = new Set();
 
   for (const u of allUsers) {
-    const before = Number(u.team_profit || 0);
+    const before = tpMap.get(u.id) ?? 0;
     const after = before + baseAmount;
 
-    // Derive current level by number (NOT by title)
-    // highest index i where before >= levels[i].min_amount
+    // derive "current index" purely from the numeric before (ignore title)
     let currentIndex = -1;
     for (let i = 0; i < levels.length; i++) {
       if (before >= levels[i].min_amount) currentIndex = i;
       else break;
     }
 
-    // Check upcoming thresholds
+    // check all upcoming thresholds the user could cross with THIS order
     for (let i = currentIndex + 1; i < levels.length; i++) {
       const threshold = levels[i].min_amount;
-
-      // Will this user cross this threshold within this single baseAmount?
       if (before < threshold && after >= threshold) {
-        const offset = threshold - before;  // <-- exact self contribution needed
-        // Only register split if it happens strictly within this order's amount
+        const offset = threshold - before; // exact self contribution needed
         if (offset > 0 && offset < baseAmount) {
           splitSet.add(offset);
           console.log(
@@ -127,7 +133,7 @@ async function checkSplitPoints(order, chart, hierarchy) {
   }
 
   const sorted = [...splitSet].sort((a, b) => a - b);
-  return sorted.length > 0 ? sorted : false;
+  return sorted.length ? sorted : false;
 }
 
 
