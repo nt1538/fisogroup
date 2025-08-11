@@ -67,8 +67,8 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     const commission_amount = (Number(initial_premium) || 0) * commission_percent / 100;
 
     // ---- product_rate handling ----
-    // Defaults: life = 1.00, annuity = 0.06
-    const defaultRate = tableName === 'application_annuity' ? 0.06 : 1.0;
+    // Defaults: life = 100, annuity = 6
+    const defaultRate = tableName === 'application_annuity' ? 6 : 100;
     let product_rate = productRateRaw != null ? Number(productRateRaw) : defaultRate;
 
     // sanitize: must be finite and within a sane range
