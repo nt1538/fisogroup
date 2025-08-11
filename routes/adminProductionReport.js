@@ -126,14 +126,14 @@ router.get('/production', async (req, res) => {
     // 4) Hierarchy helpers
     const { directNameById, topNameById, getDownlineIds } = await getHierarchyHelpers();
 
-    // 5) Build rows: team_* are sums of downline personal_* (exclude self)
+    // 5) Build rows: team_* are sums of self + downline personal_*  ✅ includes self now
     const data = userRows.map(u => {
       const personal_production = Number((personalProdMap.get(u.id) || 0).toFixed(2));
       const personal_commission = Number((personalCommMap.get(u.id) || 0).toFixed(2));
 
       const downIds = getDownlineIds(u.id);
-      let team_production_sum = 0;
-      let team_commission_sum = 0;
+      let team_production_sum = personal_production;   // include self
+      let team_commission_sum = personal_commission;   // include self
 
       for (const did of downIds) {
         team_production_sum += Number(personalProdMap.get(did) || 0);
