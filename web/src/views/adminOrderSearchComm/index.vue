@@ -16,6 +16,7 @@
       <button @click="loadOrdersByRange('ytd')">YTD</button>
       <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
       <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
+      <button @click="sortByCarrierCommission">Sort by Commission From Carrier</button>
     </div>
 
     <!-- Total display -->
@@ -154,6 +155,15 @@ function formatDate(dateStr) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+function sortByCarrierCommission() {
+  orders.value = [...orders.value].sort((a, b) => {
+    const ca = Number(a.commission_from_carrier) || 0;
+    const cb = Number(b.commission_from_carrier) || 0;
+    return cb - ca; // descending
+  });
+}
+
 </script>
 
 <style scoped>

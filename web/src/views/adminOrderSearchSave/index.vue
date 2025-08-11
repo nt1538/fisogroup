@@ -17,6 +17,7 @@
       <button @click="loadOrdersByRange('ytd')">YTD</button>
       <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
       <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
+      <button @click="sortByCarrierCommission">Sort by Commission From Carrier</button>
     </div>
 
     <!-- Totals -->
@@ -40,6 +41,8 @@
           <th>Face Amount</th>
           <th>Planned Premium</th>
           <th>Target/Base Premium</th>
+          <th>Product Rate</th>
+          <th>Commission From Carrier</th>
           <th>Split Percentage</th>
           <th>Split ID</th>
           <th>Notes</th>
@@ -61,6 +64,8 @@
           <td>{{ order.face_amount }}</td>
           <td>{{ order.initial_premium }}</td>
           <td>{{ order.table_type === 'saved_annuity_orders' ? order.flex_premium : order.target_premium }}</td>
+          <td>{{ order.product_rate }}</td>
+          <td>${{ formatMoney(order.commission_from_carrier) }}</td>
           <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ order.mra_status }}</td>
@@ -123,6 +128,14 @@ async function loadOrdersByRange(range) {
   }
 }
 
+function sortByCarrierCommission() {
+  orders.value = [...orders.value].sort((a, b) => {
+    const ca = Number(a.commission_from_carrier) || 0;
+    const cb = Number(b.commission_from_carrier) || 0;
+    return cb - ca; // descending
+  });
+}
+
 const totalCarrierCommission = computed(() =>
   orders.value.reduce((sum, o) => sum + (Number(o.commission_from_carrier) || 0), 0)
 );
@@ -141,6 +154,7 @@ function formatDate(dateStr) {
   return `${year}-${month}-${day}`;
 }
 </script>
+
 
 
 <style scoped>
