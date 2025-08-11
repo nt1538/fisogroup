@@ -174,40 +174,47 @@ watch(
       if (!order.value.commission_distribution_date) {
         order.value.commission_distribution_date = formatDateInput(new Date())
       }
-      if (!Number.isFinite(Number(order.value.product_rate))) {
-        order.value.product_rate = tableType === 'application_annuity' ? 6 : 100
-      }
-      if (!Number.isFinite(Number(order.value.commission_from_carrier))) {
-        order.value.commission_from_carrier = 0
-      }
     }
   }
 )
 
-// Validation before save when completing
+function isEmpty(val) {
+  return val === '' || val === null || val === undefined;
+}
+
 function validateOnComplete() {
-  errors.value = {}
-  if (!isCompleting.value) return true
+  errors.value = {};
+  if (!isCompleting.value) return true;
 
-  // commission_distribution_date: valid date
-  const cdd = order.value?.commission_distribution_date
-  if (!cdd || isNaN(new Date(cdd).getTime())) {
-    errors.value.commission_distribution_date = 'Required when completing.'
+  // commission_distribution_date: required valid date
+  const cdd = order.value?.commission_distribution_date;
+  if (isEmpty(cdd) || isNaN(new Date(cdd).getTime())) {
+    errors.value.commission_distribution_date = 'Required when completing.';
   }
 
-  // commission_from_carrier: >= 0
-  const cfc = Number(order.value?.commission_from_carrier)
-  if (!Number.isFinite(cfc) || cfc < 0) {
-    errors.value.commission_from_carrier = 'Enter a non-negative number.'
+  // commission_from_carrier: required, finite, >= 0 (empty is invalid)
+  const cfcRaw = order.value?.commission_from_carrier;
+  if (isEmpty(cfcRaw)) {
+    errors.value.commission_from_carrier = 'Required when completing.';
+  } else {
+    const cfc = Number(cfcRaw);
+    if (!Number.isFinite(cfc) || cfc < 0) {
+      errors.value.commission_from_carrier = 'Enter a non-negative number.';
+    }
   }
 
-  // product_rate: 0–200
-  const pr = Number(order.value?.product_rate)
-  if (!Number.isFinite(pr) || pr < 0 || pr > 200) {
-    errors.value.product_rate = 'Enter a percent between 0 and 200.'
+  // product_rate: required, 0–200
+  const prRaw = order.value?.product_rate;
+  if (isEmpty(prRaw)) {
+    errors.value.product_rate = 'Required when completing.';
+  } else {
+    const pr = Number(prRaw);
+    if (!Number.isFinite(pr) || pr < 0 || pr > 200) {
+      errors.value.product_rate = 'Enter a percent between 0 and 200.';
+    }
   }
 
-  return Object.keys(errors.value).length === 0
+  return Object.keys(errors.value).length === 0;
 }
 
 async function saveOrder() {
