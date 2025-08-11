@@ -67,31 +67,60 @@ async function getHierarchy(userId) {
 }
 
 async function checkSplitPoints(order, chart, hierarchy) {
-  const baseAmount = order.flex_premium
-  ? parseFloat(order.flex_premium) * order.product_rate / 100
-  : parseFloat(order.target_premium) * order.product_rate / 100;
+  // 1) Base amount from the order (product_rate is a percent)
+  const productRate = Number(order.product_rate ?? 100);
+  const basePremiumRaw = order.flex_premium != null ? order.flex_premium : order.target_premium;
+  const basePremium = Number(basePremiumRaw);
+  const baseAmount = (Number.isFinite(basePremium) ? basePremium : 0) * (Number.isFinite(productRate) ? productRate : 100) / 100;
 
+  if (baseAmount <= 0) return false;
+
+  // 2) Load self & build unique user list (uplines + self)
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
   const self = userRes.rows[0];
-  const allUsers = [...hierarchy, self];
+  if (!self) return false;
+
+  const allUsers = [];
+  const seen = new Set();
+  for (const u of [...(hierarchy || []), self]) {
+    if (!u || seen.has(u.id)) continue;
+    seen.add(u.id);
+    allUsers.push(u);
+  }
+
+  // 3) Normalize chart rows: ensure numeric min_amount and sort ascending
+  const levels = chart
+    .map(r => ({ title: r.title, min_amount: Number(r.min_amount) }))
+    .filter(r => Number.isFinite(r.min_amount))
+    .sort((a, b) => a.min_amount - b.min_amount);
+
   const splitSet = new Set();
 
   for (const u of allUsers) {
-    const before = parseFloat(u.team_profit || 0);
+    const before = Number(u.team_profit || 0);
     const after = before + baseAmount;
 
-    const currentIndex = chart.findIndex(c => c.title === u.hierarchy_level);
-    if (currentIndex === -1) continue;
+    // Derive current level by number (NOT by title)
+    // highest index i where before >= levels[i].min_amount
+    let currentIndex = -1;
+    for (let i = 0; i < levels.length; i++) {
+      if (before >= levels[i].min_amount) currentIndex = i;
+      else break;
+    }
 
-    for (let i = currentIndex + 1; i < chart.length; i++) {
-      const threshold = chart[i].min_amount;
+    // Check upcoming thresholds
+    for (let i = currentIndex + 1; i < levels.length; i++) {
+      const threshold = levels[i].min_amount;
 
+      // Will this user cross this threshold within this single baseAmount?
       if (before < threshold && after >= threshold) {
-        const offset = threshold - before;
-        const globalOffset = offset + (before - parseFloat(self.team_profit || 0));
-        if (globalOffset > 0 && globalOffset < baseAmount) {
-          splitSet.add(globalOffset);
-          console.log(`[SPLIT] ${u.name} (${u.hierarchy_level}) will cross ${chart[i].title} at self-offset ${globalOffset}`);
+        const offset = threshold - before;  // <-- exact self contribution needed
+        // Only register split if it happens strictly within this order's amount
+        if (offset > 0 && offset < baseAmount) {
+          splitSet.add(offset);
+          console.log(
+            `[SPLIT] ${u.name} (before=${before}) crosses "${levels[i].title}" at self-offset ${offset}`
+          );
         }
       }
     }
