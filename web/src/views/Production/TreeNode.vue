@@ -144,7 +144,7 @@ async function toggle() {
 .row { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #eee; }
 .toggle {
   width: 28px; height: 28px; border-radius: 6px; border: 1px solid #ccc; background: #fafafa; cursor: pointer;
-   margin-right: 10px; overflow-y: scroll;
+   margin-right: 10px; 
 }
 .who { flex: 1; }
 .name { font-weight: 700; }
