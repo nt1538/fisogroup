@@ -107,40 +107,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
 const props = defineProps({
   node: { type: Object, required: true },
   range: { type: String, default: 'all' },
-  fetchDetails: { type: Function, required: true }  // <-- accept function
-});
+  fetchDetails: { type: Function, required: true } // ✅
+})
 
-const expanded = ref(false);
-const loading = ref(false);
-const details = ref({ life: [], annuity: [] });
-let loadedOnce = false;
+const expanded = ref(false)
+const loading = ref(false)
+const details = ref({ life: [], annuity: [] })
+let loadedOnce = false
 
-function formatMoney(n){ return (Number(n)||0).toFixed(2); }
-function formatPercent(n){ return (Number(n)||0).toFixed(2); }
-function fmtDate(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return ''; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
-
-async function fetchDetails(userId) {
-  const { data } = await axios.get(`/reports/user-production-details`, {
-    params: { id: userId, range: range.value }
-  });
-  return data; // { life: [...], annuity: [...] }
-}
-
-async function toggle() {
-  expanded.value = !expanded.value;
+async function toggle(e) {
+  e?.preventDefault?.()
+  expanded.value = !expanded.value
   if (expanded.value && !loadedOnce) {
-    loading.value = true;
+    loading.value = true
     try {
-      const res = await props.fetchDetails(props.node.id); // <-- call prop
-      details.value = res || { life: [], annuity: [] };
-      loadedOnce = true;
+      console.log('toggle expand for', props.node.id) // 🔎 should log
+      const res = await props.fetchDetails(props.node.id) // ✅ calls parent fn
+      details.value = res || { life: [], annuity: [] }
+      console.log('details loaded', details.value) // 🔎 check in console
+      loadedOnce = true
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 }
