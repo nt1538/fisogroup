@@ -140,10 +140,11 @@ async function toggle() {
 </script>
 
 <style scoped>
-.node { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 12px; overflow-y: scroll;}
+.node { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 12px; }
 .row { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #eee; }
 .toggle {
-  width: 28px; height: 28px; border-radius: 6px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; margin-right: 10px;
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid #ccc; background: #fafafa; cursor: pointer;
+   margin-right: 10px; overflow-y: scroll;
 }
 .who { flex: 1; }
 .name { font-weight: 700; }
