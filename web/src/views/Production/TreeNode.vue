@@ -2,26 +2,27 @@
   <div class="node">
     <div class="row">
       <button class="toggle" @click="toggle">
-        <span v-if="expanded">▼</span>
-        <span v-else>▶</span>
+        <span v-if="expanded">▼</span><span v-else>▶</span>
       </button>
       <div class="who">
         <div class="name">{{ node.name }}</div>
         <div class="meta">
           ID: {{ node.id }} • Level: {{ node.hierarchy_level }}
         </div>
+        <!-- Optional: show personal subtotals smaller -->
+        <!-- <div class="meta">Personal — Life: ${{ formatMoney(node.personal_life_sum) }}, Annuity: ${{ formatMoney(node.personal_annuity_sum) }}</div> -->
       </div>
       <div class="sums">
         <div class="sum">
-          <div class="label">Life</div>
+          <div class="label">Team Life</div>
           <div class="value">${{ formatMoney(node.life_sum) }}</div>
         </div>
         <div class="sum">
-          <div class="label">Annuity</div>
+          <div class="label">Team Annuity</div>
           <div class="value">${{ formatMoney(node.annuity_sum) }}</div>
         </div>
         <div class="sum total">
-          <div class="label">Total</div>
+          <div class="label">Team Total</div>
           <div class="value">${{ formatMoney(node.total_sum) }}</div>
         </div>
       </div>
@@ -31,24 +32,14 @@
       <div v-if="loading" class="loading">Loading...</div>
 
       <template v-else>
-        <!-- Life orders -->
         <div class="section">
-          <div class="section-title">Life Orders</div>
+          <div class="section-title">Life Orders ({{ details.life.length }})</div>
           <table class="tbl" v-if="details.life.length">
             <thead>
               <tr>
-                <th>Policy #</th>
-                <th>Product</th>
-                <th>Carrier</th>
-                <th>App Date</th>
-                <th>Insured</th>
-                <th>Writing Agent</th>
-                <th>Face</th>
-                <th>Target</th>
-                <th>Rate %</th>
-                <th>Commission %</th>
-                <th>Commission $</th>
-                <th>Type</th>
+                <th>Policy #</th><th>Product</th><th>Carrier</th><th>App Date</th>
+                <th>Insured</th><th>Writing Agent</th><th>Face</th><th>Target</th>
+                <th>Rate %</th><th>Commission %</th><th>Commission $</th><th>Type</th>
               </tr>
             </thead>
             <tbody>
@@ -71,24 +62,14 @@
           <div v-else class="empty-mini">No life orders.</div>
         </div>
 
-        <!-- Annuity orders -->
         <div class="section">
-          <div class="section-title">Annuity Orders</div>
+          <div class="section-title">Annuity Orders ({{ details.annuity.length }})</div>
           <table class="tbl" v-if="details.annuity.length">
             <thead>
               <tr>
-                <th>Policy #</th>
-                <th>Product</th>
-                <th>Carrier</th>
-                <th>App Date</th>
-                <th>Insured</th>
-                <th>Writing Agent</th>
-                <th>Initial Premium</th>
-                <th>Flex Premium</th>
-                <th>Rate %</th>
-                <th>Commission %</th>
-                <th>Commission $</th>
-                <th>Type</th>
+                <th>Policy #</th><th>Product</th><th>Carrier</th><th>App Date</th>
+                <th>Insured</th><th>Writing Agent</th><th>Initial Premium</th><th>Flex Premium</th>
+                <th>Rate %</th><th>Commission %</th><th>Commission $</th><th>Type</th>
               </tr>
             </thead>
             <tbody>
@@ -111,14 +92,13 @@
           <div v-else class="empty-mini">No annuity orders.</div>
         </div>
 
-        <!-- Render children -->
         <div v-if="node.children && node.children.length" class="children">
           <TreeNode
             v-for="child in node.children"
             :key="child.id"
             :node="child"
             :range="range"
-            @fetch-details="$emit('fetch-details', $event)"
+            :fetch-details="fetchDetails" 
           />
         </div>
       </template>
@@ -129,36 +109,27 @@
 <script setup>
 import { ref } from 'vue';
 
-// props
 const props = defineProps({
   node: { type: Object, required: true },
-  range: { type: String, default: 'all' }
+  range: { type: String, default: 'all' },
+  fetchDetails: { type: Function, required: true }  // <-- accept function
 });
-const emit = defineEmits(['fetch-details']);
 
 const expanded = ref(false);
 const loading = ref(false);
 const details = ref({ life: [], annuity: [] });
 let loadedOnce = false;
 
-function formatMoney(n) { return (Number(n) || 0).toFixed(2); }
-function formatPercent(n) { return (Number(n) || 0).toFixed(2); }
-function fmtDate(s) {
-  if (!s) return '';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return '';
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`;
-}
+function formatMoney(n){ return (Number(n)||0).toFixed(2); }
+function formatPercent(n){ return (Number(n)||0).toFixed(2); }
+function fmtDate(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return ''; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
 
 async function toggle() {
   expanded.value = !expanded.value;
   if (expanded.value && !loadedOnce) {
     loading.value = true;
     try {
-      const res = await emit('fetch-details', props.node.id);
+      const res = await props.fetchDetails(props.node.id); // <-- call prop
       details.value = res || { life: [], annuity: [] };
       loadedOnce = true;
     } finally {

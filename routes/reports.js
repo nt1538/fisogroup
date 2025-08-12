@@ -32,80 +32,81 @@ async function getDownlineUsers(rootId) {
 }
 
 // aggregates per user for a given range from commission tables
-async function getAggregatesForUsers(userIds, range) {
-  if (!userIds.length) return { map: new Map(), totals: { life: 0, annuity: 0 } };
+async function getPersonalAggregatesForUsers(userIds, range) {
+  if (!userIds.length) return new Map();
 
-  // Life
   const lifeSql = `
     SELECT cl.user_id,
-           COALESCE(SUM( COALESCE(cl.target_premium,0) * COALESCE(cl.product_rate,100) / 100.0 ), 0)::numeric AS life_sum
-    FROM commission_life AS cl
+           COALESCE(SUM(COALESCE(cl.target_premium,0) * COALESCE(cl.product_rate,100) / 100.0), 0)::numeric AS life_sum
+    FROM commission_life cl
     WHERE cl.user_id = ANY($1)
       AND cl.order_type = 'Personal Commission'
       AND ${buildDateWhere(range, 'cl')}
     GROUP BY cl.user_id
   `;
-  const { rows: lifeRows } = await db.query(lifeSql, [userIds]);
-
-  // Annuity
   const annSql = `
     SELECT ca.user_id,
-           COALESCE(SUM( COALESCE(ca.flex_premium,0) * COALESCE(ca.product_rate,6) / 100.0 ), 0)::numeric AS annuity_sum
-    FROM commission_annuity AS ca
+           COALESCE(SUM(COALESCE(ca.flex_premium,0) * COALESCE(ca.product_rate,6) / 100.0), 0)::numeric AS annuity_sum
+    FROM commission_annuity ca
     WHERE ca.user_id = ANY($1)
       AND ca.order_type = 'Personal Commission'
       AND ${buildDateWhere(range, 'ca')}
     GROUP BY ca.user_id
   `;
-  const { rows: annRows } = await db.query(annSql, [userIds]);
 
-  const map = new Map();
-  let totalLife = 0, totalAnnuity = 0;
+  const [lifeRows, annRows] = await Promise.all([
+    db.query(lifeSql, [userIds]).then(r => r.rows),
+    db.query(annSql,  [userIds]).then(r => r.rows),
+  ]);
 
+  const map = new Map(); // user_id -> { personal_life, personal_annuity }
   for (const r of lifeRows) {
-    const life = Number(r.life_sum) || 0;
-    map.set(r.user_id, { life_sum: life, annuity_sum: 0 });
-    totalLife += life;
+    map.set(r.user_id, { personal_life: Number(r.life_sum) || 0, personal_annuity: 0 });
   }
   for (const r of annRows) {
-    const a = Number(r.annuity_sum) || 0;
-    const prev = map.get(r.user_id) || { life_sum: 0, annuity_sum: 0 };
-    prev.annuity_sum += a;
+    const prev = map.get(r.user_id) || { personal_life: 0, personal_annuity: 0 };
+    prev.personal_annuity += Number(r.annuity_sum) || 0;
     map.set(r.user_id, prev);
-    totalAnnuity += a;
   }
-
-  return { map, totals: { life: Number(totalLife.toFixed(2)), annuity: Number(totalAnnuity.toFixed(2)) } };
+  return map;
 }
 
 // build tree structure from flat downline results
-function buildTree(rows, aggregates) {
-  const byId = new Map(rows.map(u => [u.id, { ...u, children: [] }]));
-  // attach sums
-  for (const [id, sums] of aggregates.map) {
-    if (byId.has(id)) {
-      byId.get(id).life_sum = Number((sums.life_sum || 0).toFixed(2));
-      byId.get(id).annuity_sum = Number((sums.annuity_sum || 0).toFixed(2));
-      byId.get(id).total_sum = Number((byId.get(id).life_sum + byId.get(id).annuity_sum).toFixed(2));
-    }
-  }
-  // default 0 when missing
-  for (const node of byId.values()) {
-    node.life_sum = Number((node.life_sum || 0).toFixed(2));
-    node.annuity_sum = Number((node.annuity_sum || 0).toFixed(2));
-    node.total_sum = Number((node.total_sum || (node.life_sum + node.annuity_sum)).toFixed(2));
-  }
 
+function buildTree(rows) {
+  const byId = new Map(rows.map(u => [u.id, { ...u, children: [] }]));
   let root = null;
   for (const node of byId.values()) {
     if (node.introducer_id && byId.has(node.introducer_id)) {
       byId.get(node.introducer_id).children.push(node);
     } else {
-      // no introducer or not in set => treat as root (should be exactly the requested user)
       if (!root) root = node;
     }
   }
   return root;
+}
+
+// Post-order roll-up: attach personal sums, compute team (self + all descendants)
+function attachTeamSums(root, personalMap) {
+  function dfs(node) {
+    const personal = personalMap.get(node.id) || { personal_life: 0, personal_annuity: 0 };
+    let teamLife = personal.personal_life;
+    let teamAnn  = personal.personal_annuity;
+
+    for (const child of node.children || []) {
+      const childTotals = dfs(child);
+      teamLife += childTotals.team_life_sum;
+      teamAnn  += childTotals.team_annuity_sum;
+    }
+
+    node.personal_life_sum   = Number(personal.personal_life.toFixed(2));
+    node.personal_annuity_sum= Number(personal.personal_annuity.toFixed(2));
+    node.life_sum            = Number(teamLife.toFixed(2));     // << TEAM life
+    node.annuity_sum         = Number(teamAnn.toFixed(2));      // << TEAM annuity
+    node.total_sum           = Number((teamLife + teamAnn).toFixed(2));
+    return { team_life_sum: teamLife, team_annuity_sum: teamAnn };
+  }
+  return dfs(root);
 }
 
 // ========== Routes ==========
@@ -114,25 +115,22 @@ function buildTree(rows, aggregates) {
 router.get('/my-team-production', verifyToken, async (req, res) => {
   try {
     const { range = 'all' } = req.query;
-    const rootId = req.user.id; // requires verifyToken to set req.user
+    const rootId = req.user.id;
 
     const downline = await getDownlineUsers(rootId);
     const ids = downline.map(u => u.id);
 
-    const aggregates = await getAggregatesForUsers(ids, range);
-    const tree = buildTree(downline, aggregates);
+    const personalMap = await getPersonalAggregatesForUsers(ids, range);
+    const tree = buildTree(downline);
+    const totals = attachTeamSums(tree, personalMap); // fills sums on nodes
 
-    const totalLife = aggregates.totals.life;
-    const totalAnnuity = aggregates.totals.annuity;
+    const totalLife = Number(totals.team_life_sum.toFixed(2));
+    const totalAnnuity = Number(totals.team_annuity_sum.toFixed(2));
     const grandTotal = Number((totalLife + totalAnnuity).toFixed(2));
 
     res.json({
       range,
-      totals: {
-        totalLife,
-        totalAnnuity,
-        grandTotal
-      },
+      totals: { totalLife, totalAnnuity, grandTotal },
       tree
     });
   } catch (err) {
