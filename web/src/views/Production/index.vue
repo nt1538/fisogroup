@@ -63,13 +63,6 @@ function setRange(r) {
   loadTree();
 }
 
-async function fetchDetails(userId) {
-  const { data } = await axios.get(`/reports/user-production-details`, {
-    params: { id: userId, range: range.value }
-  });
-  return data; // { life: [...], annuity: [...] }
-}
-
 function formatMoney(n) {
   const num = Number(n) || 0;
   return num.toFixed(2);

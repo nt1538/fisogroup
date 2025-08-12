@@ -124,6 +124,13 @@ function formatMoney(n){ return (Number(n)||0).toFixed(2); }
 function formatPercent(n){ return (Number(n)||0).toFixed(2); }
 function fmtDate(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return ''; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
 
+async function fetchDetails(userId) {
+  const { data } = await axios.get(`/reports/user-production-details`, {
+    params: { id: userId, range: range.value }
+  });
+  return data; // { life: [...], annuity: [...] }
+}
+
 async function toggle() {
   expanded.value = !expanded.value;
   if (expanded.value && !loadedOnce) {
