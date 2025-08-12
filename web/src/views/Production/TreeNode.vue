@@ -140,7 +140,7 @@ async function toggle() {
 </script>
 
 <style scoped>
-.node { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 12px; }
+.node { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.06); margin-bottom: 12px; overflow-y: scroll;}
 .row { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #eee; }
 .toggle {
   width: 28px; height: 28px; border-radius: 6px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; margin-right: 10px;
@@ -155,7 +155,7 @@ async function toggle() {
 
 .details { padding: 12px; }
 .loading { color: #666; padding: 8px 0; }
-.section { margin: 12px 0; overflow-y: scroll;}
+.section { margin: 12px 0; }
 .section-title { font-weight: 700; margin-bottom: 6px; }
 .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tbl th, .tbl td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
