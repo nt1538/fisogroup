@@ -43,6 +43,7 @@ async function getAggregatesForUsers(userIds, range) {
            COALESCE(SUM( (COALESCE(cl.target_premium,0) * COALESCE(cl.product_rate,100) / 100.0) ), 0)::numeric AS life_sum
     FROM commission_life cl
     WHERE cl.user_id = ANY($1)
+    AND cl.order_type = 'Personal Commission'
       AND ${whereLife}
     GROUP BY cl.user_id
   `, [userIds]);
@@ -53,6 +54,7 @@ async function getAggregatesForUsers(userIds, range) {
            COALESCE(SUM( (COALESCE(ca.flex_premium,0) * COALESCE(ca.product_rate,6) / 100.0) ), 0)::numeric AS annuity_sum
     FROM commission_annuity ca
     WHERE ca.user_id = ANY($1)
+    AND cl.order_type = 'Personal Commission'
       AND ${whereAnn}
     GROUP BY ca.user_id
   `, [userIds]);
@@ -157,6 +159,7 @@ router.get('/user-production-details', verifyToken, async (req, res) => {
              cl.split_percent, cl.split_with_id, cl.application_status, cl.mra_status, cl.order_type
       FROM commission_life cl
       WHERE cl.user_id = $1 AND ${whereLife}
+      AND cl.order_type = 'Personal Commission'
       ORDER BY cl.application_date DESC NULLS LAST, cl.id DESC
     `, [id]);
 
@@ -169,6 +172,7 @@ router.get('/user-production-details', verifyToken, async (req, res) => {
              ca.split_percent, ca.split_with_id, ca.application_status, ca.mra_status, ca.order_type
       FROM commission_annuity ca
       WHERE ca.user_id = $1 AND ${whereAnn}
+      AND cl.order_type = 'Personal Commission'
       ORDER BY ca.application_date DESC NULLS LAST, ca.id DESC
     `, [id]);
 
