@@ -86,6 +86,7 @@ onMounted(loadTree);
   background: #f4f4f4;
   min-height: 100vh;
   margin-left: 280px;
+  overflow-y: scroll;
 }
 .filter-controls { margin-bottom: 16px; }
 .filter-buttons button {
