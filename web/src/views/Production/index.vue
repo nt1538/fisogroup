@@ -86,7 +86,6 @@ onMounted(loadTree);
   background: #f4f4f4;
   min-height: 100vh;
   margin-left: 280px;
-  overflow-y: scroll;
 }
 .filter-controls { margin-bottom: 16px; }
 .filter-buttons button {
@@ -109,6 +108,7 @@ onMounted(loadTree);
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,.06);
   min-width: 180px;
+  overflow-y: scroll;
 }
 .card .label { font-size: 12px; color: #666; }
 .card .value { font-size: 18px; font-weight: 700; }
