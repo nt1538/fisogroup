@@ -155,7 +155,7 @@ async function toggle() {
 
 .details { padding: 12px; }
 .loading { color: #666; padding: 8px 0; }
-.section { margin: 12px 0; }
+.section { margin: 12px 0; overflow-y: scroll;}
 .section-title { font-weight: 700; margin-bottom: 6px; }
 .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tbl th, .tbl td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
