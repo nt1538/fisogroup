@@ -79,7 +79,7 @@ onMounted(loadTree);
 </script>
 
 <style scoped>
-.dashboard { display: flex; }
+.dashboard { display: flex; overflow-y: scroll;}
 .page {
   flex: 1;
   padding: 32px;
