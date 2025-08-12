@@ -5,12 +5,12 @@ const db = require('../db');
 const { verifyToken } = require('../middleware/auth');
 
 // --- helpers ---
-function buildDateWhere(range, alias = 'c') {
-  // alias is the table alias that has commission_distribution_date in commission_* tables
+function buildDateWhere(range, alias) {
+  // alias = the table alias *used in the query* (e.g., 'cl' or 'ca')
   if (!range || range === 'all') return '1=1';
-  if (range === 'ytd') return `${alias}.commission_distribution_date >= date_trunc('year', NOW())`;
+  if (range === 'ytd')       return `${alias}.commission_distribution_date >= date_trunc('year', NOW())`;
   if (range === 'rolling_3') return `${alias}.commission_distribution_date >= NOW() - INTERVAL '3 months'`;
-  if (range === 'rolling_12') return `${alias}.commission_distribution_date >= NOW() - INTERVAL '12 months'`;
+  if (range === 'rolling_12')return `${alias}.commission_distribution_date >= NOW() - INTERVAL '12 months'`;
   return '1=1';
 }
 
@@ -34,30 +34,30 @@ async function getDownlineUsers(rootId) {
 // aggregates per user for a given range from commission tables
 async function getAggregatesForUsers(userIds, range) {
   if (!userIds.length) return { map: new Map(), totals: { life: 0, annuity: 0 } };
-  const whereLife = buildDateWhere(range, 'cl');
-  const whereAnn = buildDateWhere(range, 'ca');
 
-  // Life: sum(target_premium * (product_rate/100))
-  const { rows: lifeRows } = await db.query(`
+  // Life
+  const lifeSql = `
     SELECT cl.user_id,
-           COALESCE(SUM( (COALESCE(cl.target_premium,0) * COALESCE(cl.product_rate,100) / 100.0) ), 0)::numeric AS life_sum
-    FROM commission_life cl
+           COALESCE(SUM( COALESCE(cl.target_premium,0) * COALESCE(cl.product_rate,100) / 100.0 ), 0)::numeric AS life_sum
+    FROM commission_life AS cl
     WHERE cl.user_id = ANY($1)
-    AND cl.order_type = 'Personal Commission'
-      AND ${whereLife}
+      AND cl.order_type = 'Personal Commission'
+      AND ${buildDateWhere(range, 'cl')}
     GROUP BY cl.user_id
-  `, [userIds]);
+  `;
+  const { rows: lifeRows } = await db.query(lifeSql, [userIds]);
 
-  // Annuity: sum(flex_premium * (product_rate/100))
-  const { rows: annRows } = await db.query(`
+  // Annuity
+  const annSql = `
     SELECT ca.user_id,
-           COALESCE(SUM( (COALESCE(ca.flex_premium,0) * COALESCE(ca.product_rate,6) / 100.0) ), 0)::numeric AS annuity_sum
-    FROM commission_annuity ca
+           COALESCE(SUM( COALESCE(ca.flex_premium,0) * COALESCE(ca.product_rate,6) / 100.0 ), 0)::numeric AS annuity_sum
+    FROM commission_annuity AS ca
     WHERE ca.user_id = ANY($1)
-    AND cl.order_type = 'Personal Commission'
-      AND ${whereAnn}
+      AND ca.order_type = 'Personal Commission'
+      AND ${buildDateWhere(range, 'ca')}
     GROUP BY ca.user_id
-  `, [userIds]);
+  `;
+  const { rows: annRows } = await db.query(annSql, [userIds]);
 
   const map = new Map();
   let totalLife = 0, totalAnnuity = 0;
@@ -172,7 +172,7 @@ router.get('/user-production-details', verifyToken, async (req, res) => {
              ca.split_percent, ca.split_with_id, ca.application_status, ca.mra_status, ca.order_type
       FROM commission_annuity ca
       WHERE ca.user_id = $1 AND ${whereAnn}
-      AND cl.order_type = 'Personal Commission'
+      AND ca.order_type = 'Personal Commission'
       ORDER BY ca.application_date DESC NULLS LAST, ca.id DESC
     `, [id]);
 
