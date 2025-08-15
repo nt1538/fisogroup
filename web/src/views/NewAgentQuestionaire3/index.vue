@@ -59,7 +59,6 @@
         <div class="form-actions">
           <button type="button" @click="addCase">Add New Case</button>
           <button type="submit">Submit</button>
-          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip</button>
         </div>
       </form>
     </div>
@@ -98,12 +97,6 @@ function addCase() {
 
 function removeCase(index) {
   cases.value.splice(index, 1)
-}
-
-function skipToNextPage() {
-  // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('newAgentPage3', JSON.stringify(cases.value))
-  router.push('/employee/form4')
 }
 
 function submitForm() {

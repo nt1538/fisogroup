@@ -57,7 +57,6 @@
 
         <div class="form-actions">
           <button type="submit">Submit</button>
-          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
         </div>
       </form>
     </div>
@@ -92,9 +91,6 @@ function submitForm() {
   router.push('/employee/form7')
 }
 
-function skipToNextPage() {
-  router.push('/employee/form7')
-}
 </script>
 
 <style scoped>

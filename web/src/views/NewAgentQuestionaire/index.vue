@@ -131,7 +131,6 @@ carriers and FISO to direct deposit your commissions. </p>
 
         <div class="form-actions">
           <button type="submit">Next Page</button>
-          <button type="button" @click="skipToNextPage" style="margin-left: 10px;">Skip Validation</button>
         </div>
       </form>
     </div>
@@ -172,12 +171,6 @@ function submitForm() {
   localStorage.setItem('newAgentPage1', JSON.stringify(form.value))
 
   // 跳转到下一页
-  router.push('/employee/form2')
-}
-
-function skipToNextPage() {
-  // 保存表单空数据（或当前已有数据）
-  localStorage.setItem('newAgentPage1', JSON.stringify(form.value))
   router.push('/employee/form2')
 }
 </script>

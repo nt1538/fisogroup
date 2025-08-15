@@ -193,7 +193,7 @@ async function submitForm() {
       phone:              form.value['Phone'] || '',
       date:               form.value['Date'] || '',
       // base64 (no data: prefix) to keep payload small; admin PDF code already handles images
-      EFTSignature:       sigToJPEGBase64()
+      EFTSignature:       sigToJPEGBase64(),
     };
 
     // 2) Save as the *10th page* in localStorage (consistent with your other pages)

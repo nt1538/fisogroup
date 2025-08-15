@@ -42,7 +42,6 @@
 
       <div class="form-actions">
         <button @click="submitSignature">Submit</button>
-        <button @click="skip" style="margin-left: 10px;">Skip</button>
       </div>
     </div>
   </div>
@@ -120,9 +119,6 @@ function submitSignature() {
   router.push('/employee/form8') // or next page
 }
 
-function skip() {
-  router.push('/employee/form8')
-}
 </script>
 
 <style scoped>

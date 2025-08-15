@@ -41,9 +41,6 @@
 
         <div class="form-actions">
           <button type="submit">Submit</button>
-          <button type="button" @click="goToNextPage" style="margin-left: 10px">
-            Next Page
-          </button>
         </div>
       </form>
     </div>
@@ -70,11 +67,6 @@ function addEntry() {
 function submitForm() {
   localStorage.setItem('newAgentPage5', JSON.stringify(explanations))
   alert('Letter(s) of Explanation saved.')
-  router.push('/employee/form6')
-}
-
-function goToNextPage() {
-  localStorage.setItem('newAgentPage5', JSON.stringify(explanations))
   router.push('/employee/form6')
 }
 </script>

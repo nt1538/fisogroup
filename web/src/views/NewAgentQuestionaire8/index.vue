@@ -56,7 +56,6 @@
 
       <div class="form-actions">
         <button @click="submitForm">Submit</button>
-        <button @click="skip" style="margin-left: 10px;">Skip</button>
       </div>
     </div>
   </div>
@@ -143,9 +142,6 @@ function submitForm() {
   router.push('/employee/form9') // next page
 }
 
-function skip() {
-  router.push('/employee/form9')
-}
 </script>
 
 <style scoped>
