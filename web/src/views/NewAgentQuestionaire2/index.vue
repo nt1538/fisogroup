@@ -21,7 +21,7 @@
 
         <label>
           Website
-          <input type="url" v-model="form.website" placeholder="https://example.com" />
+          <input type="text" v-model="form.website" placeholder="https://example.com" />
         </label>
 
         <label>
