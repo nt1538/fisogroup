@@ -8,8 +8,8 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const submitAgentRoutes = require('./routes/submitAgent');
 const adminReportRoutes = require('./routes/adminProductionReport'); 
-const productLifeRoutes = require('./routes/productLife')
-const productAnnuityRoutes = require('./routes/productAnnuity')
+const productLifeRoutes = require('./routes/productLife');
+const productAnnuityRoutes = require('./routes/productAnnuity');
 const reportRoutes = require('./routes/reports');
 const { verifyToken } = require('./middleware/auth');
 require('./cron/cron-jobs');
