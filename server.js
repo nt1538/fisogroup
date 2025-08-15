@@ -8,6 +8,8 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const submitAgentRoutes = require('./routes/submitAgent');
 const adminReportRoutes = require('./routes/adminProductionReport'); 
+const productLifeRoutes = require('./routes/productLife')
+const productAnnuityRoutes = require('./routes/productAnnuity')
 const reportRoutes = require('./routes/reports');
 const { verifyToken } = require('./middleware/auth');
 require('./cron/cron-jobs');
@@ -27,6 +29,9 @@ app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/orders', verifyToken, orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/reports', verifyToken, adminReportRoutes); // ⬅️ NEW
+app.use('/api/admin/product-life', productLifeRoutes)
+app.use('/api/admin/product-annuity', productAnnuityRoutes)
+
 app.use('/api/reports', reportRoutes);
 
 app.use('/api', submitAgentRoutes);
