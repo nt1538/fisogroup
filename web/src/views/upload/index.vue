@@ -20,7 +20,10 @@
           <label>Carrier:</label>
           <select v-model="selectedCarrier" :disabled="locked || !form.product_type" required>
             <option disabled value="">Select a carrier</option>
-            <option v-for="c in carriers" :key="c" :value="c">{{ c }}</option>
+            <option v-for="c in carriers" :key="c.value" :value="c.value">
+              {{ c.label }}
+            </option>
+            <option v-if="!carriers.length" disabled value="">No carriers found</option>
           </select>
         </div>
 
@@ -152,7 +155,7 @@ const isSplit = ref(false)
 const locked = ref(false) // lock carrier/product once a known product is selected
 
 // catalog selections
-const carriers = ref([])
+const carriers = ref([]) // [{ value, label }]
 const products = ref([])
 
 const selectedCarrier = ref('')
@@ -212,23 +215,18 @@ const canSubmit = computed(() => {
 })
 
 const productOptions = computed(() => {
-  // Build display list from loaded products
-  // Life: label "product_name (type)"
-  // Annuity: label "product_name [optional bracket shown later]"
   if (form.value.product_type === 'life') {
     return products.value.map(p => ({
-      key: encodeKey(p.product_name, p.life_product_type, null),
+      key: encodeKey(p.product_name),
       label: `${p.product_name}${p.life_product_type ? ' (' + p.life_product_type + ')' : ''}`,
       product_name: p.product_name,
       product_rate: Number(p.product_rate),
       type: p.life_product_type || null
     }))
   } else {
-    // annuity: multiple rows can share same product_name with different age_bracket
-    // The primary product picker is just by product_name; bracket is handled below.
     const names = [...new Set(products.value.map(p => p.product_name))]
     return names.map(name => ({
-      key: encodeKey(name, null, null),
+      key: encodeKey(name),
       label: name
     }))
   }
@@ -243,7 +241,7 @@ const bracketOptions = computed(() => {
   return opts
 })
 
-const showAnnuityBracketRow = computed(() => form.value.product_type === 'annuity' && (selectedProductKey.value !== '' ))
+const showAnnuityBracketRow = computed(() => form.value.product_type === 'annuity' && (selectedProductKey.value !== ''))
 
 const displayProductRate = computed(() => {
   return form.value.product_rate != null ? Number(form.value.product_rate).toFixed(2) : ''
@@ -267,6 +265,7 @@ watch(selectedCarrier, async (carrier) => {
   manualAgeBracket.value = ''
 
   if (!carrier || !form.value.product_type) return
+  form.value.carrier_name = carrier
   await loadProducts(form.value.product_type, carrier)
 })
 
@@ -293,7 +292,6 @@ watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBrack
   // Known product
   const { productName } = decodeKey(selectedProductKey.value)
   if (form.value.product_type === 'life') {
-    // life rows unique per name
     const row = products.value.find(p => p.product_name === productName)
     if (row) {
       form.value.product_name = row.product_name
@@ -340,12 +338,11 @@ async function loadCarriers(type) {
   carriers.value = []
   products.value = []
   try {
-    if (type === 'life') {
-      const { data } = await axios.get('/catalog/life/carriers')
-      carriers.value = data || []
-    } else {
-      const { data } = await axios.get('/catalog/annuity/carriers')
-      carriers.value = data || []
+    const url = type === 'life' ? '/catalog/life/carriers' : '/catalog/annuity/carriers'
+    const { data } = await axios.get(url)
+    carriers.value = normalizeCarriersData(data)
+    if (!carriers.value.length) {
+      console.warn('No carriers returned from', url, data)
     }
   } catch (e) {
     console.error('Failed loading carriers', e)
@@ -357,14 +354,40 @@ async function loadProducts(type, carrier) {
   try {
     if (type === 'life') {
       const { data } = await axios.get('/catalog/life/products', { params: { carrier } })
-      products.value = data || []
+      products.value = Array.isArray(data) ? data : (data?.data || data?.products || [])
     } else {
       const { data } = await axios.get('/catalog/annuity/products', { params: { carrier } })
-      products.value = data || []
+      products.value = Array.isArray(data) ? data : (data?.data || data?.products || [])
     }
   } catch (e) {
     console.error('Failed loading products', e)
   }
+}
+
+// Turn various backend shapes into [{value, label}]
+function normalizeCarriersData(raw) {
+  if (!raw) return []
+  if (raw.carriers) return normalizeCarriersData(raw.carriers)
+  if (raw.data) return normalizeCarriersData(raw.data)
+  if (Array.isArray(raw)) {
+    if (!raw.length) return []
+    if (typeof raw[0] === 'string') {
+      return raw.map(name => ({ value: name, label: name }))
+    }
+    return raw
+      .map(row => {
+        const name =
+          row.carrier_name ??
+          row.name ??
+          row.carrier ??
+          row.label ??
+          row.title ??
+          ''
+        return name ? { value: String(name), label: String(name) } : null
+      })
+      .filter(Boolean)
+  }
+  return []
 }
 
 // helpers to encode/decode a selection key
