@@ -142,24 +142,18 @@ function clearSignature() {
   signaturePad?.clear()
 }
 
-function downscaleSignatureToJPEGBase64() {
-  // Convert signature canvas to smaller JPEG to avoid 413
+function sigToJPEGBase64() {
   const src = signatureCanvas.value
-  const w = Math.max(600, src.offsetWidth) // stabilize width
-  const h = 200 // matches your CSS height
-
+  const w = Math.max(600, src.offsetWidth)
+  const h = 200
   const tmp = document.createElement('canvas')
   tmp.width = w
   tmp.height = h
-
   const ctx = tmp.getContext('2d')
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, w, h)
   ctx.drawImage(src, 0, 0, w, h)
-
-  // Compress to jpeg (0.7 is a good tradeoff)
-  const dataUrl = tmp.toDataURL('image/jpeg', 0.7)
-  return dataUrl.split(',')[1] // base64 only
+  return tmp.toDataURL('image/jpeg', 0.7).split(',')[1]
 }
 
 function collectAllPagesData() {
@@ -199,7 +193,7 @@ async function submitForm() {
       phone:              form.value['Phone'] || '',
       date:               form.value['Date'] || '',
       // base64 (no data: prefix) to keep payload small; admin PDF code already handles images
-      EFTSignature:       downscaleSignatureToJPEGBase64()
+      EFTSignature:       sigToJPEGBase64()
     };
 
     // 2) Save as the *10th page* in localStorage (consistent with your other pages)
