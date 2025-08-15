@@ -8,74 +8,72 @@
         <!-- Product type -->
         <div class="form-row">
           <label>Product Type:</label>
-          <select v-model="form.product_type" :disabled="locked" required>
+          <select v-model="form.product_line" :disabled="locked" required>
             <option disabled value="">Select</option>
             <option value="life">Life</option>
             <option value="annuity">Annuity</option>
           </select>
         </div>
 
-        <!-- Carrier (from catalog) -->
+        <!-- Carrier -->
         <div class="form-row">
           <label>Carrier:</label>
-          <select v-model="selectedCarrier" :disabled="locked || !form.product_type" required>
+          <select v-model="selectedCarrier" :disabled="locked || !form.product_line" required>
             <option disabled value="">Select a carrier</option>
-            <option v-for="c in carriers" :key="c.value" :value="c.value">
-              {{ c.label }}
-            </option>
-            <option v-if="!carriers.length" disabled value="">No carriers found</option>
+            <option v-for="c in carrierOptions" :key="c" :value="c">{{ c }}</option>
+            <option value="__OTHER__">Other (type manually)</option>
           </select>
         </div>
 
-        <!-- Product (from catalog, + Other) -->
-        <div class="form-row" v-if="form.product_type">
+        <!-- Manual carrier name when "Other" -->
+        <div class="form-row" v-if="selectedCarrier === '__OTHER__'">
+          <label>Enter Carrier Name:</label>
+          <input v-model="manualCarrier" :disabled="locked" placeholder="Carrier name" required />
+        </div>
+
+        <!-- Product -->
+        <div class="form-row" v-if="form.product_line">
           <label>Product:</label>
-          <select v-model="selectedProductKey" :disabled="locked || !selectedCarrier" required>
+          <select v-model="selectedProductKey" :disabled="locked || !selectedCarrierReal" required>
             <option disabled value="">Select a product</option>
-            <option
-              v-for="opt in productOptions"
-              :key="opt.key"
-              :value="opt.key"
-            >
-              {{ opt.label }}
+            <option v-for="p in productOptions" :key="p.key" :value="p.key">
+              {{ p.label }}
             </option>
             <option value="__OTHER__">Other (not listed)</option>
           </select>
         </div>
 
-        <!-- If Other: free-text product name (required) -->
+        <!-- Manual product name when "Other" -->
         <div class="form-row" v-if="selectedProductKey === '__OTHER__'">
           <label>Enter Product Name:</label>
           <input v-model="manualProductName" :disabled="locked" placeholder="Type the product name" required />
         </div>
 
-        <!-- If annuity and:
-             - known product with multiple brackets -> show age bracket chooser
-             - Other -> allow free text age bracket (optional) -->
-        <div class="form-row" v-if="form.product_type === 'annuity' && showAnnuityBracketRow">
+        <!-- Annuity bracket row -->
+        <div class="form-row" v-if="form.product_line === 'annuity' && showBracketRow">
           <label>Age Bracket:</label>
-
           <template v-if="selectedProductKey !== '__OTHER__' && bracketOptions.length > 0">
             <select v-model="selectedAgeBracket" :disabled="locked" required>
               <option disabled value="">Select age bracket</option>
-              <option v-for="b in bracketOptions" :key="b || 'none'" :value="b">
-                {{ b || '—' }}
-              </option>
+              <option v-for="b in bracketOptions" :key="b || 'none'" :value="b">{{ b || '—' }}</option>
             </select>
           </template>
-
           <template v-else-if="selectedProductKey === '__OTHER__'">
             <input v-model="manualAgeBracket" :disabled="locked" placeholder="e.g. Ages 0-70 (optional)" />
           </template>
         </div>
 
-        <!-- Auto-filled read-only product rate when known product -->
+        <!-- Life product subtype (IUL/Term/etc) display (read-only) -->
+        <div class="form-row" v-if="form.product_line === 'life'">
+          <label>Life Product Type:</label>
+          <input :value="displayLifeType" readonly />
+        </div>
+
+        <!-- Rate preview (from hard-coded catalog; real rate comes from DB later) -->
         <div class="form-row">
-          <label>Product Rate (%):</label>
-          <input :value="displayProductRate" type="number" readonly />
-          <small v-if="selectedProductKey === '__OTHER__'">
-            Will be set by admin later for unlisted products.
-          </small>
+          <label>Product Rate (preview):</label>
+          <input :value="displayProductRate" type="text" readonly />
+          <small>Final rates are resolved from database at commission time.</small>
         </div>
 
         <!-- Dates & policy info -->
@@ -95,7 +93,7 @@
         </div>
 
         <!-- Amounts -->
-        <div class="form-row" v-if="form.product_type === 'life'">
+        <div class="form-row" v-if="form.product_line === 'life'">
           <label>Face Amount:</label>
           <input v-model.number="form.face_amount" type="number" min="0" step="0.01" />
           <label>Target Premium:</label>
@@ -107,7 +105,7 @@
           <input v-model.number="form.initial_premium" type="number" min="0" step="0.01" required />
         </div>
 
-        <div class="form-row" v-if="form.product_type === 'annuity'">
+        <div class="form-row" v-if="form.product_line === 'annuity'">
           <label>Base Premium:</label>
           <input v-model.number="form.flex_premium" type="number" min="0" step="0.01" required />
         </div>
@@ -145,329 +143,370 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import axios from '@/config/axios.config'
 import Sidebar from '@/components/Sidebar.vue'
+import axios from '@/config/axios.config'
+
+// ---------- HARD-CODED CATALOG ----------
+const CATALOG = {
+  life: {
+    carriers: [
+      'Allianz',
+      'Ameritas',
+      'F&G Life',
+      'Life of the Southwest (LSW / National Life)',
+      'Lincoln Financial Group',
+      'Mass Mutual',
+      'Nationwide',
+      'Symetra Life Insurance Company'
+    ],
+    products: [
+      // Allianz
+      { carrier: 'Allianz', name: 'Allianz Accumulator IUL', type: 'IUL', product_rate: 100, from_carrier_rate: 140, excess: 3, renewals: 3 },
+
+      // Ameritas
+      { carrier: 'Ameritas', name: 'FLX Living Benefits IUL', type: 'IUL', product_rate: 100, from_carrier_rate: 115, excess: null, renewals: null },
+
+      // F&G Life
+      { carrier: 'F&G Life', name: 'Pathsetter (Issue Ages 18-80)', type: 'IUL', product_rate: 100, from_carrier_rate: 135, excess: 2.5, renewals: 4 },
+
+      // LSW / National Life
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 10 w Living Benefits', type: 'Term', product_rate: 60, from_carrier_rate: 85 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 15 w Living Benefits', type: 'Term', product_rate: 60, from_carrier_rate: 85 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 20 w Living Benefits', type: 'Term', product_rate: 70, from_carrier_rate: 105 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 30 w Living Benefits', type: 'Term', product_rate: 70, from_carrier_rate: 105 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'FlexLife II', type: 'IUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'PeakLife (1mm minimum face amount)', type: 'IUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Summit Life (1mm minimum face amount)', type: 'IUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
+      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'SurvivorLife', type: 'SIUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
+
+      // Lincoln
+      { carrier: 'Lincoln Financial Group', name: 'Lincoln WealthAccelerate IUL (instant decision)', type: 'IUL', product_rate: 90, from_carrier_rate: 115, excess: 4, renewals: 3 },
+      { carrier: 'Lincoln Financial Group', name: 'Lincoln WealthAccumulate 2 IUL', type: 'IUL', product_rate: 90, from_carrier_rate: 110, excess: 3.5, renewals: 3 },
+      { carrier: 'Lincoln Financial Group', name: 'Lincoln WealthPreserve SIUL', type: 'SIUL', product_rate: 90, from_carrier_rate: 110, excess: 3.5, renewals: 3 },
+
+      // Mass Mutual
+      { carrier: 'Mass Mutual', name: 'Universal Life Guard 6', type: 'UL', product_rate: 55, from_carrier_rate: 75, excess: 2, renewals: 6 },
+      { carrier: 'Mass Mutual', name: 'Survivorship Universal Life Guard 6', type: 'SUL', product_rate: 55, from_carrier_rate: 75, excess: 2, renewals: 6 },
+      { carrier: 'Mass Mutual', name: 'Whole Life (WL10, WL15, WL20, WL65, WL100)', type: 'WL', product_rate: 50, from_carrier_rate: 70 },
+      { carrier: 'Mass Mutual', name: 'Survivorship Whole Life Legacy 100', type: 'SWL', product_rate: 50, from_carrier_rate: 70 },
+
+      // Nationwide
+      { carrier: 'Nationwide', name: 'IUL Accumulator II', type: 'IUL', product_rate: 100, from_carrier_rate: 115, excess: 2, renewals: 1.5 },
+
+      // Symetra
+      { carrier: 'Symetra Life Insurance Company', name: 'Symetra SwiftTerm 10 & 15 Year (instant decision)', type: 'Term', product_rate: 70, from_carrier_rate: 105 },
+      { carrier: 'Symetra Life Insurance Company', name: 'Symetra SwiftTerm 20 & 30 Year (instant decision)', type: 'Term', product_rate: 100, from_carrier_rate: 125 },
+      { carrier: 'Symetra Life Insurance Company', name: 'Symetra Accumulator Ascent IUL 4.0', type: 'IUL', product_rate: 117.64, from_carrier_rate: 130, excess: 4, renewals: 1.5 },
+    ],
+  },
+
+  annuity: {
+    carriers: [
+      'Athene',
+      'Allianz',
+      'Nationwide',
+      'LSW - National Life'
+    ],
+    products: [
+      // Athene
+      { carrier:'Athene', name:'SPIA I', age_bracket:null, product_rate:2.50, from_carrier_rate:3.25 },
+      { carrier:'Athene', name:'Athene MaxRate MYG 3 - Option 1', age_bracket:'Ages 0-70', product_rate:1.15, from_carrier_rate:1.50 },
+      { carrier:'Athene', name:'Athene MaxRate MYG 5 - Option 1', age_bracket:'Ages 0-70', product_rate:1.50, from_carrier_rate:2.25 },
+      { carrier:'Athene', name:'Athene MaxRate MYG 7 - Option 1', age_bracket:'Ages 0-70', product_rate:1.75, from_carrier_rate:2.50 },
+      { carrier:'Athene', name:'Athene Ascent Pro 10 Bonus Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:7.75 },
+      { carrier:'Athene', name:'Performance Elite 7 Option 1', age_bracket:'Ages 0-70', product_rate:4.25, from_carrier_rate:5.75 },
+      { carrier:'Athene', name:'Performance Elite 10 Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:8.00 },
+      { carrier:'Athene', name:'Performance Elite 15 Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:8.00 },
+      { carrier:'Athene', name:'Athene Agility 7 Option 1', age_bracket:'Ages 0-70', product_rate:4.00, from_carrier_rate:5.25 },
+      { carrier:'Athene', name:'Athene Agility 10 Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:7.25 },
+
+      // Allianz
+      { carrier:'Allianz', name:'Allianz 360 Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
+      { carrier:'Allianz', name:'Allianz Benefit Control Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
+      { carrier:'Allianz', name:'Allianz 222 Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
+      { carrier:'Allianz', name:'Allianz Accumulation Advantage Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
+      { carrier:'Allianz', name:'Allianz Core Income 7 Option A', age_bracket:'Ages 0-75', product_rate:4.75, from_carrier_rate:6.25 },
+
+      // Nationwide
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 8 - No Trail Option', age_bracket:'Ages 0-70', product_rate:4.00, from_carrier_rate:5.50 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 9 - No Trail Option', age_bracket:'Ages 0-70', product_rate:6.25, from_carrier_rate:8.25 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 9 - Option 1', age_bracket:'Ages 0-70', product_rate:2.25, from_carrier_rate:3.00 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 10 - No Trail Option', age_bracket:'Ages 0-70', product_rate:5.50, from_carrier_rate:7.25 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 10 - Option 1', age_bracket:'Ages 0-70', product_rate:1.25, from_carrier_rate:1.75 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 12 - No Trail Option', age_bracket:'Ages 0-70', product_rate:6.50, from_carrier_rate:9.00 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 12 - Option 1', age_bracket:'Ages 0-70', product_rate:2.00, from_carrier_rate:2.75 },
+
+      // LSW - National Life
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 0-55', product_rate:8.75, from_carrier_rate:11.50 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 56-60', product_rate:6.75, from_carrier_rate:9.00 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 61-70', product_rate:5.25, from_carrier_rate:7.00 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 0-55', product_rate:7.25, from_carrier_rate:9.50 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 56-70', product_rate:6.25, from_carrier_rate:8.25 },
+      { carrier:'LSW - National Life', name:'FIT Select Income*', age_bracket:'Ages 0-70', product_rate:5.25, from_carrier_rate:7.00 },
+      { carrier:'LSW - National Life', name:'FIT Select Income*', age_bracket:'Ages 71-75', product_rate:3.75, from_carrier_rate:5.00 },
+      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 0-70', product_rate:5.25, from_carrier_rate:7.00 },
+      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 71-75', product_rate:3.75, from_carrier_rate:5.00 },
+      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 76-80', product_rate:2.50, from_carrier_rate:3.25 },
+    ],
+  }
+}
+// ----------------------------------------
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-
 const submitted = ref(false)
 const isSplit = ref(false)
-const locked = ref(false) // lock carrier/product once a known product is selected
-
-// catalog selections
-const carriers = ref([]) // [{ value, label }]
-const products = ref([])
+const locked = ref(false)
 
 const selectedCarrier = ref('')
-const selectedProductKey = ref('') // encoded key for product; "__OTHER__" means manual
+const selectedProductKey = ref('')
 const selectedAgeBracket = ref('')
 
-// manual fields for "Other"
+const manualCarrier = ref('')
 const manualProductName = ref('')
 const manualAgeBracket = ref('')
 
-// form payload
+const products = ref([]) // current product list for selected carrier & line
+
 const form = ref({
   insured_name: '',
-  product_type: '',
+  product_line: '',
   carrier_name: '',
   product_name: '',
+  life_product_type: null,      // for life
+  age_bracket: null,            // for annuity
   application_date: '',
   policy_number: '',
   face_amount: null,
   target_premium: null,
   initial_premium: null,
   flex_premium: null,
-  product_rate: null, // auto when known product, null when Other
+  product_rate_preview: null,   // just for preview
   // split
   split_percent: 100,
   split_with_id: '',
 })
 
-// computed helpers
-const canSubmit = computed(() => {
-  if (!form.value.product_type) return false
-  if (!form.value.application_date || !form.value.policy_number || !form.value.insured_name) return false
-  if (!form.value.carrier_name) return false
-
-  // product name must be present:
-  if (selectedProductKey.value === '__OTHER__') {
-    if (!manualProductName.value) return false
-  } else {
-    if (!form.value.product_name) return false
-  }
-
-  // life/annuity specific amounts
-  if (form.value.product_type === 'life') {
-    if (form.value.initial_premium == null) return false
-  } else {
-    if (form.value.initial_premium == null || form.value.flex_premium == null) return false
-    // if product has bracket variants, require a chosen or manual bracket
-    if (showAnnuityBracketRow.value) {
-      if (selectedProductKey.value === '__OTHER__') {
-        // manualAgeBracket is optional; no block
-      } else if (bracketOptions.value.length > 0 && !selectedAgeBracket.value) {
-        return false
-      }
-    }
-  }
-  return true
+const carrierOptions = computed(() => {
+  if (!form.value.product_line) return []
+  return CATALOG[form.value.product_line].carriers
 })
 
+const selectedCarrierReal = computed(() =>
+  selectedCarrier.value === '__OTHER__' ? manualCarrier.value : selectedCarrier.value
+)
+
 const productOptions = computed(() => {
-  if (form.value.product_type === 'life') {
-    return products.value.map(p => ({
-      key: encodeKey(p.product_name),
-      label: `${p.product_name}${p.life_product_type ? ' (' + p.life_product_type + ')' : ''}`,
-      product_name: p.product_name,
-      product_rate: Number(p.product_rate),
-      type: p.life_product_type || null
-    }))
-  } else {
-    const names = [...new Set(products.value.map(p => p.product_name))]
-    return names.map(name => ({
-      key: encodeKey(name),
-      label: name
-    }))
-  }
+  if (!form.value.product_line || !selectedCarrierReal.value) return []
+  return products.value.map((p) => ({
+    key: encodeKey(p.name),
+    label:
+      form.value.product_line === 'life'
+        ? `${p.name}${p.type ? ' (' + p.type + ')' : ''}`
+        : `${p.name}${p.age_bracket ? ' — ' + p.age_bracket : ''}`,
+  }))
 })
 
 const bracketOptions = computed(() => {
-  if (form.value.product_type !== 'annuity') return []
+  if (form.value.product_line !== 'annuity') return []
   if (!selectedProductKey.value || selectedProductKey.value === '__OTHER__') return []
-  const { productName } = decodeKey(selectedProductKey.value)
-  const rows = products.value.filter(p => p.product_name === productName)
+  const prodName = decodeKey(selectedProductKey.value)
+  const rows = products.value.filter(p => p.name === prodName)
   const opts = [...new Set(rows.map(r => r.age_bracket || ''))]
   return opts
 })
 
-const showAnnuityBracketRow = computed(() => form.value.product_type === 'annuity' && (selectedProductKey.value !== ''))
+const showBracketRow = computed(() =>
+  form.value.product_line === 'annuity' && (selectedProductKey.value !== '')
+)
 
-const displayProductRate = computed(() => {
-  return form.value.product_rate != null ? Number(form.value.product_rate).toFixed(2) : ''
-})
+const displayLifeType = computed(() => form.value.life_product_type || '')
+const displayProductRate = computed(() =>
+  form.value.product_rate_preview != null ? `${form.value.product_rate_preview}%` : ''
+)
 
-// watchers to load catalog & bind selected choice
-watch(() => form.value.product_type, async (type) => {
+watch(() => form.value.product_line, (line) => {
   resetSelection()
-  if (!type) return
-  await loadCarriers(type)
+  if (!line) return
 })
 
-watch(selectedCarrier, async (carrier) => {
+watch(selectedCarrier, (carrier) => {
   selectedProductKey.value = ''
   selectedAgeBracket.value = ''
   products.value = []
   form.value.carrier_name = ''
   form.value.product_name = ''
-  form.value.product_rate = null
+  form.value.product_rate_preview = null
   manualProductName.value = ''
   manualAgeBracket.value = ''
+  if (!carrier || !form.value.product_line) return
 
-  if (!carrier || !form.value.product_type) return
-  form.value.carrier_name = carrier
-  await loadProducts(form.value.product_type, carrier)
+  const realCarrier = selectedCarrierReal.value
+  form.value.carrier_name = realCarrier
+
+  const all = CATALOG[form.value.product_line].products
+  products.value = all.filter(p => p.carrier === realCarrier)
 })
 
-watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBracket], () => {
-  // When selection changes, compute bindings
-  if (!form.value.product_type || !selectedCarrier.value) {
+watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBracket, selectedCarrier], () => {
+  // Keep bindings updated
+  if (!form.value.product_line || !selectedCarrierReal.value) {
     form.value.carrier_name = ''
     form.value.product_name = ''
-    form.value.product_rate = null
+    form.value.product_rate_preview = null
+    form.value.life_product_type = null
+    form.value.age_bracket = null
     locked.value = false
     return
   }
 
-  form.value.carrier_name = selectedCarrier.value
+  form.value.carrier_name = selectedCarrierReal.value
 
-  // OTHER case: free text, keep rate null, not locked
   if (selectedProductKey.value === '__OTHER__') {
     form.value.product_name = manualProductName.value || ''
-    form.value.product_rate = null
+    form.value.product_rate_preview = null
+    form.value.life_product_type = null
+    form.value.age_bracket = form.value.product_line === 'annuity' ? (manualAgeBracket.value || null) : null
     locked.value = false
     return
   }
 
-  // Known product
-  const { productName } = decodeKey(selectedProductKey.value)
-  if (form.value.product_type === 'life') {
-    const row = products.value.find(p => p.product_name === productName)
+  if (!selectedProductKey.value) {
+    form.value.product_name = ''
+    form.value.product_rate_preview = null
+    form.value.life_product_type = null
+    form.value.age_bracket = null
+    locked.value = false
+    return
+  }
+
+  const prodName = decodeKey(selectedProductKey.value)
+  const rows = products.value.filter(p => p.name === prodName)
+
+  if (form.value.product_line === 'life') {
+    const row = rows[0]
     if (row) {
-      form.value.product_name = row.product_name
-      form.value.product_rate = Number(row.product_rate)
+      form.value.product_name = row.name
+      form.value.product_rate_preview = row.product_rate ?? null
+      form.value.life_product_type = row.type || null
+      form.value.age_bracket = null
       locked.value = true
-    } else {
-      form.value.product_name = ''
-      form.value.product_rate = null
-      locked.value = false
     }
   } else {
-    // annuity rows can vary by age_bracket
-    const rows = products.value.filter(p => p.product_name === productName)
-    if (rows.length === 0) {
-      form.value.product_name = ''
-      form.value.product_rate = null
-      locked.value = false
-      return
-    }
+    // annuity
     if (rows.length === 1) {
-      const row = rows[0]
-      form.value.product_name = row.product_name
-      form.value.product_rate = Number(row.product_rate)
-      selectedAgeBracket.value = row.age_bracket || ''
+      const r = rows[0]
+      form.value.product_name = r.name
+      form.value.product_rate_preview = r.product_rate ?? null
+      form.value.age_bracket = r.age_bracket || null
+      selectedAgeBracket.value = r.age_bracket || ''
       locked.value = true
     } else {
-      // require bracket selection
       const chosen = rows.find(r => (r.age_bracket || '') === (selectedAgeBracket.value || ''))
       if (chosen) {
-        form.value.product_name = chosen.product_name
-        form.value.product_rate = Number(chosen.product_rate)
+        form.value.product_name = chosen.name
+        form.value.product_rate_preview = chosen.product_rate ?? null
+        form.value.age_bracket = chosen.age_bracket || null
         locked.value = true
       } else {
         form.value.product_name = ''
-        form.value.product_rate = null
+        form.value.product_rate_preview = null
+        form.value.age_bracket = null
         locked.value = false
       }
     }
   }
 })
 
-// catalog calls (adjust paths if yours differ)
-async function loadCarriers(type) {
-  carriers.value = []
-  products.value = []
-  try {
-    const url = type === 'life' ? '/catalog/life/carriers' : '/catalog/annuity/carriers'
-    const { data } = await axios.get(url)
-    carriers.value = normalizeCarriersData(data)
-    if (!carriers.value.length) {
-      console.warn('No carriers returned from', url, data)
+const canSubmit = computed(() => {
+  if (!form.value.product_line) return false
+  if (!form.value.application_date || !form.value.policy_number || !form.value.insured_name) return false
+
+  // carrier
+  if (!selectedCarrierReal.value) return false
+
+  // product
+  if (selectedProductKey.value === '__OTHER__') {
+    if (!manualProductName.value) return false
+  } else {
+    if (!form.value.product_name) return false
+    if (form.value.product_line === 'annuity' && showBracketRow.value && bracketOptions.value.length > 0 && !selectedAgeBracket.value) {
+      return false
     }
-  } catch (e) {
-    console.error('Failed loading carriers', e)
   }
-}
 
-async function loadProducts(type, carrier) {
-  products.value = []
-  try {
-    if (type === 'life') {
-      const { data } = await axios.get('/catalog/life/products', { params: { carrier } })
-      products.value = Array.isArray(data) ? data : (data?.data || data?.products || [])
-    } else {
-      const { data } = await axios.get('/catalog/annuity/products', { params: { carrier } })
-      products.value = Array.isArray(data) ? data : (data?.data || data?.products || [])
-    }
-  } catch (e) {
-    console.error('Failed loading products', e)
+  // amounts
+  if (form.value.product_line === 'life') {
+    if (form.value.initial_premium == null) return false
+  } else {
+    if (form.value.initial_premium == null || form.value.flex_premium == null) return false
   }
-}
+  return true
+})
 
-// Turn various backend shapes into [{value, label}]
-function normalizeCarriersData(raw) {
-  if (!raw) return []
-  if (raw.carriers) return normalizeCarriersData(raw.carriers)
-  if (raw.data) return normalizeCarriersData(raw.data)
-  if (Array.isArray(raw)) {
-    if (!raw.length) return []
-    if (typeof raw[0] === 'string') {
-      return raw.map(name => ({ value: name, label: name }))
-    }
-    return raw
-      .map(row => {
-        const name =
-          row.carrier_name ??
-          row.name ??
-          row.carrier ??
-          row.label ??
-          row.title ??
-          ''
-        return name ? { value: String(name), label: String(name) } : null
-      })
-      .filter(Boolean)
-  }
-  return []
-}
-
-// helpers to encode/decode a selection key
-function encodeKey(productName) {
-  return encodeURIComponent(productName)
-}
-function decodeKey(key) {
-  return { productName: decodeURIComponent(key) }
-}
-
-// reset selection so agent can re-choose (e.g., picked the wrong product)
 function resetSelection() {
   locked.value = false
-  carriers.value = []
   products.value = []
   selectedCarrier.value = ''
   selectedProductKey.value = ''
   selectedAgeBracket.value = ''
+  manualCarrier.value = ''
   manualProductName.value = ''
   manualAgeBracket.value = ''
   form.value.carrier_name = ''
   form.value.product_name = ''
-  form.value.product_rate = null
+  form.value.product_rate_preview = null
+  form.value.life_product_type = null
+  form.value.age_bracket = null
 }
 
-// submit
+function encodeKey(s) { return encodeURIComponent(s) }
+function decodeKey(k) { return decodeURIComponent(k) }
+
 const submitForm = async () => {
   try {
-    const endpoint = form.value.product_type === 'life'
-      ? '/orders/life'
-      : '/orders/annuity'
-
     // split defaults
     if (!isSplit.value) {
       form.value.split_percent = 100
       form.value.split_with_id = ''
     }
 
-    // Build payload; product_rate may be null for "Other"
+    const endpoint = form.value.product_line === 'life' ? '/orders/life' : '/orders/annuity'
+
     const payload = {
       ...form.value,
-      user_id: user.id,
-      full_name: user.name,
-      national_producer_number: user.npn || '',
-      license_number: user.license_number || '',
-      hierarchy_level: user.hierarchy_level || '',
-      commission_percent: user.level_percent || 70,
+      carrier_name: selectedCarrierReal.value,
+      product_name: selectedProductKey.value === '__OTHER__' ? manualProductName.value : form.value.product_name,
+      age_bracket: form.value.product_line === 'annuity'
+        ? (selectedProductKey.value === '__OTHER__' ? (manualAgeBracket.value || null) : (form.value.age_bracket || null))
+        : null,
+      user_id: (JSON.parse(localStorage.getItem('user') || '{}').id),
+      order_type: 'Personal Commission',
       application_status: 'in_progress',
       mra_status: 'none',
-      order_type: 'Personal Commission'
-    }
-
-    // If annuity + known bracket: include selectedAgeBracket (optional to store now)
-    if (form.value.product_type === 'annuity') {
-      payload.age_bracket = (selectedProductKey.value === '__OTHER__')
-        ? (manualAgeBracket.value || null)
-        : (selectedAgeBracket.value || null)
     }
 
     await axios.post(endpoint, payload)
-
     submitted.value = true
     setTimeout(() => (submitted.value = false), 3000)
 
-    // reset form after submit
-    form.value = {
+    // reset
+    Object.assign(form.value, {
       insured_name: '',
-      product_type: '',
+      product_line: '',
       carrier_name: '',
       product_name: '',
+      life_product_type: null,
+      age_bracket: null,
       application_date: '',
       policy_number: '',
       face_amount: null,
       target_premium: null,
       initial_premium: null,
       flex_premium: null,
-      product_rate: null,
+      product_rate_preview: null,
       split_percent: 100,
       split_with_id: '',
-    }
+    })
     isSplit.value = false
     resetSelection()
   } catch (err) {
@@ -478,61 +517,14 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  overflow-y: auto;
-}
-.upload-page {
-  flex-grow: 1;
-  padding: 40px;
-  background: #f4f4f4;
-  min-height: 100vh;
-  margin-left: 280px;
-}
-.upload-form {
-  background: white;
-  padding: 30px;
-  border-radius: 10px;
-  max-width: 720px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.form-row {
-  margin-bottom: 15px;
-  display: flex;
-  flex-direction: column;
-}
-label {
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-input, select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-.button-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-button {
-  background-color: #0055a4;
-  color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-button.ghost {
-  background: transparent;
-  color: #0055a4;
-  border: 1px solid #0055a4;
-}
-.success-msg {
-  margin-top: 20px;
-  background: #e0ffe0;
-  padding: 15px;
-  border-radius: 5px;
-  color: green;
-}
+.dashboard { display: flex; overflow-y: auto; }
+.upload-page { flex-grow: 1; padding: 40px; background: #f4f4f4; min-height: 100vh; margin-left: 280px; }
+.upload-form { background: white; padding: 30px; border-radius: 10px; max-width: 720px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.form-row { margin-bottom: 15px; display: flex; flex-direction: column; }
+label { font-weight: bold; margin-bottom: 5px; }
+input, select { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+.button-row { display: flex; gap: 10px; margin-top: 10px; }
+button { background-color: #0055a4; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; }
+button.ghost { background: transparent; color: #0055a4; border: 1px solid #0055a4; }
+.success-msg { margin-top: 20px; background: #e0ffe0; padding: 15px; border-radius: 5px; color: green; }
 </style>
