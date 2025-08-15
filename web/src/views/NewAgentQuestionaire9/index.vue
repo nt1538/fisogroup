@@ -107,7 +107,7 @@ const form = ref({
   'Account Type': '',
   'Phone': '',
   'Date': new Date().toISOString().substring(0, 10),
-  'Signature': '' // base64 (jpeg) only
+  'Signature': '' // base64 (jpeg) only, not used directly
 })
 
 function resizeCanvas(canvas) {
@@ -142,6 +142,11 @@ function clearSignature() {
   signaturePad?.clear()
 }
 
+// ————— helpers to guarantee RAW base64 —————
+function stripDataUrlPrefix(s = '') {
+  return s.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+}
+
 function sigToJPEGBase64() {
   const src = signatureCanvas.value
   const w = Math.max(600, src.offsetWidth)
@@ -153,7 +158,11 @@ function sigToJPEGBase64() {
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, w, h)
   ctx.drawImage(src, 0, 0, w, h)
-  return tmp.toDataURL('image/jpeg', 0.7).split(',')[1]
+
+  // 1) get data URL
+  const url = tmp.toDataURL('image/jpeg', 0.7)
+  // 2) ALWAYS return raw base64 without prefix
+  return stripDataUrlPrefix(url)
 }
 
 function collectAllPagesData() {
@@ -167,7 +176,7 @@ function collectAllPagesData() {
       console.warn(`Skipping malformed newAgentPage${i}`, e);
     }
   }
-  return { pages }; // <— key change: wrap as { pages: { page1: {...}, ... } }
+  return { pages }; // { pages: { page1: {...}, ... } }
 }
 
 async function submitForm() {
@@ -179,7 +188,7 @@ async function submitForm() {
 
     isSubmitting.value = true;
 
-    // 1) Build EFT payload for *this* page
+    // 1) Build EFT payload for *this* page (EFTSignature is RAW base64)
     const eftPayload = {
       account_owner_name: form.value['Account Owner Name'] || '',
       transit_aba:        form.value['Transit/ABA #'] || '',
@@ -192,14 +201,13 @@ async function submitForm() {
       account_type:       form.value['Account Type'] || '',
       phone:              form.value['Phone'] || '',
       date:               form.value['Date'] || '',
-      // base64 (no data: prefix) to keep payload small; admin PDF code already handles images
-      EFTSignature:       sigToJPEGBase64(),
+      EFTSignature:       stripDataUrlPrefix(sigToJPEGBase64()), // double-guard
     };
 
-    // 2) Save as the *10th page* in localStorage (consistent with your other pages)
+    // 2) Save as page 10
     localStorage.setItem('newAgentPage10', JSON.stringify(eftPayload));
 
-    // 3) Collect ALL pages (1..10) and submit to backend
+    // 3) Collect ALL pages (1..10) and submit
     const payload = collectAllPagesData();
 
     const res = await fetch('/api/submit-agent-data', {
@@ -213,7 +221,7 @@ async function submitForm() {
       throw new Error(`Submit failed (${res.status}): ${text || 'No response body'}`);
     }
 
-    // 4) Clean up
+    // 4) Clean up local storage
     for (let i = 1; i <= 10; i++) {
       localStorage.removeItem(`newAgentPage${i}`);
     }
@@ -228,6 +236,7 @@ async function submitForm() {
   }
 }
 </script>
+
 
 <style scoped>
 .dashboard {
