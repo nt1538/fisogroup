@@ -23,7 +23,7 @@ router.post('/submit-agent-data', async (req, res) => {
     const pdfBuffer = fs.readFileSync(pdfPath);
 
     await sendEmail({
-      to: 'nt1538@nyu.edu',
+      to: 'contracting@fisogroup.com',
       subject: 'New Agent Submission — Full Payload (PDF attached)',
       html: '<p>Attached is the submitted agent form PDF.</p>',
       attachments: [{ filename: 'agent_form.pdf', content: pdfBuffer, contentType: 'application/pdf' }]
