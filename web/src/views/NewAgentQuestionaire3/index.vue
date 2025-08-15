@@ -109,13 +109,18 @@ function submitForm() {
 </script>
 
 <style scoped>
+.dashboard {
+  display: flex;
+  padding: 40px 40px 100px;
+  height: 100vh; /* ✅ 固定整页高度 */
+  overflow-y: scroll;
+}
 .form-container {
   flex-grow: 1;
   padding: 40px;
   background-color: #f4f4f4;
   min-height: 100vh;
   margin-left: 280px;
-  overflow-y: scroll;
 }
 
 h1 {
