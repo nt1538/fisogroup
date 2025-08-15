@@ -77,7 +77,7 @@ function rowKey(r) {
 }
 
 async function load() {
-  const base = mode.value === 'life' ? '/api/admin/product-life' : '/api/admin/product-annuity'
+  const base = mode.value === 'life' ? '/admin/product-life' : '/admin/product-annuity'
   const { data } = await axios.get(base, {
     params: { carrier: carrierFilter.value || undefined }
   })
@@ -154,7 +154,7 @@ async function save(row) {
 }
 
 async function remove(row) {
-  const base = mode.value === 'life' ? '/api/admin/product-life' : '/api/admin/product-annuity'
+  const base = mode.value === 'life' ? '/admin/product-life' : '/admin/product-annuity'
   if (!confirm('Delete this product?')) return
 
   if (mode.value === 'life') {
