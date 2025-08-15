@@ -153,7 +153,7 @@ function sigToJPEGBase64() {
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, w, h)
   ctx.drawImage(src, 0, 0, w, h)
-  return tmp.toDataURL('image/jpeg', 0.7);
+  return tmp.toDataURL('image/jpeg', 0.7).split(',')[1]
 }
 
 function collectAllPagesData() {
