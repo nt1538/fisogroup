@@ -9,6 +9,7 @@
     <router-link to="/admin/adminEmployeeList" class="sidebar-item">👥 Employees List</router-link>
     <router-link to="/admin/adminOrgChart" class="sidebar-item">👥 Organization Chart</router-link>
     <router-link to="/admin/ProductionReport" class="sidebar-item">📝 Production Report</router-link>
+    <router-link to="/admin/Product" class="sidebar-item">📝 Products</router-link>
   </div>
 </template>
 
