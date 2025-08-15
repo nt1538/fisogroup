@@ -45,7 +45,7 @@ const KNOWN_IMAGE_KEYS = new Set([
   'Signature',
   'AuthorizationSignature',
   'NonSolicitationSignature',
-  'agentDrawnSignature'
+  'EFTSignature'
 ]);
 
 // Same list as your frontend, in order:
