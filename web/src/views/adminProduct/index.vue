@@ -1,5 +1,6 @@
 <template>
-  <div class="admin-products">
+  <AdminLayout>
+    <div class="admin-products">
     <h1>Products (Admin)</h1>
 
     <div class="filters">
@@ -57,11 +58,13 @@
       </tbody>
     </table>
   </div>
+  </AdminLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '@/config/axios.config'
+import AdminLayout from '@/layout/src/AdminLayout.vue'
 
 const mode = ref('life') // 'life' | 'annuity'
 const carrierFilter = ref('')
