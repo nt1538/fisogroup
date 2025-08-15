@@ -107,7 +107,7 @@ function addNew() {
 }
 
 async function save(row) {
-  const base = mode.value === 'life' ? '/api/admin/product-life' : '/api/admin/product-annuity'
+  const base = mode.value === 'life' ? '/admin/product-life' : '/admin/product-annuity'
   if (!row.carrier_name || !row.product_name) {
     alert('Carrier and Product are required'); return
   }
