@@ -179,40 +179,58 @@ function collectAllPagesData() {
 async function submitForm() {
   try {
     if (!signaturePad || signaturePad.isEmpty()) {
-      alert('Please provide your signature.')
-      return
+      alert('Please provide your signature.');
+      return;
     }
 
-    isSubmitting.value = true
+    isSubmitting.value = true;
 
-    // Use compressed JPEG base64 to keep payload small
-    form.value.Signature = downscaleSignatureToJPEGBase64()
+    // 1) Build EFT payload for *this* page
+    const eftPayload = {
+      account_owner_name: form.value['Account Owner Name'] || '',
+      transit_aba:        form.value['Transit/ABA #'] || '',
+      account_number:     form.value['Account #'] || '',
+      institution_name:   form.value['Financial Institution Name'] || '',
+      branch_address:     form.value['Branch Address'] || '',
+      city:               form.value['City'] || '',
+      state:              form.value['State'] || '',
+      zip:                form.value['Zip'] || '',
+      account_type:       form.value['Account Type'] || '',
+      phone:              form.value['Phone'] || '',
+      date:               form.value['Date'] || '',
+      // base64 (no data: prefix) to keep payload small; admin PDF code already handles images
+      EFTSignature:       downscaleSignatureToJPEGBase64()
+    };
 
-    const payload = collectAllPagesData()
+    // 2) Save as the *10th page* in localStorage (consistent with your other pages)
+    localStorage.setItem('newAgentPage10', JSON.stringify(eftPayload));
+
+    // 3) Collect ALL pages (1..10) and submit to backend
+    const payload = collectAllPagesData();
 
     const res = await fetch('/api/submit-agent-data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    })
+    });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`Submit failed (${res.status}): ${text || 'No response body'}`)
+      const text = await res.text().catch(() => '');
+      throw new Error(`Submit failed (${res.status}): ${text || 'No response body'}`);
     }
 
-    // Clean up local storage
+    // 4) Clean up
     for (let i = 1; i <= 10; i++) {
-      localStorage.removeItem(`newAgentPage${i}`)
+      localStorage.removeItem(`newAgentPage${i}`);
     }
 
-    alert('All data submitted successfully!')
-    router.push('/employee/dashboard')
+    alert('All data submitted successfully!');
+    router.push('/employee/dashboard');
   } catch (err) {
-    console.error(err)
-    alert(`Error submitting form: ${err.message}`)
+    console.error(err);
+    alert(`Error submitting form: ${err.message}`);
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
 }
 </script>
