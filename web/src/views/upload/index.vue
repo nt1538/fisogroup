@@ -431,6 +431,7 @@ const submitForm = async () => {
         ? (selectedProductKey.value === '__OTHER__' ? (manualAgeBracket.value || null) : (form.value.age_bracket || null))
         : null,
       user_id: (JSON.parse(localStorage.getItem('user') || '{}').id),
+      full_name: (JSON.parse(localStorage.getItem('user') || '{}').name),
       order_type: 'Personal Commission',
       application_status: 'in_progress',
       mra_status: 'none',
