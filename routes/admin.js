@@ -202,7 +202,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
       const received = commission_from_carrier != null ? Number(commission_from_carrier) : Number(updatedOrder.commission_from_carrier || 0);
 
       const prev = updatedOrder.comment ? `${updatedOrder.comment}\n` : '';
-      const line = `received from carrier: $${received.toFixed(2)}, should be (target premium * fiso rate / 100) = $${expected.toFixed(2)}`;
+      const line = `received from carrier: $${received.toFixed(2)}, should be (target/base premium * fiso rate / 100) = $${expected.toFixed(2)}`;
 
       const { rows: r2 } = await client.query(
         `UPDATE ${type} SET comment = $1 WHERE id = $2 RETURNING *`,

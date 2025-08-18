@@ -300,7 +300,7 @@ async function handleCommissions(order, userId, table_type) {
 
   const personalPct = Math.round(totalPersonalCommission / premiumBase * 10000) / 100;
 
-  const productInfo = `FISO ${fisoRate}% | Excess ${excessRate}% | Renewals ${renewalRate}%`
+  //const productInfo = `FISO ${fisoRate}% | Excess ${excessRate}% | Renewals ${renewalRate}%`
   await insertCommissionOrder(
     order,
     user,
