@@ -206,7 +206,7 @@ async function handleCommissions(order, userId, table_type) {
   const user = userRes.rows[0];
   if (!user) return;
 
-  // Pull FISO/Excess/Renewal from product tables (no schema change required)
+  // --- Resolve product meta (FISO/Excess/Renewal) ---
   const prod = await resolveProductForOrder({
     product_line: table_type,
     carrier_name: order.carrier_name,
@@ -218,11 +218,11 @@ async function handleCommissions(order, userId, table_type) {
   const excessRate  = prod ? Number(prod.excess_rate  || 0) : 0;
   const renewalRate = prod ? Number(prod.renewal_rate || 0) : 0;
 
-  // (Optional) expected from carrier for your own reference/logs
-  // Per your requested text formula (uses target_premium for both, or tweak for annuity):
-  // const baseForExpected = table_type === 'annuity' ? Number(order.flex_premium || 0) : Number(order.target_premium || 0)
-  const baseForExpected = Number(order.target_premium || 0);
-  const expectedFromCarrier = baseForExpected * (fisoRate / 100);
+  // Expected-from-carrier info (life uses target; annuity uses base/flex)
+  const baseForExpected = table_type === 'annuity'
+    ? Number(order.flex_premium || 0)
+    : Number(order.target_premium || 0);
+  const expectedFromCarrier = baseForExpected * (fisoRate / 100); // for your logs if needed
 
   const chart = await getCommissionChart();
   const hierarchy = await getHierarchy(userId);
@@ -233,9 +233,9 @@ async function handleCommissions(order, userId, table_type) {
 
   const productInfo = `FISO ${fisoRate}% | Excess ${excessRate}% | Renewals ${renewalRate}%`;
 
-  // Small helper: run the existing commission logic for ONE "segment" order
+  // Helper to process one logical segment (uses existing split logic)
   const processOneSegment = async (segOrder, segmentLabel) => {
-    // 1) Base amount for split logic
+    // Base (commissionable) amount for split logic
     let baseAmount;
     if (table_type === 'annuity') {
       baseAmount = parseFloat(segOrder.flex_premium || 0) * (segOrder.product_rate || 6) / 100;
@@ -260,6 +260,7 @@ async function handleCommissions(order, userId, table_type) {
       const percent = getLevelPercentByTitle(level, chart);
       totalPersonalCommission += segAmount * (percent / 100);
 
+      // uplines
       let currentId = userId;
       let generation = 0;
       const employeePercent = percent;
@@ -293,14 +294,15 @@ async function handleCommissions(order, userId, table_type) {
         generation++;
       }
 
-      await db.query('UPDATE users SET team_profit = team_profit + $1 WHERE id = $2', [segAmount, userId]);
+      // add production for this segment
+      await updateTeamProfit(userId, segAmount);
     }
 
+    // Insert merged personal + uplines for this segment
     const isAnnuity = commissionTable.includes('annuity');
     const premiumBase = isAnnuity
       ? (segOrder.flex_premium || 1) * (segOrder.product_rate || 6) / 100
       : (segOrder.target_premium || 1) * (segOrder.product_rate || 100) / 100;
-
     const personalPct = Math.round(totalPersonalCommission / premiumBase * 10000) / 100;
 
     await insertCommissionOrder(
@@ -350,47 +352,40 @@ async function handleCommissions(order, userId, table_type) {
     }
   };
 
-  // === LIFE: possibly split into base + excess ===
+  // -------- Branch early by product line --------
   if (table_type === 'life') {
+    // FIRST check initial vs target
     const initial = Math.max(Number(order.initial_premium || 0), 0);
     const target  = Math.max(Number(order.target_premium  || 0), 0);
     const productRate = Number(order.product_rate || 100);
 
-    if (initial > target && target > 0) {
-      // 1) Base (to Target) at product_rate
-      const baseSeg = { ...order, target_premium: target, product_rate: productRate };
-      await processOneSegment(baseSeg, 'Base (to Target)');
+    if (initial <= target) {
+      // Use INITIAL (not target) at product rate
+      const seg = { ...order, target_premium: initial, product_rate: productRate };
+      await processOneSegment(seg, 'Base');
+    } else {
+      // initial > target → do Target first at product rate, then Excess at excess rate
+      if (target > 0) {
+        const baseSeg = { ...order, target_premium: target, product_rate: productRate };
+        await processOneSegment(baseSeg, 'Base (to Target)');
+      }
 
-      // 2) Excess at excess_rate
       const excessAmt = initial - target;
-      if (excessAmt > 0 && excessRate > 0) {
+      if (excessAmt > 0) {
         const excessSeg = { ...order, target_premium: excessAmt, product_rate: excessRate };
         await processOneSegment(excessSeg, 'Excess');
       }
-
-      // Move application → saved_* and mark distributed (single move after both segments)
-      await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
-      await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
-      await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
-      return; // done
     }
 
-    // initial <= target → use initial at product_rate
-    const shortSeg = { ...order, target_premium: initial, product_rate: productRate };
-    await processOneSegment(shortSeg, 'Base');
-
+    // Move application → saved_* after all life segments
     await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
     await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
     await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
     return;
   }
 
-  // === ANNUITY: unchanged (single segment at product_rate) ===
-  // Keep your original single-segment logic below for annuity
-  // 1) Base amount
-  let baseAmount;
-  baseAmount = parseFloat(order.flex_premium || 0) * (order.product_rate || 6) / 100;
-
+  // --- Annuity unchanged (single segment at product_rate) ---
+  let baseAmount = parseFloat(order.flex_premium || 0) * (order.product_rate || 6) / 100;
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
   const segments = splitPoints ? [0, ...splitPoints, baseAmount] : [0, baseAmount];
 
@@ -501,6 +496,8 @@ async function handleCommissions(order, userId, table_type) {
   await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
   await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
 }
+
+
 module.exports = {
   handleCommissions,
   getHierarchy
