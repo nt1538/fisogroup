@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 const { handleCommissions, getHierarchy } = require('../utils/commission');
+const { resolveProductForOrder } = require('../utils/productResolver')
 
 
 // 🔍 多条件搜索订单（life + annuity 合并）
@@ -129,7 +130,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const client = await pool.connect();
 
-    // 查询原始订单
+    // Load original
     const originalRes = await client.query(`SELECT * FROM ${type} WHERE id = $1`, [id]);
     const original = originalRes.rows[0];
     if (!original) {
@@ -137,67 +138,87 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // ========== 仅允许修改 comment ==========
+    // Saved_* tables: only comment is editable
     if (isSaved) {
       await client.query(`UPDATE ${type} SET comment = $1 WHERE id = $2`, [comment, id]);
       client.release();
       return res.json({ ...original, comment });
     }
 
-    // ========== 构造更新字段 ==========
+    // Build dynamic update list
     let fields = [
-  'application_status', 'policy_number', 'commission_percent', 'initial_premium',
-  'commission_from_carrier', 'product_rate','carrier_name', 'product_name', 'application_date',
-  'commission_distribution_date', 'policy_effective_date', 'mra_status',
-  'split_percent', 'split_with_id', 'explanation'
-];
+      'application_status', 'policy_number', 'commission_percent', 'initial_premium',
+      'commission_from_carrier', 'product_rate','carrier_name', 'product_name', 'application_date',
+      'commission_distribution_date', 'policy_effective_date', 'mra_status',
+      'split_percent', 'split_with_id', 'explanation'
+    ];
+    if (isLife) {
+      fields.push('face_amount', 'target_premium');
+    } else {
+      fields.push('flex_premium');
+    }
 
-if (isLife) {
-  fields.push('face_amount', 'target_premium'); // life: 有 target_premium
-} else {
-  fields.push('flex_premium'); // annuity: 只有 flex_premium
-}
+    const updateFields = [];
+    const updateValues = [];
+    let i = 1;
+    for (const field of fields) {
+      if (req.body[field] !== undefined) {
+        updateFields.push(`${field} = $${i++}`);
+        updateValues.push(req.body[field]);
+      }
+    }
+    updateFields.push(`id = $${i}`);
+    updateValues.push(id);
 
-const updateFields = [];
-const updateValues = [];
-let i = 1;
-
-for (const field of fields) {
-  if (req.body[field] !== undefined) {
-    updateFields.push(`${field} = $${i++}`);
-    updateValues.push(req.body[field]);
-  }
-}
-
-// ❌ 删除这段：不要向数据库写入 target_premium
-// if (!isLife && flex_premium !== undefined) {
-//   updateFields.push(`target_premium = $${i++}`);
-//   updateValues.push(parseFloat(flex_premium) * 0.06);
-// }
-
-updateFields.push(`id = $${i}`);
-updateValues.push(id);
-
-const updateQuery = `
-  UPDATE ${type}
-  SET ${updateFields.slice(0, -1).join(', ')}
-  WHERE ${updateFields[updateFields.length - 1]}
-  RETURNING *;
-`;
+    const updateQuery = `
+      UPDATE ${type}
+         SET ${updateFields.slice(0, -1).join(', ')}
+       WHERE ${updateFields[updateFields.length - 1]}
+       RETURNING *;`;
     const result = await client.query(updateQuery, updateValues);
-    const updatedOrder = result.rows[0];
+    let updatedOrder = result.rows[0];
 
-    // ========== 状态转移处理 ==========
+    // If admin marks completed on an application_* row, append the comment line
+    if (application_status === 'completed' && type.startsWith('application_')) {
+      // Look up FISO/excess/renewal from product tables
+      const prod = await resolveProductForOrder(
+        {
+          product_line: isLife ? 'life' : 'annuity',
+          carrier_name: updatedOrder.carrier_name,
+          product_name: updatedOrder.product_name,
+          age_bracket: updatedOrder.age_bracket || null
+        },
+        client
+      );
+
+      const fiso = prod ? Number(prod.fiso_rate || 0) : 0;
+
+      // Per your request: use target_premium in the formula text.
+      // If you want annuity to use flex_premium instead, replace below:
+      const base = isLife ? Number(updatedOrder.target_premium || 0) : Number(updatedOrder.flex_premium || 0);
+      // const base = Number(updatedOrder.target_premium || 0);
+
+      const expected = base * (fiso / 100);
+      const received = commission_from_carrier != null ? Number(commission_from_carrier) : Number(updatedOrder.commission_from_carrier || 0);
+
+      const prev = updatedOrder.comment ? `${updatedOrder.comment}\n` : '';
+      const line = `received from carrier: $${received.toFixed(2)}, should be (target premium * fiso rate / 100) = $${expected.toFixed(2)}`;
+
+      const { rows: r2 } = await client.query(
+        `UPDATE ${type} SET comment = $1 WHERE id = $2 RETURNING *`,
+        [prev + line, id]
+      );
+      updatedOrder = r2[0] || updatedOrder;
+    }
+
+    // Status transition: distribute or archive
     const userId = updatedOrder.user_id;
 
     if (application_status === 'completed' && type.startsWith('application_')) {
-      if(isLife) {
+      if (isLife) {
         if (split_with_id && split_percent < 100) {
           const remainingPercent = 100 - split_percent;
-          const splitUserRes = await client.query(
-            `SELECT name FROM users WHERE id = $1`,
-            [split_with_id]
-          );
+          const splitUserRes = await client.query(`SELECT name FROM users WHERE id = $1`, [split_with_id]);
           const splitWritingAgent = splitUserRes.rows[0]?.name || 'Unknown';
 
           const userPart = {
@@ -205,7 +226,7 @@ const updateQuery = `
             target_premium: updatedOrder.target_premium * remainingPercent / 100,
           };
 
-          const { id: _, ...splitPart } = {
+          const { id: _ignore, ...splitPart } = {
             ...updatedOrder,
             user_id: split_with_id,
             target_premium: updatedOrder.target_premium * split_percent / 100,
@@ -216,26 +237,12 @@ const updateQuery = `
           const keys = Object.keys(splitPart);
           const values = Object.values(splitPart);
           const placeholders = keys.map((_, i) => `$${i + 1}`);
-
-          const insertQuery = `
-            INSERT INTO application_${baseType} (${keys.join(',')})
-            VALUES (${placeholders.join(',')})
-            RETURNING *;
-          `;
+          const insertQuery = `INSERT INTO application_${baseType} (${keys.join(',')}) VALUES (${placeholders.join(',')}) RETURNING *;`;
           const insertRes = await client.query(insertQuery, values);
           const insertedSplitOrder = insertRes.rows[0];
 
-          // 更新当前订单
-          const updateUserQuery = `
-            UPDATE ${type}
-            SET target_premium = $1
-            WHERE id = $2
-            RETURNING *;
-          `;
-          const updatedUserRes = await client.query(updateUserQuery, [
-            userPart.target_premium,
-            updatedOrder.id
-          ]);
+          const updateUserQuery = `UPDATE ${type} SET target_premium = $1 WHERE id = $2 RETURNING *;`;
+          const updatedUserRes = await client.query(updateUserQuery, [userPart.target_premium, updatedOrder.id]);
           const updatedUserOrder = updatedUserRes.rows[0];
 
           await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
@@ -243,14 +250,10 @@ const updateQuery = `
         } else {
           await handleCommissions(updatedOrder, userId, baseType);
         }
-      }
-      else {
+      } else {
         if (split_with_id && split_percent < 100) {
           const remainingPercent = 100 - split_percent;
-          const splitUserRes = await client.query(
-            `SELECT name FROM users WHERE id = $1`,
-            [split_with_id]
-          );
+          const splitUserRes = await client.query(`SELECT name FROM users WHERE id = $1`, [split_with_id]);
           const splitWritingAgent = splitUserRes.rows[0]?.name || 'Unknown';
 
           const userPart = {
@@ -258,7 +261,7 @@ const updateQuery = `
             flex_premium: updatedOrder.flex_premium * remainingPercent / 100,
           };
 
-          const { id: _, ...splitPart } = {
+          const { id: _ignore, ...splitPart } = {
             ...updatedOrder,
             user_id: split_with_id,
             flex_premium: updatedOrder.flex_premium * split_percent / 100,
@@ -269,26 +272,12 @@ const updateQuery = `
           const keys = Object.keys(splitPart);
           const values = Object.values(splitPart);
           const placeholders = keys.map((_, i) => `$${i + 1}`);
-
-          const insertQuery = `
-            INSERT INTO application_${baseType} (${keys.join(',')})
-            VALUES (${placeholders.join(',')})
-            RETURNING *;
-          `;
+          const insertQuery = `INSERT INTO application_${baseType} (${keys.join(',')}) VALUES (${placeholders.join(',')}) RETURNING *;`;
           const insertRes = await client.query(insertQuery, values);
           const insertedSplitOrder = insertRes.rows[0];
 
-          // 更新当前订单
-          const updateUserQuery = `
-            UPDATE ${type}
-            SET flex_premium = $1
-            WHERE id = $2
-            RETURNING *;
-          `;
-          const updatedUserRes = await client.query(updateUserQuery, [
-            userPart.flex_premium,
-            updatedOrder.id
-          ]);
+          const updateUserQuery = `UPDATE ${type} SET flex_premium = $1 WHERE id = $2 RETURNING *;`;
+          const updatedUserRes = await client.query(updateUserQuery, [userPart.flex_premium, updatedOrder.id]);
           const updatedUserOrder = updatedUserRes.rows[0];
 
           await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
