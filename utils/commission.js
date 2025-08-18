@@ -237,10 +237,9 @@ async function handleCommissions(order, userId, table_type) {
     renewal_rate: renewalRate
   };
   const productInfoHuman =
-    `type=${productTypeLabel ?? '-'} | FISO=${fisoRate}% | Excess=${excessRate}% | Renewal=${renewalRate}%`;
-  const productInfoJSON = JSON.stringify(productMeta);
+    `type=${productTypeLabel} | FISO=${fisoRate}% | Excess=${excessRate}% | Renewal=${renewalRate}%`;
   const makeExplanation = (prefix, segmentLabel) =>
-    `${prefix}${segmentLabel ? ` (${segmentLabel})` : ''} — ${productInfoHuman} | meta=${productInfoJSON}`;
+    `${prefix}${segmentLabel ? ` (${segmentLabel})` : ''} — ${productInfoHuman}`;
 
   const chart = await getCommissionChart();
   const hierarchy = await getHierarchy(userId);

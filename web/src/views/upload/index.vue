@@ -71,9 +71,9 @@
 
         <!-- Rate shown + stored (only product_rate) -->
         <div class="form-row">
-          <label>Product Rate (will be saved):</label>
+          <label>Product Rate:</label>
           <input :value="displayProductRate" type="text" readonly />
-          <small>FISO/Excess/Renewals are added later during completion.</small>
+          <small>Product Rate is based on the product you select.</small>
         </div>
 
         <!-- Dates & policy -->
