@@ -67,20 +67,14 @@ async function getHierarchy(userId) {
   return hierarchy;
 }
 
-async function checkSplitPoints(order, chart, hierarchy, baseAmountOverride) {
-  // If caller computed a custom commissionable baseAmount, use it.
-  let baseAmount;
-  if (Number.isFinite(baseAmountOverride) && baseAmountOverride > 0) {
-    baseAmount = baseAmountOverride;
-  } else {
-    // Fallback (legacy behavior)
-    const productRate = Number(order.product_rate ?? 100);
-    const basePremiumRaw = order.flex_premium != null ? order.flex_premium : order.target_premium;
-    const basePremium = Number(basePremiumRaw);
-    baseAmount =
-      (Number.isFinite(basePremium) ? basePremium : 0) *
-      (Number.isFinite(productRate) ? productRate : 100) / 100;
-  }
+async function checkSplitPoints(order, chart, hierarchy) {
+  // 0) order baseAmount (product_rate is %)
+  const productRate = Number(order.product_rate ?? 100);
+  const basePremiumRaw = order.flex_premium != null ? order.flex_premium : order.target_premium;
+  const basePremium = Number(basePremiumRaw);
+  const baseAmount =
+    (Number.isFinite(basePremium) ? basePremium : 0) *
+    (Number.isFinite(productRate) ? productRate : 100) / 100;
 
   if (baseAmount <= 0) return false;
 
@@ -91,7 +85,7 @@ async function checkSplitPoints(order, chart, hierarchy, baseAmountOverride) {
 
   const allUsers = [];
   const seen = new Set();
-  for (const u of [ ...(hierarchy || []), self ]) {
+  for (const u of [...(hierarchy || []), self]) {
     if (!u || !u.id || seen.has(u.id)) continue;
     seen.add(u.id);
     allUsers.push({ id: u.id, name: u.name || u.id });
@@ -126,7 +120,10 @@ async function checkSplitPoints(order, chart, hierarchy, baseAmountOverride) {
       const threshold = levels[i].min_amount;
       if (before < threshold && after >= threshold) {
         const offset = threshold - before; // exact self contribution needed
-        if (offset > 0 && offset < baseAmount) splitSet.add(offset);
+        if (offset > 0 && offset < baseAmount) {
+          splitSet.add(offset);
+          console.log(`[SPLIT] ${u.name} (before=${before}) crosses "${levels[i].title}" at self-offset ${offset}`);
+        }
       }
     }
   }
@@ -209,37 +206,23 @@ async function handleCommissions(order, userId, table_type) {
   const user = userRes.rows[0];
   if (!user) return;
 
-  // 1) Product metadata
+  // Pull FISO/Excess/Renewal from product tables (no schema change required)
   const prod = await resolveProductForOrder({
-    product_line: table_type,                 // 'life' | 'annuity'
+    product_line: table_type,
     carrier_name: order.carrier_name,
     product_name: order.product_name,
     age_bracket: order.age_bracket || null
   }, db);
 
-  const fisoRate     = prod ? Number(prod.fiso_rate     || 0) : 0;
-  const excessRate   = prod ? Number(prod.excess_rate   || 0) : 0;
-  const renewalRate  = prod ? Number(prod.renewal_rate  || 0) : 0;
-  const productTypeLabel =
-    table_type === 'life' ? (prod && prod.life_product_type ? String(prod.life_product_type) : null) : null;
+  const fisoRate    = prod ? Number(prod.fiso_rate    || 0) : 0;
+  const excessRate  = prod ? Number(prod.excess_rate  || 0) : 0;
+  const renewalRate = prod ? Number(prod.renewal_rate || 0) : 0;
 
-  // Expected from carrier (life uses target, annuity uses base/flex)
-  const baseForExpected = table_type === 'annuity'
-    ? Number(order.flex_premium || 0)
-    : Number(order.target_premium || 0);
-  const expectedFromCarrier = baseForExpected * (fisoRate / 100); // FYI: if you need this somewhere else
-
-  // Explanation payload
-  const productMeta = {
-    product_type_label: productTypeLabel,
-    fiso_rate: fisoRate,
-    excess_rate: excessRate,
-    renewal_rate: renewalRate
-  };
-  const productInfoHuman =
-    `type=${productTypeLabel} | FISO=${fisoRate}% | Excess=${excessRate}% | Renewal=${renewalRate}%`;
-  const makeExplanation = (prefix, segmentLabel) =>
-    `${prefix}${segmentLabel ? ` (${segmentLabel})` : ''} — ${productInfoHuman}`;
+  // (Optional) expected from carrier for your own reference/logs
+  // Per your requested text formula (uses target_premium for both, or tweak for annuity):
+  // const baseForExpected = table_type === 'annuity' ? Number(order.flex_premium || 0) : Number(order.target_premium || 0)
+  const baseForExpected = Number(order.target_premium || 0);
+  const expectedFromCarrier = baseForExpected * (fisoRate / 100);
 
   const chart = await getCommissionChart();
   const hierarchy = await getHierarchy(userId);
@@ -248,27 +231,20 @@ async function handleCommissions(order, userId, table_type) {
   const savedTable      = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
   const originalTable   = table_type === 'annuity' ? 'application_annuity' : 'application_life';
 
-  // Helper to process one commission "segment"
-  const processSegment = async ({ segmentLabel, premiumAmount, ratePercent }) => {
-    const amount = Math.max(Number(premiumAmount || 0), 0);
-    const rate   = Math.max(Number(ratePercent || 0), 0);
-    if (!(amount > 0 && rate > 0)) return;
+  const productInfo = `FISO ${fisoRate}% | Excess ${excessRate}% | Renewals ${renewalRate}%`;
 
-    // baseAmount for this segment
-    const baseAmount = amount * rate / 100;
-
-    // Use segment base for split points / thresholds
-    const splitPoints = await checkSplitPoints(order, chart, hierarchy, baseAmount);
-    const segments = splitPoints ? [0, ...splitPoints, baseAmount] : [0, baseAmount];
-
-    // We'll save commission rows with the segment's premium and rate
-    const segOrder = { ...order };
+  // Small helper: run the existing commission logic for ONE "segment" order
+  const processOneSegment = async (segOrder, segmentLabel) => {
+    // 1) Base amount for split logic
+    let baseAmount;
     if (table_type === 'annuity') {
-      segOrder.flex_premium = amount;
+      baseAmount = parseFloat(segOrder.flex_premium || 0) * (segOrder.product_rate || 6) / 100;
     } else {
-      segOrder.target_premium = amount;      // store the segment’s “base” in target_premium for life commissions
+      baseAmount = parseFloat(segOrder.target_premium || 0) * (segOrder.product_rate || 100) / 100;
     }
-    segOrder.product_rate = rate;            // reflect the rate used for this segment (product_rate or excess_rate)
+
+    const splitPoints = await checkSplitPoints(segOrder, chart, hierarchy);
+    const segments = splitPoints ? [0, ...splitPoints, baseAmount] : [0, baseAmount];
 
     let totalPersonalCommission = 0;
     const levelDiffMap = new Map();
@@ -278,11 +254,10 @@ async function handleCommissions(order, userId, table_type) {
       const uRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
       const uNow = uRes.rows[0];
       const profitBefore = parseFloat(uNow.team_profit || 0);
-
       const segAmount = segments[i + 1] - segments[i];
+
       const level = reconcileLevel(profitBefore, uNow.hierarchy_level, chart);
       const percent = getLevelPercentByTitle(level, chart);
-
       totalPersonalCommission += segAmount * (percent / 100);
 
       let currentId = userId;
@@ -318,12 +293,14 @@ async function handleCommissions(order, userId, table_type) {
         generation++;
       }
 
-      // Count this segment’s production
-      await updateTeamProfit(userId, segAmount);
+      await db.query('UPDATE users SET team_profit = team_profit + $1 WHERE id = $2', [segAmount, userId]);
     }
 
-    // Insert merged personal commission for this segment
-    const premiumBase = baseAmount > 0 ? baseAmount : 1; // avoid /0
+    const isAnnuity = commissionTable.includes('annuity');
+    const premiumBase = isAnnuity
+      ? (segOrder.flex_premium || 1) * (segOrder.product_rate || 6) / 100
+      : (segOrder.target_premium || 1) * (segOrder.product_rate || 100) / 100;
+
     const personalPct = Math.round(totalPersonalCommission / premiumBase * 10000) / 100;
 
     await insertCommissionOrder(
@@ -332,13 +309,12 @@ async function handleCommissions(order, userId, table_type) {
       'Personal Commission',
       personalPct,
       totalPersonalCommission,
-      makeExplanation('Merged Personal Commission', segmentLabel),
-      order.id,
+      `Merged Personal Commission${segmentLabel ? ` (${segmentLabel})` : ''} — ${productInfo}`,
+      segOrder.id || order.id,
       commissionTable
     );
     await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [totalPersonalCommission, user.id]);
 
-    // Upline level differences
     for (let [uid, amt] of levelDiffMap) {
       const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
       await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
@@ -349,14 +325,13 @@ async function handleCommissions(order, userId, table_type) {
           'Level Difference',
           Math.round(amt / premiumBase * 10000) / 100,
           amt,
-          makeExplanation('Merged Level Difference', segmentLabel),
-          order.id,
+          `Merged Level Difference${segmentLabel ? ` (${segmentLabel})` : ''} — ${productInfo}`,
+          segOrder.id || order.id,
           commissionTable
         );
       }
     }
 
-    // Generation overrides
     for (let [uid, amt] of genOverrideMap) {
       const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
       await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
@@ -367,47 +342,165 @@ async function handleCommissions(order, userId, table_type) {
           'Generation Override',
           Math.round(amt / premiumBase * 10000) / 100,
           amt,
-          makeExplanation('Merged Generation Override', segmentLabel),
-          order.id,
+          `Merged Generation Override${segmentLabel ? ` (${segmentLabel})` : ''} — ${productInfo}`,
+          segOrder.id || order.id,
           commissionTable
         );
       }
     }
   };
 
-  // 2) Run the appropriate segments
-  if (table_type === 'annuity') {
-    // Single segment: base premium (flex_premium) at product_rate
-    const flex = Number(order.flex_premium || 0);
-    const prodRate = Number(order.product_rate || 6);
-    await processSegment({ segmentLabel: 'Base', premiumAmount: flex, ratePercent: prodRate });
-  } else {
-    // LIFE: possibly two segments
+  // === LIFE: possibly split into base + excess ===
+  if (table_type === 'life') {
     const initial = Math.max(Number(order.initial_premium || 0), 0);
     const target  = Math.max(Number(order.target_premium  || 0), 0);
-    const prodRate = Number(order.product_rate || 100);
+    const productRate = Number(order.product_rate || 100);
 
-    if (initial <= target) {
-      // Shortfall/equal: use initial at product_rate
-      await processSegment({ segmentLabel: 'Base', premiumAmount: initial, ratePercent: prodRate });
-    } else {
-      // Split into (target at product_rate) + (excess at excess_rate)
-      const excessPremium = initial - target;
+    if (initial > target && target > 0) {
+      // 1) Base (to Target) at product_rate
+      const baseSeg = { ...order, target_premium: target, product_rate: productRate };
+      await processOneSegment(baseSeg, 'Base (to Target)');
 
-      // Base up to target at product_rate
-      await processSegment({ segmentLabel: 'Base (to Target)', premiumAmount: target, ratePercent: prodRate });
+      // 2) Excess at excess_rate
+      const excessAmt = initial - target;
+      if (excessAmt > 0 && excessRate > 0) {
+        const excessSeg = { ...order, target_premium: excessAmt, product_rate: excessRate };
+        await processOneSegment(excessSeg, 'Excess');
+      }
 
-      // Excess part at excess_rate
-      await processSegment({ segmentLabel: 'Excess', premiumAmount: excessPremium, ratePercent: excessRate });
+      // Move application → saved_* and mark distributed (single move after both segments)
+      await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
+      await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
+      await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
+      return; // done
+    }
+
+    // initial <= target → use initial at product_rate
+    const shortSeg = { ...order, target_premium: initial, product_rate: productRate };
+    await processOneSegment(shortSeg, 'Base');
+
+    await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
+    await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
+    await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
+    return;
+  }
+
+  // === ANNUITY: unchanged (single segment at product_rate) ===
+  // Keep your original single-segment logic below for annuity
+  // 1) Base amount
+  let baseAmount;
+  baseAmount = parseFloat(order.flex_premium || 0) * (order.product_rate || 6) / 100;
+
+  const splitPoints = await checkSplitPoints(order, chart, hierarchy);
+  const segments = splitPoints ? [0, ...splitPoints, baseAmount] : [0, baseAmount];
+
+  let totalPersonalCommission = 0;
+  const levelDiffMap = new Map();
+  const genOverrideMap = new Map();
+
+  for (let i = 0; i < segments.length - 1; i++) {
+    const uRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const uNow = uRes.rows[0];
+    const profitBefore = parseFloat(uNow.team_profit || 0);
+    const segAmount = segments[i + 1] - segments[i];
+
+    const level = reconcileLevel(profitBefore, uNow.hierarchy_level, chart);
+    const percent = getLevelPercentByTitle(level, chart);
+    totalPersonalCommission += segAmount * (percent / 100);
+
+    let currentId = userId;
+    let generation = 0;
+    const employeePercent = percent;
+    const allowedLevels = ['Agency 1', 'Agency 2', 'Agency 3', 'Vice President'];
+
+    while (true) {
+      const res = await db.query('SELECT * FROM users WHERE id = $1', [currentId]);
+      const currUser = res.rows[0];
+      if (!currUser || !currUser.introducer_id) break;
+
+      const upRes = await db.query('SELECT * FROM users WHERE id = $1', [currUser.introducer_id]);
+      const u = upRes.rows[0];
+      if (!u) break;
+
+      const uPercent = getLevelPercentByTitle(u.hierarchy_level, chart);
+      const downPercent = generation === 0 ? employeePercent : getLevelPercentByTitle(currUser.hierarchy_level, chart);
+      const diff = uPercent - downPercent;
+      if (diff > 0.01) {
+        const prev = levelDiffMap.get(u.id) || 0;
+        levelDiffMap.set(u.id, prev + segAmount * (diff / 100));
+      }
+
+      if (generation < 3 && allowedLevels.includes(u.hierarchy_level)) {
+        const overridePercent = generation === 0 ? 5 : generation === 1 ? 3 : 1;
+        const overrideAmount = segAmount * (overridePercent / 100);
+        const prev = genOverrideMap.get(u.id) || 0;
+        genOverrideMap.set(u.id, prev + overrideAmount);
+      }
+
+      currentId = u.id;
+      generation++;
+    }
+
+    await updateTeamProfit(userId, segAmount);
+  }
+
+  const isAnnuity = commissionTable.includes('annuity');
+  const premiumBase = isAnnuity
+    ? (order.flex_premium || 1) * (order.product_rate || 6) / 100
+    : (order.target_premium || 1) * (order.product_rate || 100) / 100;
+
+  const personalPct = Math.round(totalPersonalCommission / premiumBase * 10000) / 100;
+
+  await insertCommissionOrder(
+    order,
+    user,
+    'Personal Commission',
+    personalPct,
+    totalPersonalCommission,
+    `Merged Personal Commission — ${productInfo}`,
+    order.id,
+    commissionTable
+  );
+  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [totalPersonalCommission, user.id]);
+
+  for (let [uid, amt] of levelDiffMap) {
+    const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
+    if (res.rows.length) {
+      await insertCommissionOrder(
+        order,
+        res.rows[0],
+        'Level Difference',
+        Math.round(amt / premiumBase * 10000) / 100,
+        amt,
+        `Merged Level Difference — ${productInfo}`,
+        order.id,
+        commissionTable
+      );
     }
   }
 
-  // 3) Move application -> saved_* and mark distributed (same as before)
+  for (let [uid, amt] of genOverrideMap) {
+    const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
+    if (res.rows.length) {
+      await insertCommissionOrder(
+        order,
+        res.rows[0],
+        'Generation Override',
+        Math.round(amt / premiumBase * 10000) / 100,
+        amt,
+        `Merged Generation Override — ${productInfo}`,
+        order.id,
+        commissionTable
+      );
+    }
+  }
+
   await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
   await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
   await db.query(`DELETE FROM ${originalTable} WHERE id = $1`, [order.id]);
 }
-
 module.exports = {
   handleCommissions,
   getHierarchy
