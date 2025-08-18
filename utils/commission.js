@@ -1,4 +1,5 @@
 const db = require('../db');
+const { resolveProductForOrder } = require('../utils/productResolver')
 
 // 获取佣金等级表
 async function getCommissionChart() {
@@ -131,7 +132,6 @@ async function checkSplitPoints(order, chart, hierarchy) {
   return sorted.length ? sorted : false;
 }
 
-
 async function insertCommissionOrder(order, user, type, percent, amount, explanation, parentId, tableName) {
   const isAnnuity = tableName.includes('annuity');
 
@@ -158,7 +158,6 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
         $23, $24, $25
       );
     `;
-
     values = [
       user.id, user.name, user.national_producer_number, user.hierarchy_level,
       percent, amount, order.carrier_name, order.product_name,
@@ -188,7 +187,6 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
         $24, $25, $26
       );
     `;
-
     values = [
       user.id, user.name, user.national_producer_number, user.hierarchy_level,
       percent, amount, order.carrier_name, order.product_name,
@@ -201,24 +199,40 @@ async function insertCommissionOrder(order, user, type, percent, amount, explana
   }
 
   await db.query(insertQuery, values);
-
 }
-
 
 async function handleCommissions(order, userId, table_type) {
   const userRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
   const user = userRes.rows[0];
   if (!user) return;
 
-  const chart = await getCommissionChart();
-  
-let baseAmount;
-if (table_type === 'annuity') {
-  baseAmount = parseFloat(order.flex_premium || 0) * (order.product_rate || 6) / 100;
-} else {
-  baseAmount = parseFloat(order.target_premium || 0) * (order.product_rate || 100) / 100;
-}
+  // Pull FISO/Excess/Renewal from product tables (no schema change required)
+  const prod = await resolveProductForOrder({
+    product_line: table_type,
+    carrier_name: order.carrier_name,
+    product_name: order.product_name,
+    age_bracket: order.age_bracket || null
+  }, db)
 
+  const fisoRate = prod ? Number(prod.fiso_rate || 0) : 0
+  const excessRate = prod ? Number(prod.excess_rate || 0) : 0
+  const renewalRate = prod ? Number(prod.renewal_rate || 0) : 0
+
+  // (Optional) expected from carrier for your own reference/logs
+  // Per your requested text formula (uses target_premium for both, or tweak for annuity):
+  // const baseForExpected = table_type === 'annuity' ? Number(order.flex_premium || 0) : Number(order.target_premium || 0)
+  const baseForExpected = Number(order.target_premium || 0)
+  const expectedFromCarrier = baseForExpected * (fisoRate / 100)
+
+  const chart = await getCommissionChart();
+
+  // Base for your payout calcs (unchanged logic)
+  let baseAmount;
+  if (table_type === 'annuity') {
+    baseAmount = parseFloat(order.flex_premium || 0) * (order.product_rate || 6) / 100;
+  } else {
+    baseAmount = parseFloat(order.target_premium || 0) * (order.product_rate || 100) / 100;
+  }
 
   const hierarchy = await getHierarchy(userId);
   const splitPoints = await checkSplitPoints(order, chart, hierarchy);
@@ -237,6 +251,7 @@ if (table_type === 'annuity') {
     const user = userRes.rows[0];
     const profitBefore = parseFloat(user.team_profit || 0);
     const segAmount = segments[i + 1] - segments[i];
+
     const level = reconcileLevel(profitBefore, user.hierarchy_level, chart);
     const percent = getLevelPercentByTitle(level, chart);
     totalPersonalCommission += segAmount * (percent / 100);
@@ -245,6 +260,7 @@ if (table_type === 'annuity') {
     let generation = 0;
     const employeePercent = percent;
     const allowedLevels = ['Agency 1', 'Agency 2', 'Agency 3', 'Vice President'];
+
     while (true) {
       const res = await db.query('SELECT * FROM users WHERE id = $1', [currentId]);
       const currUser = res.rows[0];
@@ -272,62 +288,64 @@ if (table_type === 'annuity') {
       currentId = u.id;
       generation++;
     }
+
     await updateTeamProfit(userId, segAmount);
   }
 
-  // 插入合并后的佣金记录
-const isAnnuity = commissionTable.includes('annuity');
-const premiumBase = isAnnuity
-  ? (order.flex_premium || 1) * (order.product_rate || 6) / 100
-  : (order.target_premium || 1) * (order.product_rate || 100)/ 100; // 避免除以 0
+  // Insert merged personal commission — explanation now includes product table rates
+  const isAnnuity = commissionTable.includes('annuity');
+  const premiumBase = isAnnuity
+    ? (order.flex_premium || 1) * (order.product_rate || 6) / 100
+    : (order.target_premium || 1) * (order.product_rate || 100) / 100;
 
-await insertCommissionOrder(
-  order,
-  user,
-  'Personal Commission',
-  Math.round(totalPersonalCommission / premiumBase * 10000) / 100,
-  totalPersonalCommission,
-  'Merged Personal Commission',
-  order.id,
-  commissionTable
-);
-await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [totalPersonalCommission, user.id]);
+  const personalPct = Math.round(totalPersonalCommission / premiumBase * 10000) / 100;
 
-for (let [uid, amt] of levelDiffMap) {
-  const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
-  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
-  if (res.rows.length) {
-    await insertCommissionOrder(
-      order,
-      res.rows[0],
-      'Level Difference',
-      Math.round(amt / premiumBase * 10000) / 100,
-      amt,
-      'Merged Level Difference',
-      order.id,
-      commissionTable
-    );
+  const productInfo = `FISO ${fisoRate}% | Excess ${excessRate}% | Renewals ${renewalRate}%`
+  await insertCommissionOrder(
+    order,
+    user,
+    'Personal Commission',
+    personalPct,
+    totalPersonalCommission,
+    `Merged Personal Commission — ${productInfo}`,
+    order.id,
+    commissionTable
+  );
+  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [totalPersonalCommission, user.id]);
+
+  for (let [uid, amt] of levelDiffMap) {
+    const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
+    if (res.rows.length) {
+      await insertCommissionOrder(
+        order,
+        res.rows[0],
+        'Level Difference',
+        Math.round(amt / premiumBase * 10000) / 100,
+        amt,
+        `Merged Level Difference — ${productInfo}`,
+        order.id,
+        commissionTable
+      );
+    }
   }
-}
 
-
-for (let [uid, amt] of genOverrideMap) {
-  const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
-  await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
-  if (res.rows.length) {
-    await insertCommissionOrder(
-      order,
-      res.rows[0],
-      'Generation Override',
-      Math.round(amt / premiumBase * 10000) / 100,
-      amt,
-      'Merged Generation Override',
-      order.id,
-      commissionTable
-    );
+  for (let [uid, amt] of genOverrideMap) {
+    const res = await db.query('SELECT * FROM users WHERE id = $1', [uid]);
+    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [amt, uid]);
+    if (res.rows.length) {
+      await insertCommissionOrder(
+        order,
+        res.rows[0],
+        'Generation Override',
+        Math.round(amt / premiumBase * 10000) / 100,
+        amt,
+        `Merged Generation Override — ${productInfo}`,
+        order.id,
+        commissionTable
+      );
+    }
   }
-}
-
 
   await db.query(`UPDATE ${originalTable} SET application_status = $1 WHERE id = $2`, ['distributed', order.id]);
   await db.query(`INSERT INTO ${savedTable} SELECT * FROM ${originalTable} WHERE id = $1`, [order.id]);
