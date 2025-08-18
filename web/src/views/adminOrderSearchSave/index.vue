@@ -69,9 +69,21 @@
           <td>{{ order.split_percent === 100 ? 100 : 100 - order.split_percent }}%</td>
           <td>{{ order.split_with_id }}</td>
           <td>{{ order.mra_status }}</td>
-          <td>
-            <router-link :to="`/admin/adminOrderEditSave/${order.table_type}/${order.id}`">Edit</router-link>
-            <button style="margin-left:8px" @click="renew(order)">Renewal</button>
+          <td class="action-cell">
+            <router-link
+              :to="`/admin/adminOrderEditSave/${order.table_type}/${order.id}`"
+              class="btn"
+            >
+              Edit
+            </router-link>
+
+            <button
+              v-if="canRenew(order)"
+              class="btn"
+              @click="renew(order)"
+            >
+              Renewal
+            </button>
           </td>
         </tr>
       </tbody>
@@ -111,6 +123,14 @@ async function loadOrders() {
   } catch (err) {
     console.error('Failed to load orders', err);
   }
+}
+
+function canRenew(order) {
+  // Show Renewal only for saved_* tables and when status is exactly 'distributed'
+  return (
+    order?.table_type?.startsWith('saved_') &&
+    String(order?.application_status).toLowerCase() === 'distributed'
+  )
 }
 
 async function loadOrdersByRange(range) {
@@ -215,5 +235,35 @@ th.sticky-col-2, td.sticky-col-2 {
   z-index: 2;
   background-color: #fff;
   box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.action-cell {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Make links and buttons look identical */
+.btn {
+  display: inline-block;
+  background-color: #0055a4;
+  color: #fff;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none; /* remove link underline */
+  font-weight: 600;
+  line-height: 1;
+}
+
+.btn:hover {
+  background-color: #003f82;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
