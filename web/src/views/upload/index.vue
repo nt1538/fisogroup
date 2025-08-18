@@ -25,7 +25,7 @@
           </select>
         </div>
 
-        <!-- Manual carrier name when "Other" -->
+        <!-- Manual carrier when "Other" -->
         <div class="form-row" v-if="selectedCarrier === '__OTHER__'">
           <label>Enter Carrier Name:</label>
           <input v-model="manualCarrier" :disabled="locked" placeholder="Carrier name" required />
@@ -43,13 +43,13 @@
           </select>
         </div>
 
-        <!-- Manual product name when "Other" -->
+        <!-- Manual product when "Other" -->
         <div class="form-row" v-if="selectedProductKey === '__OTHER__'">
           <label>Enter Product Name:</label>
-          <input v-model="manualProductName" :disabled="locked" placeholder="Type the product name" required />
+          <input v-model="manualProductName" :disabled="locked" placeholder="Product name" required />
         </div>
 
-        <!-- Annuity bracket row -->
+        <!-- Annuity age bracket -->
         <div class="form-row" v-if="form.product_line === 'annuity' && showBracketRow">
           <label>Age Bracket:</label>
           <template v-if="selectedProductKey !== '__OTHER__' && bracketOptions.length > 0">
@@ -63,20 +63,20 @@
           </template>
         </div>
 
-        <!-- Life product subtype (IUL/Term/etc) display (read-only) -->
+        <!-- Life product subtype (read-only) -->
         <div class="form-row" v-if="form.product_line === 'life'">
           <label>Life Product Type:</label>
           <input :value="displayLifeType" readonly />
         </div>
 
-        <!-- Rate preview (from hard-coded catalog; real rate comes from DB later) -->
+        <!-- Rate shown + stored (only product_rate) -->
         <div class="form-row">
-          <label>Product Rate (preview):</label>
+          <label>Product Rate (will be saved):</label>
           <input :value="displayProductRate" type="text" readonly />
-          <small>Final rates are resolved from database at commission time.</small>
+          <small>FISO/Excess/Renewals are added later during completion.</small>
         </div>
 
-        <!-- Dates & policy info -->
+        <!-- Dates & policy -->
         <div class="form-row">
           <label>Application Date:</label>
           <input type="date" v-model="form.application_date" required />
@@ -150,103 +150,71 @@ import axios from '@/config/axios.config'
 const CATALOG = {
   life: {
     carriers: [
-      'Allianz',
-      'Ameritas',
-      'F&G Life',
+      'Allianz','Ameritas','F&G Life',
       'Life of the Southwest (LSW / National Life)',
-      'Lincoln Financial Group',
-      'Mass Mutual',
-      'Nationwide',
-      'Symetra Life Insurance Company'
+      'Lincoln Financial Group','Mass Mutual',
+      'Nationwide','Symetra Life Insurance Company'
     ],
     products: [
-      // Allianz
-      { carrier: 'Allianz', name: 'Allianz Accumulator IUL', type: 'IUL', product_rate: 100, from_carrier_rate: 140, excess: 3, renewals: 3 },
-
-      // Ameritas
-      { carrier: 'Ameritas', name: 'FLX Living Benefits IUL', type: 'IUL', product_rate: 100, from_carrier_rate: 115, excess: null, renewals: null },
-
-      // F&G Life
-      { carrier: 'F&G Life', name: 'Pathsetter (Issue Ages 18-80)', type: 'IUL', product_rate: 100, from_carrier_rate: 135, excess: 2.5, renewals: 4 },
-
-      // LSW / National Life
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 10 w Living Benefits', type: 'Term', product_rate: 60, from_carrier_rate: 85 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 15 w Living Benefits', type: 'Term', product_rate: 60, from_carrier_rate: 85 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 20 w Living Benefits', type: 'Term', product_rate: 70, from_carrier_rate: 105 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Level Term 30 w Living Benefits', type: 'Term', product_rate: 70, from_carrier_rate: 105 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'FlexLife II', type: 'IUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'PeakLife (1mm minimum face amount)', type: 'IUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'Summit Life (1mm minimum face amount)', type: 'IUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
-      { carrier: 'Life of the Southwest (LSW / National Life)', name: 'SurvivorLife', type: 'SIUL', product_rate: 100, from_carrier_rate: 120, excess: 3.5, renewals: 3.5 },
-
-      // Lincoln
-      { carrier: 'Lincoln Financial Group', name: 'Lincoln WealthAccelerate IUL (instant decision)', type: 'IUL', product_rate: 90, from_carrier_rate: 115, excess: 4, renewals: 3 },
-      { carrier: 'Lincoln Financial Group', name: 'Lincoln WealthAccumulate 2 IUL', type: 'IUL', product_rate: 90, from_carrier_rate: 110, excess: 3.5, renewals: 3 },
-      { carrier: 'Lincoln Financial Group', name: 'Lincoln WealthPreserve SIUL', type: 'SIUL', product_rate: 90, from_carrier_rate: 110, excess: 3.5, renewals: 3 },
-
-      // Mass Mutual
-      { carrier: 'Mass Mutual', name: 'Universal Life Guard 6', type: 'UL', product_rate: 55, from_carrier_rate: 75, excess: 2, renewals: 6 },
-      { carrier: 'Mass Mutual', name: 'Survivorship Universal Life Guard 6', type: 'SUL', product_rate: 55, from_carrier_rate: 75, excess: 2, renewals: 6 },
-      { carrier: 'Mass Mutual', name: 'Whole Life (WL10, WL15, WL20, WL65, WL100)', type: 'WL', product_rate: 50, from_carrier_rate: 70 },
-      { carrier: 'Mass Mutual', name: 'Survivorship Whole Life Legacy 100', type: 'SWL', product_rate: 50, from_carrier_rate: 70 },
-
-      // Nationwide
-      { carrier: 'Nationwide', name: 'IUL Accumulator II', type: 'IUL', product_rate: 100, from_carrier_rate: 115, excess: 2, renewals: 1.5 },
-
-      // Symetra
-      { carrier: 'Symetra Life Insurance Company', name: 'Symetra SwiftTerm 10 & 15 Year (instant decision)', type: 'Term', product_rate: 70, from_carrier_rate: 105 },
-      { carrier: 'Symetra Life Insurance Company', name: 'Symetra SwiftTerm 20 & 30 Year (instant decision)', type: 'Term', product_rate: 100, from_carrier_rate: 125 },
-      { carrier: 'Symetra Life Insurance Company', name: 'Symetra Accumulator Ascent IUL 4.0', type: 'IUL', product_rate: 117.64, from_carrier_rate: 130, excess: 4, renewals: 1.5 },
+      { carrier:'Allianz', name:'Allianz Accumulator IUL', type:'IUL', product_rate:100 },
+      { carrier:'Ameritas', name:'FLX Living Benefits IUL', type:'IUL', product_rate:100 },
+      { carrier:'F&G Life', name:'Pathsetter (Issue Ages 18-80)', type:'IUL', product_rate:100 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'Level Term 10 w Living Benefits', type:'Term', product_rate:60 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'Level Term 15 w Living Benefits', type:'Term', product_rate:60 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'Level Term 20 w Living Benefits', type:'Term', product_rate:70 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'Level Term 30 w Living Benefits', type:'Term', product_rate:70 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'FlexLife II', type:'IUL', product_rate:100 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'PeakLife (1mm minimum face amount)', type:'IUL', product_rate:100 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'Summit Life (1mm minimum face amount)', type:'IUL', product_rate:100 },
+      { carrier:'Life of the Southwest (LSW / National Life)', name:'SurvivorLife', type:'SIUL', product_rate:100 },
+      { carrier:'Lincoln Financial Group', name:'Lincoln WealthAccelerate IUL (instant decision)', type:'IUL', product_rate:90 },
+      { carrier:'Lincoln Financial Group', name:'Lincoln WealthAccumulate 2 IUL', type:'IUL', product_rate:90 },
+      { carrier:'Lincoln Financial Group', name:'Lincoln WealthPreserve SIUL', type:'SIUL', product_rate:90 },
+      { carrier:'Mass Mutual', name:'Universal Life Guard 6', type:'UL', product_rate:55 },
+      { carrier:'Mass Mutual', name:'Survivorship Universal Life Guard 6', type:'SUL', product_rate:55 },
+      { carrier:'Mass Mutual', name:'Whole Life (WL10, WL15, WL20, WL65, WL100)', type:'WL', product_rate:50 },
+      { carrier:'Mass Mutual', name:'Survivorship Whole Life Legacy 100', type:'SWL', product_rate:50 },
+      { carrier:'Nationwide', name:'IUL Accumulator II', type:'IUL', product_rate:100 },
+      { carrier:'Symetra Life Insurance Company', name:'Symetra SwiftTerm 10 & 15 Year (instant decision)', type:'Term', product_rate:70 },
+      { carrier:'Symetra Life Insurance Company', name:'Symetra SwiftTerm 20 & 30 Year (instant decision)', type:'Term', product_rate:100 },
+      { carrier:'Symetra Life Insurance Company', name:'Symetra Accumulator Ascent IUL 4.0', type:'IUL', product_rate:117.64 },
     ],
   },
-
   annuity: {
-    carriers: [
-      'Athene',
-      'Allianz',
-      'Nationwide',
-      'LSW - National Life'
-    ],
+    carriers: ['Athene','Allianz','Nationwide','LSW - National Life'],
     products: [
-      // Athene
-      { carrier:'Athene', name:'SPIA I', age_bracket:null, product_rate:2.50, from_carrier_rate:3.25 },
-      { carrier:'Athene', name:'Athene MaxRate MYG 3 - Option 1', age_bracket:'Ages 0-70', product_rate:1.15, from_carrier_rate:1.50 },
-      { carrier:'Athene', name:'Athene MaxRate MYG 5 - Option 1', age_bracket:'Ages 0-70', product_rate:1.50, from_carrier_rate:2.25 },
-      { carrier:'Athene', name:'Athene MaxRate MYG 7 - Option 1', age_bracket:'Ages 0-70', product_rate:1.75, from_carrier_rate:2.50 },
-      { carrier:'Athene', name:'Athene Ascent Pro 10 Bonus Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:7.75 },
-      { carrier:'Athene', name:'Performance Elite 7 Option 1', age_bracket:'Ages 0-70', product_rate:4.25, from_carrier_rate:5.75 },
-      { carrier:'Athene', name:'Performance Elite 10 Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:8.00 },
-      { carrier:'Athene', name:'Performance Elite 15 Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:8.00 },
-      { carrier:'Athene', name:'Athene Agility 7 Option 1', age_bracket:'Ages 0-70', product_rate:4.00, from_carrier_rate:5.25 },
-      { carrier:'Athene', name:'Athene Agility 10 Option 1', age_bracket:'Ages 0-70', product_rate:6.00, from_carrier_rate:7.25 },
-
-      // Allianz
-      { carrier:'Allianz', name:'Allianz 360 Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
-      { carrier:'Allianz', name:'Allianz Benefit Control Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
-      { carrier:'Allianz', name:'Allianz 222 Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
-      { carrier:'Allianz', name:'Allianz Accumulation Advantage Option A', age_bracket:'Ages 0-75', product_rate:6.25, from_carrier_rate:8.25 },
-      { carrier:'Allianz', name:'Allianz Core Income 7 Option A', age_bracket:'Ages 0-75', product_rate:4.75, from_carrier_rate:6.25 },
-
-      // Nationwide
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 8 - No Trail Option', age_bracket:'Ages 0-70', product_rate:4.00, from_carrier_rate:5.50 },
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 9 - No Trail Option', age_bracket:'Ages 0-70', product_rate:6.25, from_carrier_rate:8.25 },
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 9 - Option 1', age_bracket:'Ages 0-70', product_rate:2.25, from_carrier_rate:3.00 },
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 10 - No Trail Option', age_bracket:'Ages 0-70', product_rate:5.50, from_carrier_rate:7.25 },
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 10 - Option 1', age_bracket:'Ages 0-70', product_rate:1.25, from_carrier_rate:1.75 },
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 12 - No Trail Option', age_bracket:'Ages 0-70', product_rate:6.50, from_carrier_rate:9.00 },
-      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 12 - Option 1', age_bracket:'Ages 0-70', product_rate:2.00, from_carrier_rate:2.75 },
-
-      // LSW - National Life
-      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 0-55', product_rate:8.75, from_carrier_rate:11.50 },
-      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 56-60', product_rate:6.75, from_carrier_rate:9.00 },
-      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 61-70', product_rate:5.25, from_carrier_rate:7.00 },
-      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 0-55', product_rate:7.25, from_carrier_rate:9.50 },
-      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 56-70', product_rate:6.25, from_carrier_rate:8.25 },
-      { carrier:'LSW - National Life', name:'FIT Select Income*', age_bracket:'Ages 0-70', product_rate:5.25, from_carrier_rate:7.00 },
-      { carrier:'LSW - National Life', name:'FIT Select Income*', age_bracket:'Ages 71-75', product_rate:3.75, from_carrier_rate:5.00 },
-      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 0-70', product_rate:5.25, from_carrier_rate:7.00 },
-      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 71-75', product_rate:3.75, from_carrier_rate:5.00 },
-      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 76-80', product_rate:2.50, from_carrier_rate:3.25 },
+      { carrier:'Athene', name:'SPIA I', age_bracket:null, product_rate:2.50 },
+      { carrier:'Athene', name:'Athene MaxRate MYG 3 - Option 1', age_bracket:'Ages 0-70', product_rate:1.15 },
+      { carrier:'Athene', name:'Athene MaxRate MYG 5 - Option 1', age_bracket:'Ages 0-70', product_rate:1.50 },
+      { carrier:'Athene', name:'Athene MaxRate MYG 7 - Option 1', age_bracket:'Ages 0-70', product_rate:1.75 },
+      { carrier:'Athene', name:'Athene Ascent Pro 10 Bonus Option 1', age_bracket:'Ages 0-70', product_rate:6.00 },
+      { carrier:'Athene', name:'Performance Elite 7 Option 1', age_bracket:'Ages 0-70', product_rate:4.25 },
+      { carrier:'Athene', name:'Performance Elite 10 Option 1', age_bracket:'Ages 0-70', product_rate:6.00 },
+      { carrier:'Athene', name:'Performance Elite 15 Option 1', age_bracket:'Ages 0-70', product_rate:6.00 },
+      { carrier:'Athene', name:'Athene Agility 7 Option 1', age_bracket:'Ages 0-70', product_rate:4.00 },
+      { carrier:'Athene', name:'Athene Agility 10 Option 1', age_bracket:'Ages 0-70', product_rate:6.00 },
+      { carrier:'Allianz', name:'Allianz 360 Option A', age_bracket:'Ages 0-75', product_rate:6.25 },
+      { carrier:'Allianz', name:'Allianz Benefit Control Option A', age_bracket:'Ages 0-75', product_rate:6.25 },
+      { carrier:'Allianz', name:'Allianz 222 Option A', age_bracket:'Ages 0-75', product_rate:6.25 },
+      { carrier:'Allianz', name:'Allianz Accumulation Advantage Option A', age_bracket:'Ages 0-75', product_rate:6.25 },
+      { carrier:'Allianz', name:'Allianz Core Income 7 Option A', age_bracket:'Ages 0-75', product_rate:4.75 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 8 - No Trail Option', age_bracket:'Ages 0-70', product_rate:4.00 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 9 - No Trail Option', age_bracket:'Ages 0-70', product_rate:6.25 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 9 - Option 1', age_bracket:'Ages 0-70', product_rate:2.25 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 10 - No Trail Option', age_bracket:'Ages 0-70', product_rate:5.50 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 10 - Option 1', age_bracket:'Ages 0-70', product_rate:1.25 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 12 - No Trail Option', age_bracket:'Ages 0-70', product_rate:6.50 },
+      { carrier:'Nationwide', name:'Nationwide New Heights Select Fixed Index Annuity 12 - Option 1', age_bracket:'Ages 0-70', product_rate:2.00 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 0-55', product_rate:8.75 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 56-60', product_rate:6.75 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 61-70', product_rate:5.25 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 0-55', product_rate:7.25 },
+      { carrier:'LSW - National Life', name:'SecurePlus Forte', age_bracket:'Ages 56-70', product_rate:6.25 },
+      { carrier:'LSW - National Life', name:'FIT Select Income*', age_bracket:'Ages 0-70', product_rate:5.25 },
+      { carrier:'LSW - National Life', name:'FIT Select Income*', age_bracket:'Ages 71-75', product_rate:3.75 },
+      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 0-70', product_rate:5.25 },
+      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 71-75', product_rate:3.75 },
+      { carrier:'LSW - National Life', name:'FIT Secure Growth*', age_bracket:'Ages 76-80', product_rate:2.50 },
     ],
   }
 }
@@ -272,15 +240,15 @@ const form = ref({
   product_line: '',
   carrier_name: '',
   product_name: '',
-  life_product_type: null,      // for life
-  age_bracket: null,            // for annuity
+  life_product_type: null,
+  age_bracket: null,
   application_date: '',
   policy_number: '',
   face_amount: null,
   target_premium: null,
   initial_premium: null,
   flex_premium: null,
-  product_rate_preview: null,   // just for preview
+  product_rate: null,          // <-- this is what we save to DB
   // split
   split_percent: 100,
   split_with_id: '',
@@ -311,8 +279,7 @@ const bracketOptions = computed(() => {
   if (!selectedProductKey.value || selectedProductKey.value === '__OTHER__') return []
   const prodName = decodeKey(selectedProductKey.value)
   const rows = products.value.filter(p => p.name === prodName)
-  const opts = [...new Set(rows.map(r => r.age_bracket || ''))]
-  return opts
+  return [...new Set(rows.map(r => r.age_bracket || ''))]
 })
 
 const showBracketRow = computed(() =>
@@ -321,38 +288,35 @@ const showBracketRow = computed(() =>
 
 const displayLifeType = computed(() => form.value.life_product_type || '')
 const displayProductRate = computed(() =>
-  form.value.product_rate_preview != null ? `${form.value.product_rate_preview}%` : ''
+  form.value.product_rate != null ? `${Number(form.value.product_rate).toFixed(2)}%` : ''
 )
 
-watch(() => form.value.product_line, (line) => {
+watch(() => form.value.product_line, () => {
   resetSelection()
-  if (!line) return
 })
 
-watch(selectedCarrier, (carrier) => {
+watch(selectedCarrier, () => {
   selectedProductKey.value = ''
   selectedAgeBracket.value = ''
   products.value = []
   form.value.carrier_name = ''
   form.value.product_name = ''
-  form.value.product_rate_preview = null
+  form.value.product_rate = null
   manualProductName.value = ''
   manualAgeBracket.value = ''
-  if (!carrier || !form.value.product_line) return
+  if (!selectedCarrier.value || !form.value.product_line) return
 
   const realCarrier = selectedCarrierReal.value
   form.value.carrier_name = realCarrier
-
   const all = CATALOG[form.value.product_line].products
   products.value = all.filter(p => p.carrier === realCarrier)
 })
 
 watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBracket, selectedCarrier], () => {
-  // Keep bindings updated
   if (!form.value.product_line || !selectedCarrierReal.value) {
     form.value.carrier_name = ''
     form.value.product_name = ''
-    form.value.product_rate_preview = null
+    form.value.product_rate = null
     form.value.life_product_type = null
     form.value.age_bracket = null
     locked.value = false
@@ -363,7 +327,7 @@ watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBrack
 
   if (selectedProductKey.value === '__OTHER__') {
     form.value.product_name = manualProductName.value || ''
-    form.value.product_rate_preview = null
+    form.value.product_rate = null
     form.value.life_product_type = null
     form.value.age_bracket = form.value.product_line === 'annuity' ? (manualAgeBracket.value || null) : null
     locked.value = false
@@ -372,7 +336,7 @@ watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBrack
 
   if (!selectedProductKey.value) {
     form.value.product_name = ''
-    form.value.product_rate_preview = null
+    form.value.product_rate = null
     form.value.life_product_type = null
     form.value.age_bracket = null
     locked.value = false
@@ -386,17 +350,16 @@ watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBrack
     const row = rows[0]
     if (row) {
       form.value.product_name = row.name
-      form.value.product_rate_preview = row.product_rate ?? null
+      form.value.product_rate = row.product_rate ?? null
       form.value.life_product_type = row.type || null
       form.value.age_bracket = null
       locked.value = true
     }
   } else {
-    // annuity
     if (rows.length === 1) {
       const r = rows[0]
       form.value.product_name = r.name
-      form.value.product_rate_preview = r.product_rate ?? null
+      form.value.product_rate = r.product_rate ?? null
       form.value.age_bracket = r.age_bracket || null
       selectedAgeBracket.value = r.age_bracket || ''
       locked.value = true
@@ -404,12 +367,12 @@ watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBrack
       const chosen = rows.find(r => (r.age_bracket || '') === (selectedAgeBracket.value || ''))
       if (chosen) {
         form.value.product_name = chosen.name
-        form.value.product_rate_preview = chosen.product_rate ?? null
+        form.value.product_rate = chosen.product_rate ?? null
         form.value.age_bracket = chosen.age_bracket || null
         locked.value = true
       } else {
         form.value.product_name = ''
-        form.value.product_rate_preview = null
+        form.value.product_rate = null
         form.value.age_bracket = null
         locked.value = false
       }
@@ -420,21 +383,10 @@ watch([selectedProductKey, selectedAgeBracket, manualProductName, manualAgeBrack
 const canSubmit = computed(() => {
   if (!form.value.product_line) return false
   if (!form.value.application_date || !form.value.policy_number || !form.value.insured_name) return false
-
-  // carrier
   if (!selectedCarrierReal.value) return false
-
-  // product
-  if (selectedProductKey.value === '__OTHER__') {
-    if (!manualProductName.value) return false
-  } else {
-    if (!form.value.product_name) return false
-    if (form.value.product_line === 'annuity' && showBracketRow.value && bracketOptions.value.length > 0 && !selectedAgeBracket.value) {
-      return false
-    }
-  }
-
-  // amounts
+  if (selectedProductKey.value === '__OTHER__' && !manualProductName.value) return false
+  if (selectedProductKey.value !== '__OTHER__' && !form.value.product_name) return false
+  if (form.value.product_line === 'annuity' && showBracketRow.value && bracketOptions.value.length > 0 && !selectedAgeBracket.value) return false
   if (form.value.product_line === 'life') {
     if (form.value.initial_premium == null) return false
   } else {
@@ -454,7 +406,7 @@ function resetSelection() {
   manualAgeBracket.value = ''
   form.value.carrier_name = ''
   form.value.product_name = ''
-  form.value.product_rate_preview = null
+  form.value.product_rate = null
   form.value.life_product_type = null
   form.value.age_bracket = null
 }
@@ -464,7 +416,6 @@ function decodeKey(k) { return decodeURIComponent(k) }
 
 const submitForm = async () => {
   try {
-    // split defaults
     if (!isSplit.value) {
       form.value.split_percent = 100
       form.value.split_with_id = ''
@@ -491,21 +442,10 @@ const submitForm = async () => {
 
     // reset
     Object.assign(form.value, {
-      insured_name: '',
-      product_line: '',
-      carrier_name: '',
-      product_name: '',
-      life_product_type: null,
-      age_bracket: null,
-      application_date: '',
-      policy_number: '',
-      face_amount: null,
-      target_premium: null,
-      initial_premium: null,
-      flex_premium: null,
-      product_rate_preview: null,
-      split_percent: 100,
-      split_with_id: '',
+      insured_name: '', product_line: '', carrier_name: '', product_name: '',
+      life_product_type: null, age_bracket: null, application_date: '', policy_number: '',
+      face_amount: null, target_premium: null, initial_premium: null, flex_premium: null,
+      product_rate: null, split_percent: 100, split_with_id: '',
     })
     isSplit.value = false
     resetSelection()

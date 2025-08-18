@@ -385,6 +385,21 @@ ALTER TABLE application_annuity
   ADD COLUMN IF NOT EXISTS renewal_rate  NUMERIC(7,3),
   ADD COLUMN IF NOT EXISTS age_bracket   TEXT;
 
+ALTER TABLE saved_life_orders
+  ADD COLUMN IF NOT EXISTS product_rate        NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS fiso_rate           NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS excess_rate         NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS renewal_rate        NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS product_type_label  TEXT;      -- e.g. IUL/WL/Term (display label)
+
+-- Annuity applications
+ALTER TABLE saved_annuity_orders
+  ADD COLUMN IF NOT EXISTS product_rate  NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS fiso_rate     NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS excess_rate   NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS renewal_rate  NUMERIC(7,3),
+  ADD COLUMN IF NOT EXISTS age_bracket   TEXT;
+
 
 -- =========================================
 -- 3) (Optional) snapshot columns on commission tables
