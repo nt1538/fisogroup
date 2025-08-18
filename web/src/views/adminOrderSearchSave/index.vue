@@ -71,6 +71,7 @@
           <td>{{ order.mra_status }}</td>
           <td>
             <router-link :to="`/admin/adminOrderEditSave/${order.table_type}/${order.id}`">Edit</router-link>
+            <button style="margin-left:8px" @click="renew(order)">Renewal</button>
           </td>
         </tr>
       </tbody>
@@ -153,6 +154,21 @@ function formatDate(dateStr) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+async function renew(order) {
+  if (!confirm(`Create renewal commission for order #${order.id}?`)) return;
+  try {
+    await axios.post(`/admin/orders/saved/${order.table_type}/${order.id}/renewal`);
+    alert('Renewal commission created.');
+    // Optionally refresh the list
+    await loadOrdersByRange('all');
+  } catch (err) {
+    console.error('Renewal failed', err);
+    alert(err?.response?.data?.error || 'Renewal failed.');
+  }
+}
+
+
 </script>
 
 
