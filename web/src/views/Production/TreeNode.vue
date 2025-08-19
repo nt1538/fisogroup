@@ -47,9 +47,9 @@
               <td>{{ fmtDate(r.application_date) }}</td>
               <td>{{ r.insured_name }}</td>
               <td>{{ r.writing_agent }}</td>
-              <td>{{ r.face_amount }}</td>
-              <td>{{ r.target_premium }}</td>
-              <td>{{ fmt(r.product_rate) }}</td>
+              <td>${{ r.face_amount }}</td>
+              <td>${{ r.target_premium }}</td>
+              <td>{{ fmt(r.product_rate) }}%</td>
               <td>{{ fmt(r.commission_percent) }}%</td>
               <td>${{ fmt(r.commission_amount) }}</td>
               <td>{{ r.order_type }}</td>
@@ -77,9 +77,9 @@
               <td>{{ fmtDate(r.application_date) }}</td>
               <td>{{ r.insured_name }}</td>
               <td>{{ r.writing_agent }}</td>
-              <td>{{ r.initial_premium }}</td>
-              <td>{{ r.flex_premium }}</td>
-              <td>{{ fmt(r.product_rate) }}</td>
+              <td>${{ r.initial_premium }}</td>
+              <td>${{ r.flex_premium }}</td>
+              <td>{{ fmt(r.product_rate) }}%</td>
               <td>{{ fmt(r.commission_percent) }}%</td>
               <td>${{ fmt(r.commission_amount) }}</td>
               <td>{{ r.order_type }}</td>
