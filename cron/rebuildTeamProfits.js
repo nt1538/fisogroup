@@ -6,13 +6,13 @@ async function rebuildTeamProfits() {
     console.log('🛠 正在重新计算所有用户的 team_profit（滚动 12 个月内）...');
 
     const { rows: lifeOrders } = await db.query(`
-      SELECT user_id, target_premium, COALESCE(product_rate, 1.00) AS product_rate
+      SELECT user_id, target_premium, COALESCE(product_rate, 100) AS product_rate
       FROM saved_life_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
     `);
 
     const { rows: annuityOrders } = await db.query(`
-      SELECT user_id, flex_premium, COALESCE(product_rate, 0.06) AS product_rate
+      SELECT user_id, flex_premium, COALESCE(product_rate, 6) AS product_rate
       FROM saved_annuity_orders
       WHERE commission_distribution_date >= NOW() - INTERVAL '12 months'
     `);
