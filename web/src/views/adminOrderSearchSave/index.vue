@@ -126,11 +126,8 @@ async function loadOrders() {
 }
 
 function canRenew(order) {
-  // Show Renewal only for saved_* tables and when status is exactly 'distributed'
-  return (
-    order?.table_type?.startsWith('saved_') &&
-    String(order?.application_status).toLowerCase() === 'distributed'
-  )
+  const isLife = typeof order.table_type === 'string' && order.table_type.includes('life')
+  return isLife && order.application_status === 'distributed'
 }
 
 async function loadOrdersByRange(range) {

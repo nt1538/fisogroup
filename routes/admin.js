@@ -506,6 +506,69 @@ router.get('/org-chart', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+async function insertCommissionRow(client, table, order, userRow, orderType, commissionPercent, commissionAmount, explanation) {
+  const isAnnuity = table.includes('annuity')
+  const sql = isAnnuity ? `
+    INSERT INTO ${table} (
+      user_id, full_name, national_producer_number, hierarchy_level,
+      commission_percent, commission_amount, carrier_name, product_name,
+      application_date, commission_distribution_date, policy_effective_date, policy_number,
+      insured_name, writing_agent, flex_premium, product_rate,
+      initial_premium, commission_from_carrier, application_status, mra_status,
+      order_type, parent_order_id, explanation,
+      split_percent, split_with_id
+    ) VALUES (
+      $1,$2,$3,$4,
+      $5,$6,$7,$8,
+      $9,$10,$11,$12,
+      $13,$14,$15,$16,
+      $17,$18,$19,$20,
+      $21,$22,$23,
+      $24,$25
+    )
+  ` : `
+    INSERT INTO ${table} (
+      user_id, full_name, national_producer_number, hierarchy_level,
+      commission_percent, commission_amount, carrier_name, product_name,
+      application_date, commission_distribution_date, policy_effective_date, policy_number,
+      insured_name, writing_agent, face_amount, target_premium, product_rate,
+      initial_premium, commission_from_carrier, application_status, mra_status,
+      order_type, parent_order_id, explanation,
+      split_percent, split_with_id
+    ) VALUES (
+      $1,$2,$3,$4,
+      $5,$6,$7,$8,
+      $9,$10,$11,$12,
+      $13,$14,$15,$16,$17,
+      $18,$19,$20,$21,
+      $22,$23,$24,
+      $25,$26
+    )
+  `
+
+  const vals = isAnnuity
+    ? [
+        userRow.id, userRow.name, userRow.national_producer_number, userRow.hierarchy_level,
+        commissionPercent, commissionAmount, order.carrier_name, order.product_name,
+        order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
+        order.insured_name, order.writing_agent, order.flex_premium, order.product_rate, // product_rate is renewal rate here
+        order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
+        orderType, order.id, explanation,
+        order.split_percent, order.split_with_id
+      ]
+    : [
+        userRow.id, userRow.name, userRow.national_producer_number, userRow.hierarchy_level,
+        commissionPercent, commissionAmount, order.carrier_name, order.product_name,
+        order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
+        order.insured_name, order.writing_agent, order.face_amount, order.target_premium, order.product_rate,
+        order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
+        orderType, order.id, explanation,
+        order.split_percent, order.split_with_id
+      ]
+
+  await client.query(sql, vals)
+}
+
 router.post('/saved/:tableType/:id/renewal', verifyToken, verifyAdmin, async (req, res) => {
   const { tableType, id } = req.params
   const allowed = new Set(['saved_life_orders','saved_annuity_orders'])
