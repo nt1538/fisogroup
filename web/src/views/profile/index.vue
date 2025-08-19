@@ -13,7 +13,7 @@
               <div><strong>User ID:</strong> {{ user.id }}</div>
               <div><strong>Introducer ID:</strong> {{ user.introducer_id || "N/A" }}</div>
               <div><strong>Total Earnings:</strong> ${{ user.total_earnings || 0 }}</div>
-              <div><strong>Team Profit:</strong> ${{ user.team_profit || 0 }}</div>
+              <div><strong>Team Production:</strong> ${{ user.team_profit || 0 }}</div>
             </div>
           </div>
   

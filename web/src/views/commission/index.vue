@@ -23,7 +23,7 @@
             <thead>
               <tr>
                 <th>User ID</th><th>Name</th>
-                <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
+                <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Product Rate</th><th>Carrier</th>
                 <th>Product</th><th>Commission Distribution Date</th><th>Policy #</th><th>Insured Name</th><th>Writing Agent</th>
                 <th>Face Amount</th><th>Paid Premium</th><th>Target Premium</th>
                 <th>Split Percentage</th><th>Split ID</th><th>Notes</th><th>Commission Type</th>
@@ -32,11 +32,11 @@
             <tbody>
               <tr v-for="item in lifeOrders" :key="item.id">
                 <td>{{ item.user_id }}</td><td>{{ item.full_name }}</td>
-                <td>{{ item.hierarchy_level }}</td><td>{{ formatPercent(item.commission_percent) }}%</td><td>${{ formatMoney(item.commission_amount) }}</td>
+                <td>{{ item.hierarchy_level }}</td><td>{{ formatPercent(item.commission_percent) }}%</td><td>${{ formatMoney(item.commission_amount) }}</td><td>{{ item.product_rate }}%</td>
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.commission_distribution_date) }}</td><td>{{ item.policy_number }}</td><td>{{ item.insured_name }}</td><td>{{ item.writing_agent }}</td>
-                <td>{{ item.face_amount }}</td><td>{{ item.initial_premium }}</td><td>{{ item.target_premium }}</td>
-                <td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td>
+                <td>${{ item.face_amount }}</td><td>${{ item.initial_premium }}</td><td>${{ item.target_premium }}</td>
+                <td>{{ item.split_percent }}%</td><td>{{ item.split_with_id }}</td>
                 <td>{{ item.mra_status }}</td><td>{{ item.order_type }}</td>
               </tr>
             </tbody>
@@ -56,7 +56,7 @@
             <thead>
               <tr>
                 <th>User ID</th><th>Name</th>
-                <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Carrier</th>
+                <th>Level</th><th>Commission Percentage</th><th>Commission Amount</th><th>Product Rate</th><th>Carrier</th>
                 <th>Product</th><th>Commission Distribution Date</th><th>Policy #</th><th>Insured Name</th><th>Writing Agent</th>
                 <th>Base Premium</th><th>Paid Premium</th>
                 <th>Split Percentage</th><th>Split ID</th><th>Commission Type</th><th>Notes</th>
@@ -65,11 +65,11 @@
             <tbody>
               <tr v-for="item in annuityOrders" :key="item.id">
                 <td>{{ item.user_id }}</td><td>{{ item.full_name }}</td>
-                <td>{{ item.hierarchy_level }}</td><td>{{ formatPercent(item.commission_percent) }}%</td><td>${{ formatMoney(item.commission_amount) }}</td>
+                <td>{{ item.hierarchy_level }}</td><td>{{ formatPercent(item.commission_percent) }}%</td><td>${{ formatMoney(item.commission_amount) }}</td><td>{{ item.product_rate }}%</td>
                 <td>{{ item.carrier_name }}</td><td>{{ item.product_name }}</td>
                 <td>{{ formatDate(item.commission_distribution_date) }}</td><td>{{ item.policy_number }}</td><td>{{ item.insured_name }}</td><td>{{ item.writing_agent }}</td>
-                <td>{{ item.flex_premium }}</td><td>{{ item.initial_premium }}</td>
-                <td>{{ item.split_percent }}</td><td>{{ item.split_with_id }}</td><td>{{ item.order_type }}</td><td>{{ item.mra_status }}</td>
+                <td>${{ item.flex_premium }}</td><td>${{ item.initial_premium }}</td>
+                <td>{{ item.split_percent }}%</td><td>{{ item.split_with_id }}</td><td>{{ item.order_type }}</td><td>{{ item.mra_status }}</td>
               </tr>
             </tbody>
             <tfoot>
