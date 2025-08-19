@@ -20,12 +20,12 @@ async function rebuildTeamProfits() {
     const allOrders = [
       ...lifeOrders.map(o => ({
         user_id: o.user_id,
-        // life uses target_premium * product_rate (default 1.00)
+        // life uses target_premium * product_rate (default 100)
         credit: (parseFloat(o.target_premium || 0) * parseFloat(o.product_rate || 100) / 100) || 0
       })),
       ...annuityOrders.map(o => ({
         user_id: o.user_id,
-        // annuity uses flex_premium * product_rate (default 0.06)
+        // annuity uses flex_premium * product_rate (default 6)
         credit: (parseFloat(o.flex_premium || 0) * parseFloat(o.product_rate || 6) / 100) || 0
       })),
     ];
