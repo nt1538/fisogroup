@@ -178,7 +178,7 @@ function formatDate(dateStr) {
 async function renew(order) {
   if (!confirm(`Create renewal commission for order #${order.id}?`)) return;
   try {
-    await axios.post(`/admin/orders/saved/${order.table_type}/${order.id}/renewal`);
+    await axios.post(`/saved/${order.table_type}/${order.id}/renewal`);
     alert('Renewal commission created.');
     // Optionally refresh the list
     await loadOrdersByRange('all');
