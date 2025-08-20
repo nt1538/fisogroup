@@ -16,7 +16,7 @@
         <transition name="fade">
           <ul v-if="isActive('me')" class="submenu">
             <li @click="navigate('/employee/me/profile')">Profile</li>
-            <li @click="navigate('/employee/me/Application')">Application Uploads</li>
+            <li @click="navigate('/employee/me/Application')">Application Upload</li>
             <li @click="navigate('/employee/me/document')">My Fiso Document</li>
             <li class="logout" @click="logout">🚪 Logout</li>
           </ul>
@@ -29,7 +29,7 @@
         <transition name="fade">
           <ul v-if="isActive('reports')" class="submenu">
             <li @click="navigate('/employee/reports/org-chart')">Organization Chart</li>
-            <li @click="navigate('/employee/reports/app-reports')">Application Reports</li>
+            <li @click="navigate('/employee/reports/app-reports')">Application Report</li>
             <li @click="navigate('/employee/reports/production')">Production Report</li>
             <li @click="navigate('/employee/reports/commission')">Commission Statement</li>
           </ul>
