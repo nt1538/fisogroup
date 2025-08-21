@@ -49,7 +49,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       split_with_id = null,
       insured_name,
       writing_agent = full_name,
-      product_rate: productRateRaw // <-- NEW (optional in body)
+      product_rate: productRateRaw // optional override from body
     } = req.body;
 
     // fetch user
@@ -63,18 +63,27 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     const currentLevel = user.hierarchy_level || hierarchy_level;
     const commission_percent = getPercentByLevel(currentLevel);
 
-    // commission_amount still based on initial_premium (unchanged)
-    const commission_amount = (Number(initial_premium) || 0) * commission_percent / 100;
-
-    // ---- product_rate handling ----
-    // Defaults: life = 100, annuity = 6
-    const defaultRate = tableName === 'application_annuity' ? 6 : 100;
+    // ---- product_rate handling (determine BEFORE commission_amount) ----
+    const defaultRate = tableName === 'application_annuity' ? 6 : 100; // annuity=6, life=100
     let product_rate = productRateRaw != null ? Number(productRateRaw) : defaultRate;
 
-    // sanitize: must be finite and within a sane range
+    // sanitize
     if (!Number.isFinite(product_rate)) product_rate = defaultRate;
     if (product_rate < 0) product_rate = 0;
 
+    // ---- commission_amount now multiplies by product_rate ----
+    // Choose a sane base premium for the table:
+    // - annuity: flex_premium (fallback to initial_premium)
+    // - life: initial_premium (kept as-is per your current flow)
+    const basePremium =
+      tableName === 'application_annuity'
+        ? Number(flex_premium != null ? flex_premium : initial_premium) || 0
+        : Number(initial_premium) || 0;
+
+    const commission_amount =
+      basePremium * (product_rate / 100) * (commission_percent / 100);
+
+    // ---- build insert ----
     let insertSQL = `INSERT INTO ${tableName} (
       user_id, policy_number, order_type, commission_percent, commission_amount,
       application_status, full_name, national_producer_number, hierarchy_level,
@@ -109,7 +118,7 @@ async function createBaseOrder(req, res, tableName, defaultType) {
       insertSQL += `, flex_premium, product_rate`;
       values.push(flex_premium, product_rate);
     } else {
-      // if you have other tables and still want rate saved, add generically:
+      // other tables: still persist product_rate if you want it stored
       insertSQL += `, product_rate`;
       values.push(product_rate);
     }
@@ -117,7 +126,6 @@ async function createBaseOrder(req, res, tableName, defaultType) {
     insertSQL += `) VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING id`;
 
     const insertRes = await client.query(insertSQL, values);
-
     res.json({ message: 'Order created successfully', order_id: insertRes.rows[0].id });
   } catch (err) {
     console.error('Error creating base order:', err);
