@@ -231,7 +231,7 @@ async function handleCommissions(order, userId, table_type) {
   const savedTable      = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
   const originalTable   = table_type === 'annuity' ? 'application_annuity' : 'application_life';
 
-  const productInfo = `FISO ${fisoRate}% | Excess ${excessRate}% | Renewals ${renewalRate}%`;
+  const productInfo = `Excess ${excessRate}% | Renewals ${renewalRate}%`;
 
   // Helper to process one logical segment (uses existing split logic)
   const processOneSegment = async (segOrder, segmentLabel) => {
