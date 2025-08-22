@@ -62,19 +62,19 @@
 
       <div class="button-row">
         <button @click="saveOrder">Save</button>
-        <button class="delete" @click="confirmDelete">Delete</button>
+        <!-- <button class="delete" @click="confirmDelete">Delete</button> -->
       </div>
     </div>
 
     <div v-else>Loading...</div>
 
-    <div v-if="showDeleteConfirm" class="confirm-dialog">
+    <!-- <div v-if="showDeleteConfirm" class="confirm-dialog">
       <p>Are you sure you want to permanently delete this order?</p>
       <div class="dialog-buttons">
         <button @click="showDeleteConfirm = false">Cancel</button>
         <button class="delete" @click="deleteOrder">Confirm Delete</button>
       </div>
-    </div>
+    </div> -->
   </AdminLayout>
 </template>
 
@@ -293,20 +293,20 @@ async function saveOrder() {
   alert('Order saved successfully')
 }
 
-function confirmDelete() {
-  showDeleteConfirm.value = true
-}
+// function confirmDelete() {
+//   showDeleteConfirm.value = true
+// }
 
-async function deleteOrder() {
-  try {
-    await axios.delete(`/admin/orders/${tableType}/${orderId}`)
-    alert('Order deleted successfully')
-    router.push('/admin/adminOrderSearch')
-  } catch (err) {
-    console.error('Delete failed', err)
-    alert('Failed to delete the order')
-  }
-}
+// async function deleteOrder() {
+//   try {
+//     await axios.delete(`/admin/orders/${tableType}/${orderId}`)
+//     alert('Order deleted successfully')
+//     router.push('/admin/adminOrderSearch')
+//   } catch (err) {
+//     console.error('Delete failed', err)
+//     alert('Failed to delete the order')
+//   }
+// }
 
 /** ------- utils -------- */
 function formatDateInput(value) {
