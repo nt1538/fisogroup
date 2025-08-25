@@ -368,7 +368,7 @@ async function handleCommissions(order, userId, table_type) {
     const commissionPercent = agent_excess_rate;
 
     const explanation =
-      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}%`;
+      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}% || expected ${excessAmount * excessRate}$ | actual ${(order.commission_from_carrier - order.target_premium * fisoRate) * (order.split_percent || 0)}$`;
 
     await insertCommissionOrder(
       excessOrderRow,
