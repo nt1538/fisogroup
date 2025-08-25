@@ -19,18 +19,14 @@ async function resolveProductForOrder(order, client = pool) {
         life_product_type,
         product_rate,
         fiso_rate,
-        excess_rate                         AS fiso_excess_rate,
-        COALESCE(agent_excess_rate, excess_rate)   AS agent_excess_rate,
-        renewal_rate                       AS fiso_renewal_rate,
-        COALESCE(agent_renewal_rate, renewal_rate) AS agent_renewal_rate
+        excess_rate                         AS excess_rate,
+        agent_excess_rate   AS agent_excess_rate,
+        renewal_rate                       AS renewal_rate,
+        agent_renewal_rate AS agent_renewal_rate
       FROM product_life
       WHERE lower(trim(carrier_name)) = lower(trim($1))
         AND lower(trim(product_name)) = lower(trim($2))
       ORDER BY
-        -- prefer rows that HAVE agent rates
-        (agent_excess_rate IS NULL) ASC,
-        (agent_renewal_rate IS NULL) ASC,
-        -- and then newest by id if you have multiple
         id DESC
       LIMIT 1
       `,
