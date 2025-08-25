@@ -233,7 +233,7 @@ async function handleCommissions(order, userId, table_type) {
   const savedTable      = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
   const originalTable   = table_type === 'annuity' ? 'application_annuity' : 'application_life';
 
-  const productInfo = `Expected ${expectedFromCarrier}$ | actual ${order.commission_from_carrier || 0}$`;
+  const productInfo = `Expected ${expectedFromCarrier}$ | actual ${(order.commission_from_carrier || 0) * (order.split_percent || 0)}$`;
 
   // Helper to process one logical segment (uses existing split logic)
   const processOneSegment = async (segOrder, segmentLabel) => {
