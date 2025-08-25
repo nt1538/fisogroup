@@ -113,7 +113,7 @@
         <!-- Split -->
         <div class="form-row">
           <label>
-            <input type="checkbox" v-model="isSplit" :disabled="locked" />
+            <input type="checkbox" v-model="isSplit" />
             Split this order with another agent
           </label>
         </div>
