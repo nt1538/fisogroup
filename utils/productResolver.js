@@ -11,7 +11,7 @@ async function resolveProductForOrder(order, client = pool) {
 
   if (product_line === 'life') {
     const { rows } = await client.query(
-      `SELECT life_product_type, product_rate, fiso_rate, excess_rate, renewal_rate
+      `SELECT life_product_type, product_rate, fiso_rate, excess_rate, renewal_rate, agent_excess_rate, agent_renewal_rate
          FROM product_life
         WHERE lower(carrier_name)=lower($1) AND lower(product_name)=lower($2)
         LIMIT 1`,
@@ -39,7 +39,7 @@ async function resolveProductForOrder(order, client = pool) {
 
     // fallback: any bracket
     const r2 = await client.query(
-      `SELECT age_bracket, product_rate, fiso_rate, excess_rate, renewal_rate, agent_excess_rate, agent_renewal_rate
+      `SELECT age_bracket, product_rate, fiso_rate, excess_rate, renewal_rate,
          FROM product_annuity
         WHERE lower(carrier_name)=lower($1) AND lower(product_name)=lower($2)
         ORDER BY age_bracket NULLS FIRST
