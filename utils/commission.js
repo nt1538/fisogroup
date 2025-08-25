@@ -406,6 +406,7 @@ async function handleCommissions(order, userId, table_type) {
       }
 
       const excessAmt = initial - target;
+      console.log(`[EXCESS] initial ${initial} > target ${target}, excessAmt=${excessAmt}, excessRate=${excessRate}, agent_excess_rate=${agent_excess_rate}`);
       if (excessAmt > 0) {
         await payExcessLikeRenewal(excessAmt, agent_excess_rate, excessRate, fisoRate, order, commissionTable, user);
       }
