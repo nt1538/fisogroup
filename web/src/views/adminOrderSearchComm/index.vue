@@ -17,6 +17,7 @@
       <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
       <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
       <button @click="sortByCarrierCommission">Sort by Commission From Carrier</button>
+      <button @click="exportToExcel">Export (.xlsx)</button>
     </div>
 
     <!-- Total display -->
@@ -164,6 +165,76 @@ function sortByCarrierCommission() {
     const cb = Number(b.commission_from_carrier) || 0;
     return cb - ca; // descending
   });
+}
+
+async function exportToExcel() {
+  if (!orders.value.length) return;
+
+  // Lazy-load to keep bundle slim
+  const XLSX = await import('xlsx');
+
+  // Build rows exactly like the table shows
+  const rows = orders.value.map((o) => {
+    const productType = String(o.table_type || '').replace('commission_', '');
+    const targetOrBase = o.table_type === 'commission_annuity' ? o.flex_premium : o.target_premium;
+    const splitPct = Number(o.split_percent) === 100 ? 100 : 100 - Number(o.split_percent || 0);
+
+    const fmtMoney = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+    const fmtPct = (n) => `${(Number(n) || 0).toFixed(2)}%`;
+
+    return {
+      'ID': o.user_id,
+      'Payee Name': o.user_name,
+      'Level': o.hierarchy_level,
+      'Commission Distribution Date': formatDate(o.commission_distribution_date),
+      'Product Type': productType,
+      'Carrier': o.carrier_name,
+      'Product Name': o.product_name,
+      'Policy Number': o.policy_number,
+      'Insured Name': o.insured_name,
+      'Writing Agent': o.writing_agent,
+      'Face Amount': o.face_amount ?? '',
+      'Paid Premium': o.initial_premium ?? '',
+      'Target/Base Premium': targetOrBase ?? '',
+      'Commission From Carrier': fmtMoney(o.commission_from_carrier),
+      'Product Rate': fmtPct(o.product_rate),
+      'Split Percentage': `${splitPct}%`,
+      'Split ID': o.split_with_id ?? '',
+      'Commission Percentage': fmtPct(o.commission_percent),
+      'Commission Amount': fmtMoney(o.commission_amount),
+      'Commission Type': o.order_type,
+      'Notes': o.mra_status ?? '',
+      'Explanation': o.explanation ?? '',
+      'Policy Effective Date': formatDate(o.policy_effective_date),
+    };
+  });
+
+  // Preserve column order to match the table headings
+  const headers = [
+    'ID','Payee Name','Level','Commission Distribution Date','Product Type',
+    'Carrier','Product Name','Policy Number','Insured Name','Writing Agent',
+    'Face Amount','Paid Premium','Target/Base Premium','Commission From Carrier',
+    'Product Rate','Split Percentage','Split ID','Commission Percentage',
+    'Commission Amount','Commission Type','Notes','Explanation','Policy Effective Date'
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+
+  // Auto-size columns a bit
+  const colWidths = headers.map((h) => {
+    const maxLen = Math.max(
+      h.length,
+      ...rows.map(r => String(r[h] ?? '').length)
+    );
+    return { wch: Math.min(Math.max(maxLen + 2, 12), 60) }; // min 12, max 60
+  });
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Commission Orders');
+
+  const fname = `commission_orders_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fname);
 }
 
 </script>
