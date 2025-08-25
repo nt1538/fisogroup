@@ -225,8 +225,8 @@ async function handleCommissions(order, userId, table_type) {
     ? Number(order.flex_premium || 0)
     : Number(order.target_premium || 0);
   const expectedFromCarrier = baseForExpected * (fisoRate / 100); // for your logs if needed
-
-  const actuallyFromCarrier = Number(order.commission_from_carrier || 0);
+  const actualExcess = Math.max(Number(order.initial_premium || 0) - baseForExpected, 0);
+  const actuallyFromCarrier = Number(order.commission_from_carrier || 0) - actualExcess * (excessRate / 100);
 
   const chart = await getCommissionChart();
   const hierarchy = await getHierarchy(userId);
