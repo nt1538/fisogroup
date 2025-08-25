@@ -177,7 +177,7 @@ const CATALOG = {
       { carrier:'Nationwide', name:'IUL Accumulator II', type:'IUL', product_rate:100 },
       { carrier:'Symetra Life Insurance Company', name:'Symetra SwiftTerm 10 & 15 Year (instant decision)', type:'Term', product_rate:70 },
       { carrier:'Symetra Life Insurance Company', name:'Symetra SwiftTerm 20 & 30 Year (instant decision)', type:'Term', product_rate:100 },
-      { carrier:'Symetra Life Insurance Company', name:'Symetra Accumulator Ascent IUL 4.0', type:'IUL', product_rate:117.64 },
+      { carrier:'Symetra Life Insurance Company', name:'Symetra Accumulator Ascent IUL 4.0', type:'IUL', product_rate:100 },
     ],
   },
   annuity: {
