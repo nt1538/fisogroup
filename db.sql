@@ -587,3 +587,93 @@ DO UPDATE SET
   fiso_rate         = EXCLUDED.fiso_rate,
   excess_rate       = EXCLUDED.excess_rate,
   renewal_rate      = EXCLUDED.renewal_rate;
+
+-- 1) Add agent-specific excess/renewal columns (life only)
+ALTER TABLE product_life
+  ADD COLUMN IF NOT EXISTS agent_excess_rate   numeric(10,2) DEFAULT 0 NOT NULL,
+  ADD COLUMN IF NOT EXISTS agent_renewal_rate  numeric(10,2) DEFAULT 0 NOT NULL;
+
+-- 2) Update rows with your new rates
+-- Allianz
+UPDATE product_life
+SET agent_excess_rate = 2, agent_renewal_rate = 2, excess_rate = 3, renewal_rate = 3
+WHERE carrier_name = 'Allianz' AND product_name = 'Allianz Accumulator IUL';
+
+-- Ameritas
+UPDATE product_life
+SET agent_excess_rate = 0, agent_renewal_rate = 0, excess_rate = COALESCE(excess_rate,0), renewal_rate = COALESCE(renewal_rate,0)
+WHERE carrier_name = 'Ameritas' AND product_name = 'FLX Living Benefits IUL';
+
+-- F&G Life
+UPDATE product_life
+SET agent_excess_rate = 1.5, agent_renewal_rate = 2, excess_rate = 2.5, renewal_rate = 4
+WHERE carrier_name = 'F&G Life' AND product_name = 'Pathsetter (Issue Ages 18-80)';
+
+-- LSW - National Life (names in your DB use this exact carrier label)
+UPDATE product_life
+SET agent_excess_rate = 0, agent_renewal_rate = 0, excess_rate = COALESCE(excess_rate,0), renewal_rate = COALESCE(renewal_rate,0)
+WHERE carrier_name = 'LSW - National Life' AND product_name IN (
+  'Level Term 10 w Living Benefits',
+  'Level Term 15 w Living Benefits',
+  'Level Term 20 w Living Benefits',
+  'Level Term 30 w Living Benefits',
+  'Whole Life (WL10, WL15, WL20, WL65, WL100)',
+  'Survivorship Whole Life Legacy 100'
+);
+
+-- FlexLife/PeakLife/Summit/SurvivorLife (product names in your DB include parentheses; match with ILIKE)
+UPDATE product_life
+SET agent_excess_rate = 2, agent_renewal_rate = 2, excess_rate = 3.5, renewal_rate = 3.5
+WHERE carrier_name = 'LSW - National Life' AND (
+  product_name = 'FlexLife II'
+  OR product_name ILIKE 'PeakLife%'
+  OR product_name ILIKE 'Summit Life%'
+  OR product_name = 'SurvivorLife'
+);
+
+-- Lincoln Financial Group
+UPDATE product_life
+SET agent_excess_rate = 2, agent_renewal_rate = 2, excess_rate = 4, renewal_rate = 3
+WHERE carrier_name = 'Lincoln Financial Group' AND product_name = 'Lincoln WealthAccelerate IUL (instant decision)';
+
+UPDATE product_life
+SET agent_excess_rate = 2, agent_renewal_rate = 2, excess_rate = 3.5, renewal_rate = 3
+WHERE carrier_name = 'Lincoln Financial Group' AND product_name = 'Lincoln WealthAccumulate 2 IUL';
+
+UPDATE product_life
+SET agent_excess_rate = 2, agent_renewal_rate = 2, excess_rate = 3.5, renewal_rate = 3
+WHERE carrier_name = 'Lincoln Financial Group' AND product_name = 'Lincoln WealthPreserve SIUL';
+
+-- Mass Mutual
+UPDATE product_life
+SET agent_excess_rate = 1, agent_renewal_rate = 2, excess_rate = 2, renewal_rate = 6
+WHERE carrier_name = 'Mass Mutual' AND product_name = 'Universal Life Guard 6';
+
+UPDATE product_life
+SET agent_excess_rate = 1, agent_renewal_rate = 2, excess_rate = 2, renewal_rate = 6
+WHERE carrier_name = 'Mass Mutual' AND product_name = 'Survivorship Universal Life Guard 6';
+
+UPDATE product_life
+SET agent_excess_rate = 0, agent_renewal_rate = 0, excess_rate = COALESCE(excess_rate,0), renewal_rate = COALESCE(renewal_rate,0)
+WHERE carrier_name = 'Mass Mutual' AND product_name = 'Whole Life (WL10, WL15, WL20, WL65, WL100)';
+
+UPDATE product_life
+SET agent_excess_rate = 0, agent_renewal_rate = 0, excess_rate = COALESCE(excess_rate,0), renewal_rate = COALESCE(renewal_rate,0)
+WHERE carrier_name = 'Mass Mutual' AND product_name = 'Survivorship Whole Life Legacy 100';
+
+-- Nationwide
+UPDATE product_life
+SET agent_excess_rate = 1, agent_renewal_rate = 0.75, excess_rate = 2, renewal_rate = 1.5
+WHERE carrier_name = 'Nationwide' AND product_name = 'IUL Accumulator II';
+
+-- Symetra Life Insurance Company
+UPDATE product_life
+SET agent_excess_rate = 0, agent_renewal_rate = 0, excess_rate = COALESCE(excess_rate,0), renewal_rate = COALESCE(renewal_rate,0)
+WHERE carrier_name = 'Symetra Life Insurance Company' AND product_name IN (
+  'Symetra SwiftTerm 10 & 15 Year (instant decision)',
+  'Symetra SwiftTerm 20 & 30 Year (instant decision)'
+);
+
+UPDATE product_life
+SET agent_excess_rate = 2, agent_renewal_rate = 0.75, excess_rate = 4, renewal_rate = 1.5
+WHERE carrier_name = 'Symetra Life Insurance Company' AND product_name = 'Symetra Accumulator Ascent IUL 4.0';

@@ -216,7 +216,9 @@ async function handleCommissions(order, userId, table_type) {
 
   const fisoRate    = prod ? Number(prod.fiso_rate    || 0) : 0;
   const excessRate  = prod ? Number(prod.excess_rate  || 0) : 0;
+  const agent_excess_rate  = prod ? Number(prod.agent_excess_rate || 0) : 0; 
   const renewalRate = prod ? Number(prod.renewal_rate || 0) : 0;
+  const agent_renewal_rate  = prod ? Number(prod.agent_excess_rate || 0) : 0; 
 
   // Expected-from-carrier info (life uses target; annuity uses base/flex)
   const baseForExpected = table_type === 'annuity'
@@ -352,6 +354,37 @@ async function handleCommissions(order, userId, table_type) {
     }
   };
 
+  const payExcessLikeRenewal = async (excessAmount) => {
+    if (!excessAmount || excessAmount <= 0 || agent_excess_rate <= 0) return;
+
+    // use agent excess rate for the commission row
+    const excessOrderRow = {
+      ...order,
+      target_premium: excessAmount,
+      product_rate: agent_excess_rate
+    };
+
+    const commissionAmount = (excessAmount * agent_excess_rate) / 100;
+    const commissionPercent = agent_excess_rate;
+
+    const explanation =
+      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}%`;
+
+    await insertCommissionOrder(
+      excessOrderRow,
+      user,
+      'Excess',
+      commissionPercent,
+      commissionAmount,
+      explanation,
+      order.id,
+      commissionTable
+    );
+
+    // Only total earnings; NO team_profit updates
+    await db.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [commissionAmount, user.id]);
+  };
+
   // -------- Branch early by product line --------
   if (table_type === 'life') {
     // FIRST check initial vs target
@@ -372,8 +405,7 @@ async function handleCommissions(order, userId, table_type) {
 
       const excessAmt = initial - target;
       if (excessAmt > 0) {
-        const excessSeg = { ...order, target_premium: excessAmt, product_rate: excessRate };
-        await processOneSegment(excessSeg, 'Excess');
+        await payExcessLikeRenewal(excessAmt);
       }
     }
 

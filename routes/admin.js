@@ -223,12 +223,14 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
 
           const userPart = {
             ...updatedOrder,
+            initial_premium: updatedOrder.initial_premium * remainingPercent / 100,
             target_premium: updatedOrder.target_premium * remainingPercent / 100,
           };
 
           const { id: _ignore, ...splitPart } = {
             ...updatedOrder,
             user_id: split_with_id,
+            initial_premium: updatedOrder.initial_premium * split_percent / 100,
             target_premium: updatedOrder.target_premium * split_percent / 100,
             split_percent: remainingPercent,
             writing_agent: splitWritingAgent
@@ -241,8 +243,8 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           const insertRes = await client.query(insertQuery, values);
           const insertedSplitOrder = insertRes.rows[0];
 
-          const updateUserQuery = `UPDATE ${type} SET target_premium = $1 WHERE id = $2 RETURNING *;`;
-          const updatedUserRes = await client.query(updateUserQuery, [userPart.target_premium, updatedOrder.id]);
+          const updateUserQuery = `UPDATE ${type} SET initial_premium = $1, target_premium = $2 WHERE id = $3 RETURNING *;`;
+          const updatedUserRes = await client.query(updateUserQuery, [userPart.initial_premium, userPart.target_premium, updatedOrder.id]);
           const updatedUserOrder = updatedUserRes.rows[0];
 
           await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
