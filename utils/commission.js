@@ -214,6 +214,7 @@ async function handleCommissions(order, userId, table_type) {
     age_bracket: order.age_bracket || null
   }, db);
 
+  const split_percent    = prod ? Number(prod.split_percent  || 0) : 0;
   const fisoRate    = prod ? Number(prod.fiso_rate    || 0) : 0;
   const excessRate  = prod ? Number(prod.excess_rate  || 0) : 0;
   const agent_excess_rate  = prod ? Number(prod.agent_excess_rate || 0) : 0; 
@@ -233,7 +234,7 @@ async function handleCommissions(order, userId, table_type) {
   const savedTable      = table_type === 'annuity' ? 'saved_annuity_orders' : 'saved_life_orders';
   const originalTable   = table_type === 'annuity' ? 'application_annuity' : 'application_life';
 
-  const productInfo = `Expected ${expectedFromCarrier}$ | actual ${(order.commission_from_carrier || 0) * (1 - order.split_percent * 100 || 0)}$`;
+  const productInfo = `Expected ${expectedFromCarrier}$ | actual ${(order.commission_from_carrier || 0) * (100 - split_percent || 0) / 100}$`;
 
   // Helper to process one logical segment (uses existing split logic)
   const processOneSegment = async (segOrder, segmentLabel) => {
@@ -368,7 +369,7 @@ async function handleCommissions(order, userId, table_type) {
     const commissionPercent = agent_excess_rate;
 
     const explanation =
-      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}% || expected ${excessAmount * excessRate / 100}$ | actual ${(order.commission_from_carrier - order.target_premium * fisoRate / 100) * (order.split_percent / 100 || 0)}$`;
+      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}% || expected ${excessAmount * excessRate / 100}$ | actual ${(order.commission_from_carrier - order.target_premium * fisoRate / 100) * (split_percent / 100 || 0)}$`;
 
     await insertCommissionOrder(
       excessOrderRow,
