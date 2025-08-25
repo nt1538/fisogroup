@@ -226,7 +226,7 @@ async function handleCommissions(order, userId, table_type) {
     : Number(order.target_premium || 0);
   const expectedFromCarrier = baseForExpected * (fisoRate / 100); // for your logs if needed
 
-  const actuallyFromCarrier = Number(order.commission_from_carrier || 0) * (100 - Number(order.split_percent || 0)) / 100;
+  const actuallyFromCarrier = Number(order.commission_from_carrier || 0);
 
   const chart = await getCommissionChart();
   const hierarchy = await getHierarchy(userId);
@@ -370,7 +370,7 @@ async function handleCommissions(order, userId, table_type) {
     const commissionPercent = agent_excess_rate;
 
     const explanation =
-      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}% || expected ${excessAmount * excessRate / 100}$ | actual ${(Number(order.commission_from_carrier) - (Number(order.target_premium) * fisoRate / 100)) * Number(order.split_percent) / 100}$`;
+      `Excess — Agent Excess ${agent_excess_rate}% | FISO Excess ${excessRate}% || expected ${excessAmount * excessRate / 100}$ | actual ${(Number(order.commission_from_carrier) - (Number(order.target_premium) * fisoRate / 100))}$`;
 
     await insertCommissionOrder(
       excessOrderRow,
@@ -406,7 +406,6 @@ async function handleCommissions(order, userId, table_type) {
       }
 
       const excessAmt = initial - target;
-      console.log(`[EXCESS] initial ${initial} > target ${target}, excessAmt=${excessAmt}, excessRate=${excessRate}, agent_excess_rate=${agent_excess_rate}`);
       if (excessAmt > 0) {
         await payExcessLikeRenewal(excessAmt, agent_excess_rate, excessRate, fisoRate, order, commissionTable, user);
       }

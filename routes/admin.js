@@ -225,6 +225,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
             ...updatedOrder,
             initial_premium: updatedOrder.initial_premium * remainingPercent / 100,
             target_premium: updatedOrder.target_premium * remainingPercent / 100,
+            commission_from_carrier: updatedOrder.commission_from_carrier * remainingPercent / 100,
           };
 
           const { id: _ignore, ...splitPart } = {
@@ -232,6 +233,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
             user_id: split_with_id,
             initial_premium: updatedOrder.initial_premium * split_percent / 100,
             target_premium: updatedOrder.target_premium * split_percent / 100,
+            commission_from_carrier: updatedOrder.commission_from_carrier * split_percent / 100,
             split_percent: remainingPercent,
             writing_agent: splitWritingAgent
           };
@@ -243,8 +245,8 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
           const insertRes = await client.query(insertQuery, values);
           const insertedSplitOrder = insertRes.rows[0];
 
-          const updateUserQuery = `UPDATE ${type} SET initial_premium = $1, target_premium = $2 WHERE id = $3 RETURNING *;`;
-          const updatedUserRes = await client.query(updateUserQuery, [userPart.initial_premium, userPart.target_premium, updatedOrder.id]);
+          const updateUserQuery = `UPDATE ${type} SET initial_premium = $1, target_premium = $2, commission_from_carrier = $3 WHERE id = $4 RETURNING *;`;
+          const updatedUserRes = await client.query(updateUserQuery, [userPart.initial_premium, userPart.target_premium, userPart.commission_from_carrier, updatedOrder.id]);
           const updatedUserOrder = updatedUserRes.rows[0];
 
           await handleCommissions(updatedUserOrder, updatedUserOrder.user_id, baseType);
