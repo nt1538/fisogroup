@@ -401,12 +401,14 @@ async function handleCommissions(order, userId, table_type) {
     } else {
       // initial > target → do Target first at product rate, then Excess at excess rate
       if (target > 0) {
+        const excessAmt = initial - target;
+        console.log(`[EXCESS] initial ${initial} > target ${target}, excessAmt=${excessAmt}, excessRate=${excessRate}, agent_excess_rate=${agent_excess_rate}`);
         const baseSeg = { ...order, target_premium: target, product_rate: productRate };
         await processOneSegment(baseSeg, 'Base (to Target)');
       }
 
       const excessAmt = initial - target;
-      console.log(`[EXCESS] initial ${initial} > target ${target}, excessAmt=${excessAmt}, excessRate=${excessRate}, agent_excess_rate=${agent_excess_rate}`);
+      
       if (excessAmt > 0) {
         await payExcessLikeRenewal(excessAmt, agent_excess_rate, excessRate, fisoRate, order, commissionTable, user);
       }
