@@ -195,7 +195,9 @@ async function fetchCommissionData(type, req, res) {
 
   try {
     const result = await pool.query(query, params);
-    res.json(result.rows || []);
+    const sanitized = (result.rows || []).map(({ commission_from_carrier, ...rest }) => rest);
+
+    res.json(sanitized);
   } catch (err) {
     console.error(`Error fetching ${type} orders:`, err);
     res.status(500).json({ error: `Failed to fetch ${type} orders` });
