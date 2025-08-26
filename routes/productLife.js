@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
     const params = []
     let sql =
       `SELECT carrier_name, product_name, life_product_type,
-              product_rate, fiso_rate, excess_rate, renewal_rate
+              product_rate, fiso_rate, excess_rate, renewal_rate, agent_excess_rate, agent_renewal_rate
          FROM product_life
         WHERE 1=1`
     if (carrier && carrier.trim()) {
@@ -47,7 +47,9 @@ router.post('/', async (req, res) => {
           product_rate      = EXCLUDED.product_rate,
           fiso_rate         = EXCLUDED.fiso_rate,
           excess_rate       = EXCLUDED.excess_rate,
-          renewal_rate      = EXCLUDED.renewal_rate`,
+          renewal_rate      = EXCLUDED.renewal_rate,
+          agent_excess_rate       = EXCLUDED.agent_excess_rate,
+          agent_renewal_rate      = EXCLUDED.agent_renewal_rate`,
       [carrier_name, product_name, life_product_type, product_rate, fiso_rate, excess_rate, renewal_rate]
     )
     res.json({ ok: true })
@@ -102,7 +104,9 @@ router.put('/', async (req, res) => {
             product_rate      = EXCLUDED.product_rate,
             fiso_rate         = EXCLUDED.fiso_rate,
             excess_rate       = EXCLUDED.excess_rate,
-            renewal_rate      = EXCLUDED.renewal_rate`,
+            renewal_rate      = EXCLUDED.renewal_rate,
+            agent_excess_rate       = EXCLUDED.agent_excess_rate,
+            agent_renewal_rate      = EXCLUDED.agent_renewal_rate`,
         [carrier_name, product_name, life_product_type, product_rate, fiso_rate, excess_rate, renewal_rate]
       )
       await client.query('COMMIT')
