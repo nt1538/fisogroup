@@ -17,7 +17,7 @@
       <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
       <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
       <button @click="sortByCarrierCommission">Sort by Commission From Carrier</button>
-      <button @click="exportToExcel">Export to Excel</button>
+      <button @click="exportCommission">Export to Excel</button>
     </div>
 
     <!-- Total display -->
@@ -101,9 +101,6 @@ import { ref, onMounted, computed } from 'vue';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
-import ExcelJS from 'exceljs'
-import { saveAs } from 'file-saver'
-
 
 const searchName = ref('');
 const searchPolicyNumber = ref('');
@@ -171,90 +168,32 @@ function sortByCarrierCommission() {
   });
 }
 
-function n(v) { const x = Number(v); return Number.isFinite(x) ? x : 0 }
-function s(v) { return v == null ? '' : String(v) }
-
-async function exportToExcel() {
-  const wb = new ExcelJS.Workbook()
-  const ws = wb.addWorksheet('Commissions', {
-    views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-  })
-  ws.autoFilter = { from: 'A1', to: 'W1' }
-
-  // Define columns (match the table headers you show)
-  ws.columns = [
-    { header: 'ID',                     key: 'user_id', width: 10 },
-    { header: 'Payee Name',             key: 'user_name', width: 22 },
-    { header: 'Level',                  key: 'hierarchy_level', width: 14 },
-    { header: 'Commission Date',        key: 'commission_date', width: 16 },
-    { header: 'Product Type',           key: 'product_type', width: 14 },
-    { header: 'Carrier',                key: 'carrier_name', width: 18 },
-    { header: 'Product Name',           key: 'product_name', width: 28 },
-    { header: 'Policy #',               key: 'policy_number', width: 18 },
-    { header: 'Insured Name',           key: 'insured_name', width: 22 },
-    { header: 'Writing Agent',          key: 'writing_agent', width: 22 },
-    { header: 'Face Amount',            key: 'face_amount', width: 14, style: { numFmt: '#,##0' } },
-    { header: 'Paid Premium',           key: 'initial_premium', width: 16, style: { numFmt: '#,##0.00' } },
-    { header: 'Target/Base Premium',    key: 'base_premium', width: 18, style: { numFmt: '#,##0.00' } },
-    { header: 'Commission From Carrier',key: 'carrier_comm', width: 20, style: { numFmt: '#,##0.00' } },
-    { header: 'Product Rate',           key: 'product_rate', width: 14, style: { numFmt: '0.00%' } },
-    { header: 'Split %',                key: 'split_percent', width: 10, style: { numFmt: '0.00%' } },
-    { header: 'Split ID',               key: 'split_with_id', width: 12 },
-    { header: 'Commission %',           key: 'commission_percent', width: 14, style: { numFmt: '0.00%' } },
-    { header: 'Commission Amount',      key: 'commission_amount', width: 18, style: { numFmt: '#,##0.00' } },
-    { header: 'Commission Type',        key: 'order_type', width: 16 },
-    { header: 'Notes',                  key: 'mra_status', width: 14 },
-    { header: 'Explanation',            key: 'explanation', width: 50 },
-    { header: 'Policy Effective Date',  key: 'policy_effective_date', width: 16 }
-  ]
-
-  // Add rows
-  for (const o of orders.value) {
-    const isAnnuity = o.table_type === 'commission_annuity'
-    const basePremium = isAnnuity ? n(o.flex_premium) : n(o.target_premium)
-    const splitShown = (o.split_percent === 100 ? 100 : (100 - n(o.split_percent))) / 100
-
-    ws.addRow({
-      user_id: o.user_id,
-      user_name: s(o.user_name),
-      hierarchy_level: s(o.hierarchy_level),
-      commission_date: s(formatDate(o.commission_distribution_date)),
-      product_type: s(o.table_type?.replace('commission_', '')),
-      carrier_name: s(o.carrier_name),
-      product_name: s(o.product_name),
-      policy_number: s(o.policy_number),
-      insured_name: s(o.insured_name),
-      writing_agent: s(o.writing_agent),
-      face_amount: n(o.face_amount),
-      initial_premium: n(o.initial_premium),
-      base_premium: basePremium,
-      carrier_comm: n(o.commission_from_carrier),
-      product_rate: n(o.product_rate) / 100,
-      split_percent: splitShown,                              // already a fraction for Excel
-      split_with_id: s(o.split_with_id),
-      commission_percent: n(o.commission_percent) / 100,
-      commission_amount: n(o.commission_amount),
-      order_type: s(o.order_type),
-      mra_status: s(o.mra_status),
-      explanation: s(o.explanation),
-      policy_effective_date: s(formatDate(o.policy_effective_date))
+async function exportCommission () {
+  try {
+    const params = {
+      user_name: searchName.value || '',
+      policy_number: searchPolicyNumber.value || '',
+      range: currentRange.value || 'all',
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined,
+    }
+    const res = await axios.get('/admin/exports/commission.xlsx', {
+      params,
+      responseType: 'blob'
     })
+    const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `commission_${Date.now()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Export failed', e)
+    alert('Export failed.')
   }
-
-  // Bold header
-  ws.getRow(1).font = { bold: true }
-
-  // Totals row for Commission Amount
-  const last = ws.lastRow.number + 1
-  ws.getCell(`A${last}`).value = 'TOTAL'
-  ws.getCell(`A${last}`).font = { bold: true }
-  ws.getCell(`S${last}`).value = { formula: `SUM(S2:S${last - 1})` } // column S = Commission Amount
-  ws.getCell(`S${last}`).numFmt = '#,##0.00'
-  ws.getCell(`S${last}`).font = { bold: true }
-
-  // Download
-  const buf = await wb.xlsx.writeBuffer()
-  saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `commissions_${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 
 </script>

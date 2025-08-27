@@ -9,6 +9,7 @@ const adminRoutes = require('./routes/admin');
 const submitAgentRoutes = require('./routes/submitAgent');
 const adminReportRoutes = require('./routes/adminProductionReport'); 
 const productLifeRoutes = require('./routes/productLife');
+const adminExports = require('./routes/adminExports');
 const productAnnuityRoutes = require('./routes/productAnnuity');
 const adminSavedRenewal = require('./routes/adminSavedRenewal')
 const reportRoutes = require('./routes/reports');
@@ -32,7 +33,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/reports', verifyToken, adminReportRoutes); // ⬅️ NEW
 app.use('/api/admin/product-life', productLifeRoutes)
 app.use('/api/admin/product-annuity', productAnnuityRoutes)
-app.use('/admin/orders', adminSavedRenewal)
+app.use('/api/admin/orders', adminSavedRenewal)
+app.use('/api/admin', adminExports);
 
 app.use('/api/reports', reportRoutes);
 
