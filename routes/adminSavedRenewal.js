@@ -4,6 +4,21 @@ const pool = require('../db')
 const { verifyToken, verifyAdmin } = require('../middleware/auth') // adjust paths if needed
 const { resolveProductForOrder } = require('../utils/productResolver')
 
+async function getLevelPercent(client, hierarchyLevel) {
+  // try match by title
+  const { rows } = await client.query(
+    `SELECT commission_percent FROM commission_chart WHERE title = $1 LIMIT 1`,
+    [hierarchyLevel]
+  );
+  if (rows.length && Number.isFinite(Number(rows[0].commission_percent))) {
+    return Number(rows[0].commission_percent);
+  }
+  // fallback to the lowest tier (first by min_amount)
+  const { rows: def } = await client.query(
+    `SELECT commission_percent FROM commission_chart ORDER BY min_amount ASC LIMIT 1`
+  );
+  return Number(def[0]?.commission_percent || 0);
+}
 // Helper: insert one commission row (matches your existing schema)
 async function insertCommissionRow(client, table, order, userRow, orderType, commissionPercent, commissionAmount, explanation) {
   const isAnnuity = table.includes('annuity')
@@ -116,23 +131,49 @@ router.post('/saved/:tableType/:id/renewal', verifyToken, verifyAdmin, async (re
     const writingPct = hasSplit ? (100 - splitOtherPct) : 100
 
     const makeEntry = async (targetUserId, pctShare) => {
-      const { rows: uRows } = await client.query(`SELECT id, name, national_producer_number, hierarchy_level FROM users WHERE id = $1`, [targetUserId])
-      if (!uRows.length) return
-      const u = uRows[0]
+      const { rows: uRows } = await client.query(
+        `SELECT id, name, national_producer_number, hierarchy_level FROM users WHERE id = $1`,
+        [targetUserId]
+      );
+      if (!uRows.length) return;
+      const u = uRows[0];
 
-      // Commission is base * share% * renewalRate%
-      const segPremium = basePremium * (pctShare / 100)
-      const commissionAmount = segPremium * (renewalRate / 100)
-      const commissionPercent = renewalRate // store the renewal rate as the commission_percent
+      // 1) level percent for this user
+      const levelPct = await getLevelPercent(client, u.hierarchy_level); // e.g., 25, 30, etc.
 
-      // explanation shows it’s a renewal and which rate was used
-      const explanation = `Renewal — renewal_rate ${renewalRate}% on base ${isLife ? 'target_premium' : 'flex_premium'} × ${pctShare}%`
+      // 2) base portion for this user
+      const segPremium = basePremium * (pctShare / 100);
 
-      await insertCommissionRow(client, commissionTable, orderForInsert, u, 'Renewal', commissionPercent, commissionAmount, explanation)
+      // 3) effective percent = renewalRate * levelPct / 100
+      const effectivePercent = (Number(renewalRate) || 0) * (levelPct / 100);
+
+      // 4) commission amount = segPremium * effectivePercent / 100
+      const commissionAmount = segPremium * (effectivePercent / 100);
+
+      // store the effective percent in commission_percent
+      const commissionPercent = effectivePercent;
+
+      const explanation =
+        `Renewal — renewal_rate ${renewalRate}% × level ${levelPct}% = effective ${effectivePercent.toFixed(2)}%`
+        + ` on base ${isLife ? 'target_premium' : 'flex_premium'} × ${pctShare}%`;
+
+      await insertCommissionRow(
+        client,
+        commissionTable,
+        orderForInsert,
+        u,
+        'Renewal',
+        commissionPercent,
+        commissionAmount,
+        explanation
+      );
 
       // Only update total_earnings (NO team_profit updates)
-      await client.query('UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2', [commissionAmount, u.id])
-    }
+      await client.query(
+        'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
+        [commissionAmount, u.id]
+      );
+    };
 
     // main writer
     await makeEntry(saved.user_id, writingPct)
