@@ -101,6 +101,10 @@ import { ref, onMounted, computed } from 'vue';
 import axios from '@/config/axios.config';
 import AdminLayout from '@/layout/src/AdminLayout.vue';
 
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
+
+
 const searchName = ref('');
 const searchPolicyNumber = ref('');
 const startDate = ref('');
