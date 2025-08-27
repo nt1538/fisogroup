@@ -17,7 +17,7 @@
       <button @click="loadOrdersByRange('rolling_3')">Rolling 3 Months</button>
       <button @click="loadOrdersByRange('rolling_12')">Rolling 12 Months</button>
       <button @click="sortByCarrierCommission">Sort by Commission From Carrier</button>
-      <button @click="exportCommission">Export to Excel</button>
+      <button @click="exportToExcel">Export to Excel</button>
     </div>
 
     <!-- Total display -->
@@ -168,31 +168,41 @@ function sortByCarrierCommission() {
   });
 }
 
-async function exportCommission () {
+async function exportToExcel() {
   try {
-    const params = {
-      user_name: searchName.value || '',
-      policy_number: searchPolicyNumber.value || '',
-      range: currentRange.value || 'all',
-      start_date: startDate.value || undefined,
-      end_date: endDate.value || undefined,
-    }
-    const res = await axios.get('/admin/exports/commission.xlsx', {
-      params,
+    const res = await axios.get('/admin/orders/commission/export', {
+      params: {
+        user_name: searchName.value,
+        policy_number: searchPolicyNumber.value,
+        range: /* 'all' | 'ytd' | ... */ undefined,
+        start_date: startDate.value || undefined,
+        end_date: endDate.value || undefined
+      },
       responseType: 'blob'
-    })
-    const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `commission_${Date.now()}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    });
+
+    // If backend sent a JSON error, try to parse it
+    const contentType = res.headers['content-type'] || '';
+    if (contentType.includes('application/json')) {
+      const text = await res.data.text();
+      const err = JSON.parse(text);
+      throw new Error(err?.detail || err?.error || 'Export failed');
+    }
+
+    const blob = new Blob([res.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'commission_export.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   } catch (e) {
-    console.error('Export failed', e)
-    alert('Export failed.')
+    console.error('Export failed', e);
+    alert(`Export failed: ${e.message || e}`);
   }
 }
 
