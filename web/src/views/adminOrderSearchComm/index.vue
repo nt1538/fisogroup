@@ -167,74 +167,90 @@ function sortByCarrierCommission() {
   });
 }
 
+function n(v) { const x = Number(v); return Number.isFinite(x) ? x : 0 }
+function s(v) { return v == null ? '' : String(v) }
+
 async function exportToExcel() {
-  if (!orders.value.length) return;
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Commissions', {
+    views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+  })
+  ws.autoFilter = { from: 'A1', to: 'W1' }
 
-  // Lazy-load to keep bundle slim
-  const XLSX = await import('xlsx');
+  // Define columns (match the table headers you show)
+  ws.columns = [
+    { header: 'ID',                     key: 'user_id', width: 10 },
+    { header: 'Payee Name',             key: 'user_name', width: 22 },
+    { header: 'Level',                  key: 'hierarchy_level', width: 14 },
+    { header: 'Commission Date',        key: 'commission_date', width: 16 },
+    { header: 'Product Type',           key: 'product_type', width: 14 },
+    { header: 'Carrier',                key: 'carrier_name', width: 18 },
+    { header: 'Product Name',           key: 'product_name', width: 28 },
+    { header: 'Policy #',               key: 'policy_number', width: 18 },
+    { header: 'Insured Name',           key: 'insured_name', width: 22 },
+    { header: 'Writing Agent',          key: 'writing_agent', width: 22 },
+    { header: 'Face Amount',            key: 'face_amount', width: 14, style: { numFmt: '#,##0' } },
+    { header: 'Paid Premium',           key: 'initial_premium', width: 16, style: { numFmt: '#,##0.00' } },
+    { header: 'Target/Base Premium',    key: 'base_premium', width: 18, style: { numFmt: '#,##0.00' } },
+    { header: 'Commission From Carrier',key: 'carrier_comm', width: 20, style: { numFmt: '#,##0.00' } },
+    { header: 'Product Rate',           key: 'product_rate', width: 14, style: { numFmt: '0.00%' } },
+    { header: 'Split %',                key: 'split_percent', width: 10, style: { numFmt: '0.00%' } },
+    { header: 'Split ID',               key: 'split_with_id', width: 12 },
+    { header: 'Commission %',           key: 'commission_percent', width: 14, style: { numFmt: '0.00%' } },
+    { header: 'Commission Amount',      key: 'commission_amount', width: 18, style: { numFmt: '#,##0.00' } },
+    { header: 'Commission Type',        key: 'order_type', width: 16 },
+    { header: 'Notes',                  key: 'mra_status', width: 14 },
+    { header: 'Explanation',            key: 'explanation', width: 50 },
+    { header: 'Policy Effective Date',  key: 'policy_effective_date', width: 16 }
+  ]
 
-  // Build rows exactly like the table shows
-  const rows = orders.value.map((o) => {
-    const productType = String(o.table_type || '').replace('commission_', '');
-    const targetOrBase = o.table_type === 'commission_annuity' ? o.flex_premium : o.target_premium;
-    const splitPct = Number(o.split_percent) === 100 ? 100 : 100 - Number(o.split_percent || 0);
+  // Add rows
+  for (const o of orders.value) {
+    const isAnnuity = o.table_type === 'commission_annuity'
+    const basePremium = isAnnuity ? n(o.flex_premium) : n(o.target_premium)
+    const splitShown = (o.split_percent === 100 ? 100 : (100 - n(o.split_percent))) / 100
 
-    const fmtMoney = (n) => `$${(Number(n) || 0).toFixed(2)}`;
-    const fmtPct = (n) => `${(Number(n) || 0).toFixed(2)}%`;
+    ws.addRow({
+      user_id: o.user_id,
+      user_name: s(o.user_name),
+      hierarchy_level: s(o.hierarchy_level),
+      commission_date: s(formatDate(o.commission_distribution_date)),
+      product_type: s(o.table_type?.replace('commission_', '')),
+      carrier_name: s(o.carrier_name),
+      product_name: s(o.product_name),
+      policy_number: s(o.policy_number),
+      insured_name: s(o.insured_name),
+      writing_agent: s(o.writing_agent),
+      face_amount: n(o.face_amount),
+      initial_premium: n(o.initial_premium),
+      base_premium: basePremium,
+      carrier_comm: n(o.commission_from_carrier),
+      product_rate: n(o.product_rate) / 100,
+      split_percent: splitShown,                              // already a fraction for Excel
+      split_with_id: s(o.split_with_id),
+      commission_percent: n(o.commission_percent) / 100,
+      commission_amount: n(o.commission_amount),
+      order_type: s(o.order_type),
+      mra_status: s(o.mra_status),
+      explanation: s(o.explanation),
+      policy_effective_date: s(formatDate(o.policy_effective_date))
+    })
+  }
 
-    return {
-      'ID': o.user_id,
-      'Payee Name': o.user_name,
-      'Level': o.hierarchy_level,
-      'Commission Distribution Date': formatDate(o.commission_distribution_date),
-      'Product Type': productType,
-      'Carrier': o.carrier_name,
-      'Product Name': o.product_name,
-      'Policy Number': o.policy_number,
-      'Insured Name': o.insured_name,
-      'Writing Agent': o.writing_agent,
-      'Face Amount': o.face_amount ?? '',
-      'Paid Premium': o.initial_premium ?? '',
-      'Target/Base Premium': targetOrBase ?? '',
-      'Commission From Carrier': fmtMoney(o.commission_from_carrier),
-      'Product Rate': fmtPct(o.product_rate),
-      'Split Percentage': `${splitPct}%`,
-      'Split ID': o.split_with_id ?? '',
-      'Commission Percentage': fmtPct(o.commission_percent),
-      'Commission Amount': fmtMoney(o.commission_amount),
-      'Commission Type': o.order_type,
-      'Notes': o.mra_status ?? '',
-      'Explanation': o.explanation ?? '',
-      'Policy Effective Date': formatDate(o.policy_effective_date),
-    };
-  });
+  // Bold header
+  ws.getRow(1).font = { bold: true }
 
-  // Preserve column order to match the table headings
-  const headers = [
-    'ID','Payee Name','Level','Commission Distribution Date','Product Type',
-    'Carrier','Product Name','Policy Number','Insured Name','Writing Agent',
-    'Face Amount','Paid Premium','Target/Base Premium','Commission From Carrier',
-    'Product Rate','Split Percentage','Split ID','Commission Percentage',
-    'Commission Amount','Commission Type','Notes','Explanation','Policy Effective Date'
-  ];
+  // Totals row for Commission Amount
+  const last = ws.lastRow.number + 1
+  ws.getCell(`A${last}`).value = 'TOTAL'
+  ws.getCell(`A${last}`).font = { bold: true }
+  ws.getCell(`S${last}`).value = { formula: `SUM(S2:S${last - 1})` } // column S = Commission Amount
+  ws.getCell(`S${last}`).numFmt = '#,##0.00'
+  ws.getCell(`S${last}`).font = { bold: true }
 
-  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-
-  // Auto-size columns a bit
-  const colWidths = headers.map((h) => {
-    const maxLen = Math.max(
-      h.length,
-      ...rows.map(r => String(r[h] ?? '').length)
-    );
-    return { wch: Math.min(Math.max(maxLen + 2, 12), 60) }; // min 12, max 60
-  });
-  ws['!cols'] = colWidths;
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Commission Orders');
-
-  const fname = `commission_orders_${new Date().toISOString().slice(0,10)}.xlsx`;
-  XLSX.writeFile(wb, fname);
+  // Download
+  const buf = await wb.xlsx.writeBuffer()
+  saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `commissions_${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 
 </script>
