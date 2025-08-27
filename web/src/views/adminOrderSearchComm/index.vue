@@ -174,35 +174,33 @@ async function exportToExcel() {
       params: {
         user_name: searchName.value,
         policy_number: searchPolicyNumber.value,
-        range: /* 'all' | 'ytd' | ... */ undefined,
+        range: undefined,            // or your current range state
         start_date: startDate.value || undefined,
-        end_date: endDate.value || undefined
+        end_date: endDate.value || undefined,
       },
       responseType: 'blob'
     });
 
-    // If backend sent a JSON error, try to parse it
-    const contentType = res.headers['content-type'] || '';
-    if (contentType.includes('application/json')) {
-      const text = await res.data.text();
-      const err = JSON.parse(text);
-      throw new Error(err?.detail || err?.error || 'Export failed');
-    }
-
     const blob = new Blob([res.data], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
-    const url = window.URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'commission_export.xlsx';
+    a.download = `commission_export_${new Date().toISOString().slice(0,10)}.xlsx`;
     document.body.appendChild(a);
     a.click();
+    URL.revokeObjectURL(url);
     a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (e) {
-    console.error('Export failed', e);
-    alert(`Export failed: ${e.message || e}`);
+  } catch (err) {
+    // try to read server error body for a useful message
+    let msg = 'Export failed';
+    try {
+      const text = await err.response.data.text();
+      msg = text || msg;
+    } catch (_) {}
+    console.error('Export error:', err);
+    alert(msg);
   }
 }
 
