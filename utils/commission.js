@@ -359,6 +359,21 @@ async function handleCommissions(order, userId, table_type) {
   const payExcessLikeRenewal = async (excessAmount, agent_excess_rate, excessRate,fisoRate, order,commissionTable,user) => {
     if (!excessAmount || excessAmount <= 0 || agent_excess_rate <= 0) return;
 
+    const { rows } = await db.query(
+      'SELECT team_profit, hierarchy_level FROM users WHERE id = $1',
+      [user.id]
+    );
+    const now = rows[0] || {};
+    const profitBefore = Number(now.team_profit || 0);
+    const levelTitle   = reconcileLevel(profitBefore, now.hierarchy_level, chart);
+    const levelPct     = Number(getLevelPercentByTitle(levelTitle, chart) || 0);   // e.g. 70
+
+    // Effective commission percent against the excess base
+    // If agent_excess_rate is a % (e.g. 2), and levelPct is % (e.g. 70):
+    // effectivePct = 2% * 70% = 1.4%
+    const effectivePct = (agent_excess_rate * levelPct) / 100;      // still a percent
+    const commissionAmount = excessAmount * (effectivePct / 100);   // money
+
     // use agent excess rate for the commission row
     const excessOrderRow = {
       ...order,
@@ -366,7 +381,6 @@ async function handleCommissions(order, userId, table_type) {
       product_rate: agent_excess_rate
     };
 
-    const commissionAmount = (excessAmount * agent_excess_rate) / 100;
     const commissionPercent = agent_excess_rate;
 
     const explanation =
