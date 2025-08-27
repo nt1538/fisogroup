@@ -1,25 +1,25 @@
 const express = require('express')
 const router = express.Router()
 const pool = require('../db')
-const { verifyToken, verifyAdmin } = require('../middleware/auth') // adjust paths if needed
+const { verifyToken, verifyAdmin } = require('../middleware/auth')
 const { resolveProductForOrder } = require('../utils/productResolver')
 
+// Level % helper
 async function getLevelPercent(client, hierarchyLevel) {
-  // try match by title
   const { rows } = await client.query(
     `SELECT commission_percent FROM commission_chart WHERE title = $1 LIMIT 1`,
     [hierarchyLevel]
-  );
+  )
   if (rows.length && Number.isFinite(Number(rows[0].commission_percent))) {
-    return Number(rows[0].commission_percent);
+    return Number(rows[0].commission_percent)
   }
-  // fallback to the lowest tier (first by min_amount)
   const { rows: def } = await client.query(
     `SELECT commission_percent FROM commission_chart ORDER BY min_amount ASC LIMIT 1`
-  );
-  return Number(def[0]?.commission_percent || 0);
+  )
+  return Number(def[0]?.commission_percent || 0)
 }
-// Helper: insert one commission row (matches your existing schema)
+
+// Insert helper (unchanged)
 async function insertCommissionRow(client, table, order, userRow, orderType, commissionPercent, commissionAmount, explanation) {
   const isAnnuity = table.includes('annuity')
   const sql = isAnnuity ? `
@@ -65,7 +65,7 @@ async function insertCommissionRow(client, table, order, userRow, orderType, com
         userRow.id, userRow.name, userRow.national_producer_number, userRow.hierarchy_level,
         commissionPercent, commissionAmount, order.carrier_name, order.product_name,
         order.application_date, order.commission_distribution_date, order.policy_effective_date, order.policy_number,
-        order.insured_name, order.writing_agent, order.flex_premium, order.product_rate, // product_rate is renewal rate here
+        order.insured_name, order.writing_agent, order.flex_premium, order.product_rate,
         order.initial_premium, order.commission_from_carrier, order.application_status, order.mra_status,
         orderType, order.id, explanation,
         order.split_percent, order.split_with_id
@@ -83,105 +83,93 @@ async function insertCommissionRow(client, table, order, userRow, orderType, com
   await client.query(sql, vals)
 }
 
+// --- RENEWAL (life only, no split, agent renewal rate × level %) ---
 router.post('/saved/:tableType/:id/renewal', verifyToken, verifyAdmin, async (req, res) => {
   const { tableType, id } = req.params
-  const allowed = new Set(['saved_life_orders','saved_annuity_orders'])
-  if (!allowed.has(tableType)) return res.status(400).json({ error: 'Invalid saved table type' })
 
-  const isLife = tableType.includes('life')
-  const commissionTable = isLife ? 'commission_life' : 'commission_annuity'
+  // Life only
+  if (tableType !== 'saved_life_orders') {
+    return res.status(400).json({ error: 'Renewal is only available for life products' })
+  }
+  const commissionTable = 'commission_life'
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
 
-    // 1) Load saved order
-    const { rows: ordRows } = await client.query(`SELECT * FROM ${tableType} WHERE id = $1 FOR UPDATE`, [id])
+    // 1) Load saved life order
+    const { rows: ordRows } = await client.query(
+      `SELECT * FROM ${tableType} WHERE id = $1 FOR UPDATE`,
+      [id]
+    )
     if (!ordRows.length) {
       await client.query('ROLLBACK'); client.release()
       return res.status(404).json({ error: 'Saved order not found' })
     }
     const saved = ordRows[0]
 
-    // 2) Resolve renewal rate from product tables
+    // 2) Resolve agent renewal rate from product tables
     const prod = await resolveProductForOrder({
-      product_line: isLife ? 'life' : 'annuity',
+      product_line: 'life',
       carrier_name: saved.carrier_name,
       product_name: saved.product_name,
-      age_bracket: saved.age_bracket || null
+      age_bracket: null
     }, client)
 
-    const renewalRate = prod ? Number(prod.renewal_rate || 0) : 0
-    if (!Number.isFinite(renewalRate) || renewalRate <= 0) {
+    const agentRenewalRate = prod ? Number(prod.agent_renewal_rate || 0) : 0
+    if (!Number.isFinite(agentRenewalRate) || agentRenewalRate <= 0) {
       await client.query('ROLLBACK'); client.release()
-      return res.status(400).json({ error: 'No renewal rate found for this product' })
+      return res.status(400).json({ error: 'No agent renewal rate found for this product' })
     }
 
-    // 3) Compute base & set product_rate to renewalRate for this commission
-    const basePremium = isLife
-      ? Number(saved.target_premium || 0)
-      : Number(saved.flex_premium || 0)
+    // 3) Base = target_premium (life)
+    const basePremium = Number(saved.target_premium || 0)
 
-    // Reuse most fields from saved order but override product_rate = renewalRate
-    const orderForInsert = { ...saved, product_rate: renewalRate }
-
-    // 4) Determine split (two rows) or single row
-    const hasSplit = saved.split_with_id && Number(saved.split_percent) < 100
-    const splitOtherPct = hasSplit ? Number(saved.split_percent) : 0
-    const writingPct = hasSplit ? (100 - splitOtherPct) : 100
-
-    const makeEntry = async (targetUserId, pctShare) => {
-      const { rows: uRows } = await client.query(
-        `SELECT id, name, national_producer_number, hierarchy_level FROM users WHERE id = $1`,
-        [targetUserId]
-      );
-      if (!uRows.length) return;
-      const u = uRows[0];
-
-      // 1) level percent for this user
-      const levelPct = await getLevelPercent(client, u.hierarchy_level); // e.g., 25, 30, etc.
-
-      // 2) base portion for this user
-      const segPremium = basePremium * (pctShare / 100);
-
-      // 3) effective percent = renewalRate * levelPct / 100
-      const effectivePercent = (Number(renewalRate) || 0) * (levelPct / 100);
-
-      // 4) commission amount = segPremium * effectivePercent / 100
-      const commissionAmount = segPremium * (effectivePercent / 100);
-
-      // store the effective percent in commission_percent
-      const commissionPercent = effectivePercent;
-
-      const explanation =
-        `Renewal — renewal_rate ${renewalRate}% × level ${levelPct}% = effective ${effectivePercent.toFixed(2)}%`
-        + ` on base ${isLife ? 'target_premium' : 'flex_premium'} × ${pctShare}%`;
-
-      await insertCommissionRow(
-        client,
-        commissionTable,
-        orderForInsert,
-        u,
-        'Renewal',
-        commissionPercent,
-        commissionAmount,
-        explanation
-      );
-
-      // Only update total_earnings (NO team_profit updates)
-      await client.query(
-        'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
-        [commissionAmount, u.id]
-      );
-    };
-
-    // main writer
-    await makeEntry(saved.user_id, writingPct)
-
-    // split writer
-    if (hasSplit) {
-      await makeEntry(saved.split_with_id, splitOtherPct)
+    // 4) Get writing agent + level percent
+    const { rows: uRows } = await client.query(
+      `SELECT id, name, national_producer_number, hierarchy_level FROM users WHERE id = $1`,
+      [saved.user_id]
+    )
+    if (!uRows.length) {
+      await client.query('ROLLBACK'); client.release()
+      return res.status(404).json({ error: 'Writing agent not found' })
     }
+    const writer = uRows[0]
+    const levelPct = await getLevelPercent(client, writer.hierarchy_level) // e.g., 25, 30, ...
+
+    // 5) Effective % = agentRenewalRate × levelPct / 100
+    const effectivePercent = agentRenewalRate * (levelPct / 100)
+
+    // 6) Commission amount = base × effective% / 100
+    const commissionAmount = basePremium * (effectivePercent / 100)
+
+    // Prepare order row for insert
+    const orderForInsert = {
+      ...saved,
+      product_rate: agentRenewalRate, // show which rate this renewal used
+      split_percent: 100,             // NO split on renewal
+      split_with_id: null
+    }
+
+    const explanation =
+      `Renewal — agent_renewal_rate ${agentRenewalRate}% × level ${levelPct}% = effective ${effectivePercent.toFixed(2)}% on target_premium`
+
+    await insertCommissionRow(
+      client,
+      commissionTable,
+      orderForInsert,
+      writer,
+      'Renewal',
+      effectivePercent,
+      commissionAmount,
+      explanation
+    )
+
+    // Only total_earnings (no team_profit changes)
+    await client.query(
+      'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
+      [commissionAmount, writer.id]
+    )
 
     await client.query('COMMIT')
     res.json({ ok: true, message: 'Renewal commission created' })
