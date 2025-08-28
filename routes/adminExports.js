@@ -96,24 +96,93 @@ function getColumns(kind) {
 }
 
 // helpers to fetch rows (same filters as list)
-async function fetchCommissionRows(client, userId, query) {
-  const { whereSql, params } = buildFilters(query);
-  // commission comes from both life & annuity; union them to mirror the table
-  const sql = `
-    SELECT *, 'commission_life'  AS table_type FROM commission_life  WHERE user_id = $1
-    UNION ALL
-    SELECT *, 'commission_annuity' AS table_type FROM commission_annuity WHERE user_id = $1
-  `;
-  const baseParams = [userId];
+async function fetchCommissionRows(req) {
+  const { user_name, policy_number, start_date, end_date, range } = req.query;
 
-  // apply filters to each? easiest is wrap:
-  const filtered = `
-    SELECT *
-    FROM (${sql}) t
-    ${whereSql.replaceAll('application_date', 't.application_date')}
-    ORDER BY t.application_date DESC
+  const params = [];
+  let i = 1;
+  const filters = [];
+
+  if (user_name) {
+    filters.push(`LOWER(full_name) LIKE LOWER($${i++})`);
+    params.push(`%${user_name}%`);
+  }
+  if (policy_number) {
+    filters.push(`policy_number ILIKE $${i++}`);
+    params.push(`%${policy_number}%`);
+  }
+
+  // Use commission_distribution_date for commission export ranges
+  if (start_date && end_date) {
+    filters.push(`commission_distribution_date::date BETWEEN $${i++} AND $${i++}`);
+    params.push(start_date, end_date);
+  }
+  const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+  // IMPORTANT: every column's type matches across both SELECTs
+  const sql = `
+    SELECT * FROM (
+      SELECT
+        'commission_life'::text                      AS table_type,
+        id::int                                      AS id,
+        user_id::int                                 AS user_id,
+        full_name::text                              AS user_name,
+        hierarchy_level::text                        AS hierarchy_level,
+        commission_distribution_date::date           AS commission_distribution_date,
+        carrier_name::text                           AS carrier_name,
+        product_name::text                           AS product_name,
+        policy_number::text                          AS policy_number,
+        insured_name::text                           AS insured_name,
+        writing_agent::text                          AS writing_agent,
+        face_amount::numeric                         AS face_amount,
+        initial_premium::numeric                     AS initial_premium,
+        target_premium::numeric                      AS base_premium,
+        commission_from_carrier::numeric             AS commission_from_carrier,
+        product_rate::numeric                        AS product_rate,
+        split_percent::numeric                       AS split_percent,
+        split_with_id::int                           AS split_with_id,
+        commission_percent::numeric                  AS commission_percent,
+        commission_amount::numeric                   AS commission_amount,
+        order_type::text                             AS order_type,
+        mra_status::text                             AS mra_status,
+        explanation::text                            AS explanation,
+        policy_effective_date::date                  AS policy_effective_date
+      FROM commission_life
+
+      UNION ALL
+
+      SELECT
+        'commission_annuity'::text                   AS table_type,
+        id::int                                      AS id,
+        user_id::int                                 AS user_id,
+        full_name::text                              AS user_name,
+        hierarchy_level::text                        AS hierarchy_level,
+        commission_distribution_date::date           AS commission_distribution_date,
+        carrier_name::text                           AS carrier_name,
+        product_name::text                           AS product_name,
+        policy_number::text                          AS policy_number,
+        insured_name::text                           AS insured_name,
+        writing_agent::text                          AS writing_agent,
+        NULL::numeric                                AS face_amount,          -- annuity has no face
+        initial_premium::numeric                     AS initial_premium,
+        flex_premium::numeric                        AS base_premium,         -- unify name
+        commission_from_carrier::numeric             AS commission_from_carrier,
+        product_rate::numeric                        AS product_rate,
+        split_percent::numeric                       AS split_percent,
+        split_with_id::int                           AS split_with_id,
+        commission_percent::numeric                  AS commission_percent,
+        commission_amount::numeric                   AS commission_amount,
+        order_type::text                             AS order_type,
+        mra_status::text                             AS mra_status,
+        explanation::text                            AS explanation,
+        policy_effective_date::date                  AS policy_effective_date
+      FROM commission_annuity
+    ) u
+    ${where}
+    ORDER BY commission_distribution_date DESC, id DESC
   `;
-  const { rows } = await client.query(filtered, [...baseParams, ...params]);
+
+  const { rows } = await pool.query(sql, params);
   return rows;
 }
 
