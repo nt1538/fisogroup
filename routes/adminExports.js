@@ -125,7 +125,7 @@ async function fetchCommissionRows(req) {
       SELECT
         'commission_life'::text                      AS table_type,
         id::int                                      AS id,
-        user_id::int                                 AS user_id,
+        user_id::VARCHAR                             AS user_id,
         full_name::text                              AS user_name,
         hierarchy_level::text                        AS hierarchy_level,
         commission_distribution_date::date           AS commission_distribution_date,
@@ -154,7 +154,7 @@ async function fetchCommissionRows(req) {
       SELECT
         'commission_annuity'::text                   AS table_type,
         id::int                                      AS id,
-        user_id::int                                 AS user_id,
+        user_id::VARCHAR                             AS user_id,
         full_name::text                              AS user_name,
         hierarchy_level::text                        AS hierarchy_level,
         commission_distribution_date::date           AS commission_distribution_date,
