@@ -52,7 +52,7 @@ function getColumns(kind) {
   if (kind === 'commission') {
     return [
       { header: 'User ID', key: 'user_id', width: 10 },
-      { header: 'Payee Name', key: 'full_name', width: 22 },
+      { header: 'Payee Name', key: 'user_name', width: 22 },
       { header: 'Level', key: 'hierarchy_level', width: 14 },
       { header: 'Commission Date', key: 'commission_distribution_date', width: 16 },
       { header: 'Carrier', key: 'carrier_name', width: 18 },
@@ -62,7 +62,11 @@ function getColumns(kind) {
       { header: 'Writing Agent', key: 'writing_agent', width: 18 },
       { header: 'Face Amount', key: 'face_amount', width: 14 },
       { header: 'Initial Premium', key: 'initial_premium', width: 16 },
-      { header: 'Target/Base Premium', key: 'base_premium', width: 18 },
+
+      // ▶▶ Separate columns:
+      { header: 'Target Premium', key: 'target_premium', width: 16 },
+      { header: 'Base Premium', key: 'flex_premium', width: 16 },
+
       { header: 'Product Rate %', key: 'product_rate', width: 14 },
       { header: 'Split %', key: 'split_percent', width: 10 },
       { header: 'Split ID', key: 'split_with_id', width: 12 },
@@ -74,6 +78,7 @@ function getColumns(kind) {
       { header: 'Policy Effective', key: 'policy_effective_date', width: 16 },
     ];
   }
+
   // application
   return [
     { header: 'User ID', key: 'user_id', width: 10 },
@@ -87,7 +92,11 @@ function getColumns(kind) {
     { header: 'Status', key: 'application_status', width: 14 },
     { header: 'Face Amount', key: 'face_amount', width: 14 },
     { header: 'Initial Premium', key: 'initial_premium', width: 16 },
-    { header: 'Target/Base Premium', key: 'base_premium', width: 18 },
+
+    // ▶▶ Separate columns:
+    { header: 'Target Premium', key: 'target_premium', width: 16 },
+    { header: 'Base Premium', key: 'flex_premium', width: 16 },
+
     { header: 'Product Rate %', key: 'product_rate', width: 14 },
     { header: 'Split %', key: 'split_percent', width: 10 },
     { header: 'Split ID', key: 'split_with_id', width: 12 },
@@ -97,7 +106,7 @@ function getColumns(kind) {
 
 // helpers to fetch rows (same filters as list)
 async function fetchCommissionRows(req) {
-  const { user_name, policy_number, start_date, end_date, range } = req.query;
+  const { user_name, policy_number, start_date, end_date } = req.query;
 
   const params = [];
   let i = 1;
@@ -112,70 +121,72 @@ async function fetchCommissionRows(req) {
     params.push(`%${policy_number}%`);
   }
 
-  // Use commission_distribution_date for commission export ranges
   if (start_date && end_date) {
     filters.push(`commission_distribution_date::date BETWEEN $${i++} AND $${i++}`);
     params.push(start_date, end_date);
   }
   const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
-  // IMPORTANT: every column's type matches across both SELECTs
   const sql = `
     SELECT * FROM (
       SELECT
-        'commission_life'::text                      AS table_type,
-        id::int                                      AS id,
-        user_id::VARCHAR                             AS user_id,
-        full_name::text                              AS user_name,
-        hierarchy_level::text                        AS hierarchy_level,
-        commission_distribution_date::date           AS commission_distribution_date,
-        carrier_name::text                           AS carrier_name,
-        product_name::text                           AS product_name,
-        policy_number::text                          AS policy_number,
-        insured_name::text                           AS insured_name,
-        writing_agent::text                          AS writing_agent,
-        face_amount::numeric                         AS face_amount,
-        initial_premium::numeric                     AS initial_premium,
-        target_premium::numeric                      AS base_premium,
-        commission_from_carrier::numeric             AS commission_from_carrier,
-        product_rate::numeric                        AS product_rate,
-        split_percent::numeric                       AS split_percent,
-        split_with_id::VARCHAR                       AS split_with_id,
-        commission_percent::numeric                  AS commission_percent,
-        commission_amount::numeric                   AS commission_amount,
-        order_type::text                             AS order_type,
-        mra_status::text                             AS mra_status,
-        explanation::text                            AS explanation,
-        policy_effective_date::date                  AS policy_effective_date
+        'commission_life'::text            AS table_type,
+        id::int                            AS id,
+        user_id::varchar                   AS user_id,
+        full_name::text                    AS user_name,
+        hierarchy_level::text              AS hierarchy_level,
+        commission_distribution_date::date AS commission_distribution_date,
+        carrier_name::text                 AS carrier_name,
+        product_name::text                 AS product_name,
+        policy_number::text                AS policy_number,
+        insured_name::text                 AS insured_name,
+        writing_agent::text                AS writing_agent,
+        face_amount::numeric               AS face_amount,
+        initial_premium::numeric           AS initial_premium,
+        target_premium::numeric            AS target_premium,       -- life has target
+        NULL::numeric                      AS flex_premium,         -- no base for life
+        target_premium::numeric            AS base_premium,         -- keep unified if you still need it
+        commission_from_carrier::numeric   AS commission_from_carrier,
+        product_rate::numeric              AS product_rate,
+        split_percent::numeric             AS split_percent,
+        split_with_id::varchar             AS split_with_id,
+        commission_percent::numeric        AS commission_percent,
+        commission_amount::numeric         AS commission_amount,
+        order_type::text                   AS order_type,
+        mra_status::text                   AS mra_status,
+        explanation::text                  AS explanation,
+        policy_effective_date::date        AS policy_effective_date
       FROM commission_life
 
       UNION ALL
 
       SELECT
-        'commission_annuity'::text                   AS table_type,
-        id::int                                      AS id,
-        user_id::VARCHAR                             AS user_id,
-        full_name::text                              AS user_name,
-        hierarchy_level::text                        AS hierarchy_level,
-        commission_distribution_date::date           AS commission_distribution_date,
-        carrier_name::text                           AS carrier_name,
-        product_name::text                           AS product_name,
-        policy_number::text                          AS policy_number,
-        insured_name::text                           AS insured_name,
-        writing_agent::text                          AS writing_agent,
-        NULL::numeric                                AS face_amount,          -- annuity has no face
-        initial_premium::numeric                     AS initial_premium,
-        flex_premium::numeric                        AS base_premium,         -- unify name
-        commission_from_carrier::numeric             AS commission_from_carrier,
-        product_rate::numeric                        AS product_rate,
-        split_percent::numeric                       AS split_percent,
-        split_with_id::VARCHAR                       AS split_with_id,
-        commission_percent::numeric                  AS commission_percent,
-        commission_amount::numeric                   AS commission_amount,
-        order_type::text                             AS order_type,
-        mra_status::text                             AS mra_status,
-        explanation::text                            AS explanation,
-        policy_effective_date::date                  AS policy_effective_date
+        'commission_annuity'::text         AS table_type,
+        id::int                            AS id,
+        user_id::varchar                   AS user_id,
+        full_name::text                    AS user_name,
+        hierarchy_level::text              AS hierarchy_level,
+        commission_distribution_date::date AS commission_distribution_date,
+        carrier_name::text                 AS carrier_name,
+        product_name::text                 AS product_name,
+        policy_number::text                AS policy_number,
+        insured_name::text                 AS insured_name,
+        writing_agent::text                AS writing_agent,
+        NULL::numeric                      AS face_amount,          -- annuity: no face
+        initial_premium::numeric           AS initial_premium,
+        NULL::numeric                      AS target_premium,       -- no target for annuity
+        flex_premium::numeric              AS flex_premium,         -- annuity base
+        flex_premium::numeric              AS base_premium,         -- keep unified if needed
+        commission_from_carrier::numeric   AS commission_from_carrier,
+        product_rate::numeric              AS product_rate,
+        split_percent::numeric             AS split_percent,
+        split_with_id::varchar             AS split_with_id,
+        commission_percent::numeric        AS commission_percent,
+        commission_amount::numeric         AS commission_amount,
+        order_type::text                   AS order_type,
+        mra_status::text                   AS mra_status,
+        explanation::text                  AS explanation,
+        policy_effective_date::date        AS policy_effective_date
       FROM commission_annuity
     ) u
     ${where}
