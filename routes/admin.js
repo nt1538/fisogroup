@@ -234,7 +234,7 @@ router.put('/orders/:type/:id', verifyToken, verifyAdmin, async (req, res) => {
             initial_premium: updatedOrder.initial_premium * split_percent / 100,
             target_premium: updatedOrder.target_premium * split_percent / 100,
             commission_from_carrier: updatedOrder.commission_from_carrier * split_percent / 100,
-            split_id : id,
+            split_id : userId,
             split_percent: remainingPercent,
             writing_agent: splitWritingAgent
           };
