@@ -18,6 +18,11 @@
             <el-input v-model="password" type="password" placeholder="Password" />
           </el-form-item>
 
+          <!-- NEW: Confirm Password -->
+          <el-form-item class="no-border">
+            <el-input v-model="confirmPassword" type="password" placeholder="Confirm Password" />
+          </el-form-item>
+
           <el-form-item class="no-border">
             <el-input v-model="phone" placeholder="Phone" />
           </el-form-item>
@@ -58,28 +63,46 @@ const router = useRouter();
 const name = ref('');
 const email = ref('');
 const password = ref('');
+const confirmPassword = ref(''); // NEW
 const phone = ref('');
 const state = ref('');
 const national_producer_number = ref('');
 const introducer_id = ref('');
 const errorMessage = ref('');
+
 const US_STATE_ABBREVIATIONS = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
-]
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
+  "HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
+  "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
+  "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"
+];
 
 const toSha256 = async (text) => {
   const buffer = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 };
 
 const register = async () => {
+  errorMessage.value = '';
+
   if (!name.value || !email.value || !password.value || !phone.value || !state.value || !introducer_id.value) {
     errorMessage.value = '⚠️ All required fields must be filled.';
+    return;
+  }
+
+  // Basic password confirmation check
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = '⚠️ Password and Confirm Password do not match.';
+    return;
+  }
+
+  // (Optional) basic length requirement
+  if (password.value.length < 8) {
+    errorMessage.value = '⚠️ Password must be at least 8 characters.';
     return;
   }
 
@@ -98,7 +121,7 @@ const register = async () => {
 
     router.push('/login');
   } catch (error) {
-    if (error.response && error.response.data && error.response.data.error) {
+    if (error.response?.data?.error) {
       errorMessage.value = error.response.data.error;
     } else {
       errorMessage.value = 'Registration failed.';
@@ -122,16 +145,9 @@ const register = async () => {
   text-align: center;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
-.txt-title {
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-.no-border {
-  margin-bottom: 20px;
-}
-.el-button {
-  width: 100%;
-}
+.txt-title { font-size: 24px; margin-bottom: 20px; }
+.no-border { margin-bottom: 20px; }
+.el-button { width: 100%; }
 .error-message {
   background: rgba(255, 0, 0, 0.1);
   color: #d8000c;
