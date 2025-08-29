@@ -390,7 +390,7 @@ async function handleCommissions(order, userId, table_type) {
       excessOrderRow,
       user,
       'Excess',
-      commissionPercent,
+      effectivePct,
       commissionAmount,
       explanation,
       order.id,
