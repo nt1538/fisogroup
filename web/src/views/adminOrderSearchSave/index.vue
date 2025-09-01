@@ -173,11 +173,27 @@ function formatDate(dateStr) {
 }
 
 async function renew(order) {
-  if (!confirm(`Create renewal commission for order #${order.id}?`)) return;
+  // show a simple prompt (could be replaced by an Element Plus dialog later)
+  const defaultVal = order.table_type.includes('life')
+    ? (order.target_premium ?? '')
+    : '';
+  const input = window.prompt(
+    `Enter the actual renewal-paid amount for policy ${order.policy_number}.\n` +
+    `Leave blank to use target premium (${defaultVal || 0}).`,
+    defaultVal
+  );
+
+  if (input === null) return; // cancelled
+
+  const payload = {};
+  const num = Number(input);
+  if (input !== '' && Number.isFinite(num) && num >= 0) {
+    payload.paid_amount = num;
+  }
+
   try {
-    await axios.post(`/admin/saved/${order.table_type}/${order.id}/renewal`);
+    await axios.post(`/admin/saved/${order.table_type}/${order.id}/renewal`, payload);
     alert('Renewal commission created.');
-    // Optionally refresh the list
     await loadOrdersByRange('all');
   } catch (err) {
     console.error('Renewal failed', err);

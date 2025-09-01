@@ -85,74 +85,82 @@ async function insertCommissionRow(client, table, order, userRow, orderType, com
 
 // --- RENEWAL (life only, no split, agent renewal rate × level %) ---
 router.post('/saved/:tableType/:id/renewal', verifyToken, verifyAdmin, async (req, res) => {
-  const { tableType, id } = req.params
+  const { tableType, id } = req.params;
 
-  // Life only
   if (tableType !== 'saved_life_orders') {
-    return res.status(400).json({ error: 'Renewal is only available for life products' })
+    return res.status(400).json({ error: 'Renewal is only available for life products' });
   }
-  const commissionTable = 'commission_life'
+  const commissionTable = 'commission_life';
 
-  const client = await pool.connect()
+  const client = await pool.connect();
   try {
-    await client.query('BEGIN')
+    await client.query('BEGIN');
 
-    // 1) Load saved life order
     const { rows: ordRows } = await client.query(
       `SELECT * FROM ${tableType} WHERE id = $1 FOR UPDATE`,
       [id]
-    )
+    );
     if (!ordRows.length) {
-      await client.query('ROLLBACK'); client.release()
-      return res.status(404).json({ error: 'Saved order not found' })
+      await client.query('ROLLBACK'); client.release();
+      return res.status(404).json({ error: 'Saved order not found' });
     }
-    const saved = ordRows[0]
+    const saved = ordRows[0];
 
-    // 2) Resolve agent renewal rate from product tables
+    // resolve agent renewal rate
     const prod = await resolveProductForOrder({
       product_line: 'life',
       carrier_name: saved.carrier_name,
       product_name: saved.product_name,
       age_bracket: null
-    }, client)
+    }, client);
 
-    const agentRenewalRate = prod ? Number(prod.agent_renewal_rate || 0) : 0
+    const agentRenewalRate = prod ? Number(prod.agent_renewal_rate || 0) : 0;
     if (!Number.isFinite(agentRenewalRate) || agentRenewalRate <= 0) {
-      await client.query('ROLLBACK'); client.release()
-      return res.status(400).json({ error: 'No agent renewal rate found for this product' })
+      await client.query('ROLLBACK'); client.release();
+      return res.status(400).json({ error: 'No agent renewal rate found for this product' });
     }
 
-    // 3) Base = target_premium (life)
-    const basePremium = Number(saved.target_premium || 0)
+    // --- NEW: optional override from admin ---
+    // accept paid_amount (preferred) or renewal_base
+    const rawInput = req.body?.paid_amount ?? req.body?.renewal_base;
+    let basePremium = Number(saved.target_premium || 0);
+    if (rawInput !== undefined && rawInput !== null && rawInput !== '') {
+      const typed = Number(rawInput);
+      if (!Number.isFinite(typed) || typed < 0) {
+        await client.query('ROLLBACK'); client.release();
+        return res.status(400).json({ error: 'Invalid paid amount' });
+      }
+      basePremium = typed;
+    }
 
-    // 4) Get writing agent + level percent
+    // writer + level
     const { rows: uRows } = await client.query(
       `SELECT id, name, national_producer_number, hierarchy_level FROM users WHERE id = $1`,
       [saved.user_id]
-    )
+    );
     if (!uRows.length) {
-      await client.query('ROLLBACK'); client.release()
-      return res.status(404).json({ error: 'Writing agent not found' })
+      await client.query('ROLLBACK'); client.release();
+      return res.status(404).json({ error: 'Writing agent not found' });
     }
-    const writer = uRows[0]
-    const levelPct = await getLevelPercent(client, writer.hierarchy_level) // e.g., 25, 30, ...
+    const writer = uRows[0];
+    const levelPct = await getLevelPercent(client, writer.hierarchy_level);
 
-    // 5) Effective % = agentRenewalRate × levelPct / 100
-    const effectivePercent = agentRenewalRate * (levelPct / 100)
+    const effectivePercent = agentRenewalRate * (levelPct / 100);
+    const commissionAmount = basePremium * (effectivePercent / 100);
 
-    // 6) Commission amount = base × effective% / 100
-    const commissionAmount = basePremium * (effectivePercent / 100)
-
-    // Prepare order row for insert
+    // reflect the admin-entered base & stamp commission date
     const orderForInsert = {
       ...saved,
-      product_rate: agentRenewalRate, // show which rate this renewal used
-      split_percent: 100,             // NO split on renewal
-      split_with_id: null
-    }
+      product_rate: agentRenewalRate,
+      target_premium: basePremium,                       // <— use the entered amount
+      split_percent: 100,
+      split_with_id: null,
+      commission_distribution_date: new Date().toISOString(), // stamp now
+    };
 
     const explanation =
-      `Renewal — agent_renewal_rate ${agentRenewalRate}% × level ${levelPct}% = effective ${effectivePercent.toFixed(2)}% on target_premium`
+      `Renewal — agent_renewal_rate ${agentRenewalRate}% × level ${levelPct}% = ` +
+      `effective ${effectivePercent.toFixed(2)}% on entered base ${basePremium}`;
 
     await insertCommissionRow(
       client,
@@ -163,23 +171,22 @@ router.post('/saved/:tableType/:id/renewal', verifyToken, verifyAdmin, async (re
       effectivePercent,
       commissionAmount,
       explanation
-    )
+    );
 
-    // Only total_earnings (no team_profit changes)
     await client.query(
-      'UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2',
+      `UPDATE users SET total_earnings = total_earnings + $1 WHERE id = $2`,
       [commissionAmount, writer.id]
-    )
+    );
 
-    await client.query('COMMIT')
-    res.json({ ok: true, message: 'Renewal commission created' })
+    await client.query('COMMIT');
+    res.json({ ok: true, message: 'Renewal commission created', base_used: basePremium });
   } catch (e) {
-    await client.query('ROLLBACK')
-    console.error('Renewal error', e)
-    res.status(500).json({ error: 'Failed to create renewal commission' })
+    await client.query('ROLLBACK');
+    console.error('Renewal error', e);
+    res.status(500).json({ error: 'Failed to create renewal commission' });
   } finally {
-    client.release()
+    client.release();
   }
-})
+});
 
 module.exports = router
