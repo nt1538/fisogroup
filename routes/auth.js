@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db'); // adjust if your DB connection file is different
 const router = express.Router();
 const nodemailer = require('nodemailer');
+const { sendEmail } = require('../utils/sendEmail');
 require('dotenv').config();
 
 // ==============================
