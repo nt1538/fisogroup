@@ -56,7 +56,12 @@
       </div>
 
       <button @click="saveUser" class="btn">Save</button>
-      <button @click="goChangePassword" class="btn">Change Password</button>
+      <router-link
+        class="btn"
+        :to="`/admin/employees/${userId}/change-password`"
+      >
+        Change Password
+      </router-link>
     </div>
     <div v-else>Loading...</div>
   </AdminLayout>
@@ -82,10 +87,6 @@ async function saveUser() {
   alert('Save Completed! ');
 }
 
-function goChangePassword() {
-  // assuming your route base is /admin
-  window.location.href = `/admin/employees/${userId}/change-password`;
-}
 </script>
 
 <style scoped>
