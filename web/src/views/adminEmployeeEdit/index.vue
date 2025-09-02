@@ -55,7 +55,8 @@
         <input v-model="user.national_producer_number" type="text" />
       </div>
 
-      <button @click="saveUser">Save</button>
+      <button @click="saveUser" class="btn">Save</button>
+      <button @click="goChangePassword" class="btn">Change Password</button>
     </div>
     <div v-else>Loading...</div>
   </AdminLayout>
@@ -80,6 +81,11 @@ async function saveUser() {
   await axios.put(`/admin/employees/${userId}`, user.value);
   alert('Save Completed! ');
 }
+
+function goChangePassword() {
+  // assuming your route base is /admin
+  window.location.href = `/admin/employees/${userId}/change-password`;
+}
 </script>
 
 <style scoped>
@@ -91,7 +97,14 @@ input, select {
   padding: 8px;
   border: 1px solid #ccc;
 }
-button {
-  padding: 10px 20px;
+.btn {
+  margin-left: 10px;
+  background: #0055a4;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
+.btn:hover { background: #003f82; }
 </style>

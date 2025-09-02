@@ -4,6 +4,8 @@ const pool = require('../db');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 const { handleCommissions, getHierarchy } = require('../utils/commission');
 const { resolveProductForOrder } = require('../utils/productResolver')
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 
 // 🔍 多条件搜索订单（life + annuity 合并）
@@ -508,6 +510,37 @@ router.get('/org-chart', verifyToken, verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error fetching org chart:', err);
     res.status(500).json({ error: 'Failed to load organization chart' });
+  }
+});
+
+router.put('/employees/:id/password', verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { new_password } = req.body;
+
+  try {
+    if (!new_password || typeof new_password !== 'string' || new_password.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+
+    // Your login flow bcrypt-compares against a SHA-256 string, so:
+    // If the admin sends a 64-char hex (already SHA-256), use it.
+    // Otherwise, SHA-256 it here before bcrypt hashing.
+    const isSha256Hex = /^[a-f0-9]{64}$/i.test(new_password);
+    const sha256Hex = isSha256Hex
+      ? new_password
+      : crypto.createHash('sha256').update(new_password, 'utf8').digest('hex');
+
+    const bcryptHash = await bcrypt.hash(sha256Hex, 10);
+
+    await pool.query(
+      `UPDATE users SET password = $1 WHERE id = $2`,
+      [bcryptHash, id]
+    );
+
+    res.json({ ok: true, message: 'Password updated.' });
+  } catch (err) {
+    console.error('Admin change password error:', err);
+    res.status(500).json({ error: 'Failed to update password' });
   }
 });
 
