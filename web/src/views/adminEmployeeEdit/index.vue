@@ -33,7 +33,7 @@
       </div>
 
       <div class="form-group">
-        <label>Team Profit</label>
+        <label>Team Production</label>
         <input v-model="user.team_profit" type="number" />
       </div>
 

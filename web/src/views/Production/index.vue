@@ -132,7 +132,7 @@ onMounted(loadAll);
 </script>
 
 <style scoped>
-.dashboard { display: flex; }
+.dashboard { display: flex; overflow-y: scroll;}
 .page {
   flex: 1; padding: 32px; background: #f4f4f4;
   min-height: 100vh; margin-left: 280px;
