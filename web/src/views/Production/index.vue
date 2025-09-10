@@ -132,10 +132,11 @@ onMounted(loadAll);
 </script>
 
 <style scoped>
-.dashboard { display: flex; overflow-y: scroll;}
+.dashboard { display: flex; }
 .page {
   flex: 1; padding: 32px; background: #f4f4f4;
   min-height: 100vh; margin-left: 280px;
+  overflow-y: scroll;
 }
 .filter-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .filter-buttons button {
