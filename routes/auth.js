@@ -177,14 +177,14 @@ router.post('/register', async (req, res) => {
           subject: 'Welcome to FISO Group!',
           html: `<pre style="font-family:inherit;white-space:pre-wrap">${createWelcomeEmail(
             name,
-            newId,
+            id,
             introducer.name,
             introducer.id
           )}</pre>`
         });
 
         // walk the chain and notify
-        const supervisors = await getAllSupervisors(newId);
+        const supervisors = await getAllSupervisors(id);
         for (const sup of supervisors) {
           if (!sup?.email) continue;
           await sendEmail({
@@ -193,7 +193,7 @@ router.post('/register', async (req, res) => {
             html: `<pre style="font-family:inherit;white-space:pre-wrap">${createIntroducerEmail(
               introducer.name,
               name,
-              newId,
+              id,
               phone,
               email,
               introducer.id
@@ -224,8 +224,8 @@ router.post('/register', async (req, res) => {
           });
         }
       }
-      if (newId) {
-        const { rows: check2 } = await pool.query('SELECT id FROM users WHERE id = $1', [newId]);
+      if (id) {
+        const { rows: check2 } = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
         if (check2.length) {
           return res.json({
             message: 'User registered successfully. If you did not receive a welcome email, please check spam or contact support.'
