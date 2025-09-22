@@ -131,6 +131,12 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Introducer ID is required.' });
     }
 
+    const { rows: existing } = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.length) {
+      // Already registered — treat as success
+      return res.json({ message: 'Account already exists. You can log in.' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const percent = 70;
     const stateUpper = state?.toUpperCase() || null;
@@ -164,41 +170,74 @@ router.post('/register', async (req, res) => {
       ]
     );
 
-    const hierarchy = await getAllSupervisors(id);
+    (async () => {
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to FISO Group!',
+          html: `<pre style="font-family:inherit;white-space:pre-wrap">${createWelcomeEmail(
+            name,
+            newId,
+            introducer.name,
+            introducer.id
+          )}</pre>`
+        });
 
-    // Send welcome email to the new user
-    await sendEmail({
-      to: email,
-      subject: 'Welcome to FISO Group!',
-      html: `<pre style="font-family:inherit;white-space:pre-wrap">${createWelcomeEmail(
-        name,
-        id,
-        introducer.name,
-        introducer.id // or introducer_id
-      )}</pre>`
+        // walk the chain and notify
+        const supervisors = await getAllSupervisors(newId);
+        for (const sup of supervisors) {
+          if (!sup?.email) continue;
+          await sendEmail({
+            to: sup.email,
+            subject: 'New Team Member Joined',
+            html: `<pre style="font-family:inherit;white-space:pre-wrap">${createIntroducerEmail(
+              introducer.name,
+              name,
+              newId,
+              phone,
+              email,
+              introducer.id
+            )}</pre>`
+          });
+        }
+      } catch (mailErr) {
+        console.error('⚠️ Email notification failed (registration succeeded):', mailErr);
+      }
+    })();
+
+    // ✅ Always report success once DB insert succeeded
+    return res.json({
+      message: 'User registered successfully. If you did not receive a welcome email, please check spam or contact support.'
     });
 
-    // Notify supervisors
-    for (const supervisor of hierarchy) {
-      if (!supervisor?.email) continue;
-      await sendEmail({
-        to: supervisor.email,
-        subject: 'New Team Member Joined',
-        html: `<pre style="font-family:inherit;white-space:pre-wrap">${createIntroducerEmail(
-          introducer.name,
-          name,
-          id,
-          phone,
-          email,
-          introducer.id // or introducer_id
-        )}</pre>`
-      });
+  } catch (err) {
+    console.error('Registration error (outer):', err);
+
+    // If something threw after the user was created (or due to a race),
+    // verify user existence and still return success.
+    try {
+      if (email) {
+        const { rows: check } = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (check.length) {
+          return res.json({
+            message: 'User registered successfully. If you did not receive a welcome email, please check spam or contact support.'
+          });
+        }
+      }
+      if (newId) {
+        const { rows: check2 } = await pool.query('SELECT id FROM users WHERE id = $1', [newId]);
+        if (check2.length) {
+          return res.json({
+            message: 'User registered successfully. If you did not receive a welcome email, please check spam or contact support.'
+          });
+        }
+      }
+    } catch (verifyErr) {
+      console.error('Post-error verification failed:', verifyErr);
     }
 
-    res.json({ message: 'User registered successfully and emails sent.' });
-  } catch (err) {
-    console.error('Registration error:', err);
-    res.status(500).json({ error: 'Registration failed' });
+    // Otherwise it really failed to create the account
+    return res.status(500).json({ error: 'Registration failed' });
   }
 });
 
