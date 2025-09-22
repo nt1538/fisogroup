@@ -149,8 +149,8 @@ router.post('/register', async (req, res) => {
     const introducer = introducerCheck.rows[0];
 
     await pool.query(
-      `INSERT INTO users (id, name, email, phone, password, introducer_id, state, hierarchy_level, national_producer_number,team_profit)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0)`,
+      `INSERT INTO users (id, name, email, phone, password, introducer_id, state, hierarchy_level, national_producer_number,team_profit,personal_production)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 0)`,
       [
         id,
         name,
