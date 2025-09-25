@@ -19,7 +19,7 @@
     en: {
       title: 'FISO WEALTH MANAGEMENT',
       desc1: 'FIT IN STAND OUT',
-      desc2: 'WEALTH WORLDWIDE, TALENTS WORLDWIDE',
+      desc2: '',
       desc3: `FISO WEALTH is an international financial marketing company. We have years of experience providing one-stop financial services that focuses on your needs, wants and long-term goals. Once you become our client, you will always have our attention because we are committed to serve for your financial needs for life.`
     },
     zh: {

@@ -61,7 +61,7 @@
       contact: 'Connect us',
       qrcode: 'Wechat',
       phone: '+1 872-222-0555',
-      email: 'wealthmanagementjw@gmail.com',
+      email: 'info@fisogroup.com',
       wechat: 'W8722220555',
       addres_con: '200 E Randolph ST, Suite 5100, Chicago, 60601'
     },
@@ -70,7 +70,7 @@
       contact: 'Contact',
       qrcode: 'Wechat',
       phone: '+1 872-222-0555',
-      email: 'wealthmanagementjw@gmail.com',
+      email: 'info@fisogroup.com',
       wechat: 'W8722220555',
       addres_con: '200 E Randolph ST, Suite 5100, Chicago, 60601'
     },
@@ -79,7 +79,7 @@
       contact: '联系方式',
       qrcode: '微信二维码',
       phone: '电话: +1 872-222-0555',
-      email: '邮箱: wealthmanagementjw@gmail.com',
+      email: '邮箱: info@fisogroup.com',
       wechat: '微信: W8722220555',
       addres_con: '200 E Randolph ST, Suite 5100, Chicago, 60601'
     }
