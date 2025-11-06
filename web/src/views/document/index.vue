@@ -18,7 +18,7 @@
       <!-- SureLC Section -->
       <h1 class="title">FISO SureLC™</h1>
       <div class="surelc-card">
-        <img src="@/assets/fiso-surelc.png" alt="FISO SureLC QR Code" class="qr" />
+        <img src="@/assets/img/fiso-surelc.png" alt="FISO SureLC QR Code" class="qr" />
         <a
           href="https://surelc.surancebay.com/sbweb/login.jsp?branch=FISO%20Group&branchEditable=off&branchRequired=on&branchVisible=on&gaId=222&gaName=BGA%20Life%20Insurance%20Services"
           target="_blank"
