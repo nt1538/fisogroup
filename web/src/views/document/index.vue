@@ -15,7 +15,7 @@
         <p>Use this area to store or present downloadable licenses and certificates.</p>
       </div>
 
-      <!-- SureLC Section -->
+      <!-- ✅ FISO SureLC Section -->
       <h1 class="title">FISO SureLC™</h1>
       <div class="surelc-card">
         <img src="@/assets/img/fiso-surelc.png" alt="FISO SureLC QR Code" class="qr" />
@@ -66,19 +66,23 @@ import Sidebar from '@/components/Sidebar.vue';
   color: #333;
 }
 
-/* SureLC Section */
+/* ✅ FISO SureLC Section */
 .surelc-card {
   background: white;
-  padding: 30px;
+  padding: 40px 30px;
   border-radius: 8px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
+  margin-bottom: 50px;
 }
 
 .qr {
-  width: 180px;
+  width: 200px;
   height: auto;
-  margin-bottom: 20px;
+  display: block;
+  margin: 0 auto 25px auto;
+  border-radius: 8px;
+  border: 1px solid #ddd;
 }
 
 .surelc-button {
@@ -86,7 +90,7 @@ import Sidebar from '@/components/Sidebar.vue';
   background-color: #003366;
   color: #fff;
   font-weight: bold;
-  padding: 12px 24px;
+  padding: 12px 28px;
   border-radius: 6px;
   text-decoration: none;
   transition: background-color 0.3s ease;
