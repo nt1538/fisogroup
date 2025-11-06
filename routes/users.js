@@ -159,6 +159,51 @@ router.get('/org-chart/:id', verifyToken, async (req, res) => {
   }
 });
 
+// ✅ Change password
+router.post('/change-password', verifyToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user.id; // comes from verifyToken middleware
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Missing current or new password.' });
+  }
+
+  try {
+    const client = await pool.connect();
+
+    // Fetch current user
+    const userQuery = await client.query('SELECT id, password FROM users WHERE id = $1', [userId]);
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      client.release();
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Compare old password
+    const bcrypt = require('bcryptjs');
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+
+    if (!validPassword) {
+      client.release();
+      return res.status(401).json({ error: 'Incorrect current password.' });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update in DB
+    await client.query('UPDATE users SET password = $1 WHERE id = $2', [hashedNewPassword, userId]);
+    client.release();
+
+    res.json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    console.error('Error updating password:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+
 
 module.exports = router;
 
